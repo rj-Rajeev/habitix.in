@@ -58,18 +58,32 @@ const authOptions: NextAuthOptions = {
 
       try {
         // Save or update the OAuth user using your custom registerUser function.
-        await registerUser({
+        const dbUser: any = await registerUser({
           fullname: user.name || "OAuth User", // Fallback if name is missing.
           email: user.email!,
           // No password is provided for OAuth users.
           provider: account?.provider as "google" | "github",
           providerId: String(account?.id),
         });
+        user.id = dbUser._id.toString();
         return true;
       } catch (error) {
         console.error("Error registering OAuth user:", error);
         return false;
       }
+    },
+    async jwt({ token, user }) {
+      if (user) {
+        // Add the user's MongoDB _id to the token
+        token.id = (user as any).id; // user.id from authorize() or provider signup
+      }
+      return token;
+    },
+    async session({ session, token }) {
+      if (token?.id && session.user) {
+        session.user.id = token.id;
+      }
+      return session;
     },
   },
   pages: {

@@ -1,14 +1,15 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import Link from 'next/link';
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { useSession } from "next-auth/react";
 import {
   AddCircleOutline,
   CheckCircleOutline,
   EmojiObjects,
   Timeline,
   TrendingUp,
-} from '@mui/icons-material';
+} from "@mui/icons-material";
 
 interface SummaryData {
   activeGoals: number;
@@ -22,21 +23,25 @@ export default function Dashboard() {
     activeGoals: 0,
     completedTasks: 23,
     ongoingSessions: 2,
-    streak: '7 Days',
+    streak: "7 Days",
   });
+
+  const { data: session, status } = useSession();
+
+  const userName = session?.user?.name || "User";
 
   useEffect(() => {
     // Fetch goal count
     const fetchData = async () => {
       try {
-        const res = await fetch('/api/goals/count');
+        const res = await fetch("/api/goals/count");
         const data = await res.json();
         setSummary((prev) => ({
           ...prev,
           activeGoals: data.count || 0,
         }));
       } catch (error) {
-        console.error('Error fetching summary:', error);
+        console.error("Error fetching summary:", error);
       }
     };
 
@@ -47,13 +52,25 @@ export default function Dashboard() {
     <main className="min-h-screen bg-gradient-to-br from-slate-100 to-slate-300 dark:from-slate-900 dark:to-slate-800 p-6">
       <div className="max-w-7xl mx-auto space-y-6">
         <section className="text-3xl font-semibold text-slate-800 dark:text-white">
-          Welcome back, 👋 Rajeev
+          Welcome back, 👋 {userName}
         </section>
 
         <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card icon={<TrendingUp />} label="Active Goals" value={String(summary.activeGoals)} />
-          <Card icon={<CheckCircleOutline />} label="Completed Tasks" value={String(summary.completedTasks)} />
-          <Card icon={<Timeline />} label="Ongoing Sessions" value={String(summary.ongoingSessions)} />
+          <Card
+            icon={<TrendingUp />}
+            label="Active Goals"
+            value={String(summary.activeGoals)}
+          />
+          <Card
+            icon={<CheckCircleOutline />}
+            label="Completed Tasks"
+            value={String(summary.completedTasks)}
+          />
+          <Card
+            icon={<Timeline />}
+            label="Ongoing Sessions"
+            value={String(summary.ongoingSessions)}
+          />
           <Card icon={<EmojiObjects />} label="Streak" value={summary.streak} />
         </section>
 
@@ -61,7 +78,11 @@ export default function Dashboard() {
           <div className="lg:col-span-2 glassy-card p-4">
             <h2 className="text-xl font-semibold mb-4">Today's Tasks</h2>
             <ul className="space-y-3">
-              {['Morning jog - 20 mins', 'Read 10 pages', 'Work on AI roadmap'].map((task, idx) => (
+              {[
+                "Morning jog - 20 mins",
+                "Read 10 pages",
+                "Work on AI roadmap",
+              ].map((task, idx) => (
                 <li
                   key={idx}
                   className="flex items-center justify-between bg-white/20 backdrop-blur-md p-3 rounded-xl shadow-sm"
@@ -76,7 +97,8 @@ export default function Dashboard() {
           <div className="space-y-6">
             <div className="glassy-card p-4 text-center">
               <p className="italic text-slate-700 dark:text-slate-200">
-                “Discipline is the bridge between goals and accomplishment.” – Jim Rohn
+                “Discipline is the bridge between goals and accomplishment.” –
+                Jim Rohn
               </p>
             </div>
 

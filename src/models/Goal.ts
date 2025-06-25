@@ -9,7 +9,22 @@ export interface IGoal extends Document {
   preferredTime: string;
   daysPerWeek: number;
   motivation?: string;
-  roadmap?: { day: number; task: string }[];
+  roadmap?: {
+    dayNumber: number;
+    date?: string;
+    unlocked: boolean;
+    completed: boolean;
+    tasks: {
+      title: string;
+      isCompleted: boolean;
+      createdAt: Date;
+    }[];
+    proof?: {
+      uploaded: boolean;
+      imageUrl?: string;
+      uploadedAt?: Date;
+    };
+  }[];
   createdAt: Date;
 }
 
@@ -24,11 +39,25 @@ const GoalSchema = new Schema<IGoal>({
   motivation: String,
   roadmap: [
     {
-      day: Number,
-      task: String,
-    },
+      dayNumber: { type: Number, required: true },
+      date: String,
+      unlocked: { type: Boolean, default: false },
+      completed: { type: Boolean, default: false },
+      tasks: [
+        {
+          title: { type: String, required: true },
+          isCompleted: { type: Boolean, default: false },
+          createdAt: { type: Date, default: Date.now }
+        }
+      ],
+      proof: {
+        uploaded: { type: Boolean, default: false },
+        imageUrl: String,
+        uploadedAt: Date
+      }
+    }
   ],
-  createdAt: { type: Date, default: Date.now },
+  createdAt: { type: Date, default: Date.now }
 });
 
 const Goal = models.Goal || model<IGoal>("Goal", GoalSchema);

@@ -1,12 +1,12 @@
-'use client';
+"use client";
 
-import { useState, useRef, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-
-type MessageRole = 'system' | 'user';
+import { useState, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
+import { log } from "util";
 
 interface Message {
-  role: MessageRole;
+  role: "system" | "user";
   text: string;
 }
 
@@ -19,11 +19,6 @@ interface GoalData {
   motivation: string;
 }
 
-interface RoadmapStep {
-  day: number;
-  task: string;
-}
-
 const questions = [
   "What's your goal?",
   "When do you want to achieve it? (e.g., 30 days, 3 months)",
@@ -33,17 +28,18 @@ const questions = [
   "Why do you want to achieve this goal? (motivation)",
 ];
 
-// Helper to create a message with type safety
-const createMessage = (role: MessageRole, text: string): Message => ({
+const createMessage = (role: "system" | "user", text: string): Message => ({
   role,
   text,
 });
 
 export default function GoalChatPage() {
+  const { data: session, status } = useSession();
+
   const [messages, setMessages] = useState<Message[]>([
-    createMessage('system', questions[0]),
+    createMessage("system", questions[0]),
   ]);
-  const [input, setInput] = useState('');
+  const [input, setInput] = useState("");
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -51,75 +47,93 @@ export default function GoalChatPage() {
   const bottomRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
   const handleSend = async () => {
     if (!input.trim()) return;
 
-    const userMessage = createMessage('user', input);
+    const userMessage = createMessage("user", input);
     const updatedAnswers = [...answers, input];
 
     const newMessages = [...messages, userMessage];
     setMessages(newMessages);
     setAnswers(updatedAnswers);
-    setInput('');
+    setInput("");
 
     const nextIndex = currentQuestionIndex + 1;
     setCurrentQuestionIndex(nextIndex);
 
-    // Ask next question
     if (nextIndex < questions.length) {
       setTimeout(() => {
         setMessages((prev) => [
           ...prev,
-          createMessage('system', questions[nextIndex]),
+          createMessage("system", questions[nextIndex]),
         ]);
       }, 400);
     } else {
-      // ✅ All questions answered — generate roadmap
       const goalData: GoalData = {
         title: updatedAnswers[0],
         duration: updatedAnswers[1],
-        hoursPerDay: Number(updatedAnswers[2]),
-        daysPerWeek: Number(updatedAnswers[3]),
-        preferredTime: updatedAnswers[4],
-        motivation: updatedAnswers[5],
+        hoursPerDay: Number(updatedAnswers[2]) || 1,
+        daysPerWeek: Number(updatedAnswers[3]) || 1,
+        preferredTime: updatedAnswers[4] || "morning",
+        motivation: updatedAnswers[5] || "",
       };
 
       setIsSubmitting(true);
 
       setMessages((prev) => [
         ...prev,
-        createMessage('system', 'Great! Generating your roadmap...'),
+        createMessage("system", "Great! Generating your roadmap..."),
       ]);
 
       try {
-        const roadmapRes = await fetch('/api/generate-roadmap', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+        const roadmapRes = await fetch("/api/generate-roadmap", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify(goalData),
         });
 
-        if (!roadmapRes.ok) throw new Error('Roadmap generation failed');
+        if (!roadmapRes.ok) throw new Error("Roadmap generation failed");
 
-        const { roadmap }: { roadmap: RoadmapStep[] } = await roadmapRes.json();
+        const { roadmap } = await roadmapRes.json();
 
-        const saveRes = await fetch('/api/goals', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...goalData, roadmap }),
+        const fullGoal = {
+          userId: session?.user.id,
+          title: goalData.title,
+          description: "",
+          hoursPerDay: goalData.hoursPerDay,
+          daysPerWeek: goalData.daysPerWeek,
+          preferredTime: goalData.preferredTime,
+          motivation: goalData.motivation,
+          startDate: new Date(),
+          targetDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+          status: "in_progress",
+          roadmap,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
+
+
+        const saveRes = await fetch("/api/goals", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(fullGoal),
         });
 
         const { id }: { id: string } = await saveRes.json();
-        if (!id) throw new Error('Missing goal ID');
+        if (!id) throw new Error("Missing goal ID");
 
         router.push(`/dashboard/goals/${id}`);
       } catch (error) {
-        console.error('Generation failed:', error);
+        console.error("Generation failed:", error);
         setMessages((prev) => [
           ...prev,
-          createMessage('system', '❌ Something went wrong. Please try again later.'),
+          createMessage(
+            "system",
+            "❌ Something went wrong. Please try again later."
+          ),
         ]);
         setIsSubmitting(false);
       }
@@ -136,9 +150,9 @@ export default function GoalChatPage() {
             <div
               key={i}
               className={`p-3 rounded-lg max-w-[80%] ${
-                msg.role === 'system'
-                  ? 'bg-indigo-100 text-left'
-                  : 'bg-green-100 text-right ml-auto'
+                msg.role === "system"
+                  ? "bg-indigo-100 text-left"
+                  : "bg-green-100 text-right ml-auto"
               }`}
             >
               {msg.text}
@@ -154,7 +168,7 @@ export default function GoalChatPage() {
               className="flex-1 p-2 rounded-md border border-gray-300 dark:bg-slate-800"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+              onKeyDown={(e) => e.key === "Enter" && handleSend()}
               placeholder="Type your answer..."
             />
             <button
