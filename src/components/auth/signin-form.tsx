@@ -1,4 +1,5 @@
-'use client';
+// Redesigned Sign-In Page with Custom SVG Theme and Enhanced UX
+"use client";
 
 import {
   Box,
@@ -15,45 +16,46 @@ import {
   Typography,
   Alert,
   Link as MuiLink,
-} from '@mui/material';
+} from "@mui/material";
 import {
   Visibility,
   VisibilityOff,
   Email,
   Lock,
   GitHub,
-} from '@mui/icons-material';
-import { useState } from 'react';
-import Link from 'next/link';
-import { signIn as nextAuthSignIn } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
+  Google,
+} from "@mui/icons-material";
+import { useState } from "react";
+import Link from "next/link";
+import { signIn as nextAuthSignIn } from "next-auth/react";
+import { useRouter } from "next/navigation";
 
 export default function SignInForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const form = new FormData(e.currentTarget);
-    const email = form.get('email') as string;
-    const password = form.get('password') as string;
+    const email = form.get("email") as string;
+    const password = form.get("password") as string;
 
     setIsLoading(true);
-    setError('');
+    setError("");
 
-    const res = await nextAuthSignIn('credentials', {
+    const res = await nextAuthSignIn("credentials", {
       email,
       password,
       redirect: false,
     });
 
     if (res?.ok) {
-      router.push('/dashboard');
+      router.push("/dashboard");
     } else {
-      setError('Invalid email or password');
+      setError("Invalid email or password");
     }
 
     setIsLoading(false);
@@ -61,9 +63,9 @@ export default function SignInForm() {
 
   const handleOAuthSignIn = async (provider: string) => {
     setIsLoading(true);
-    setError('');
+    setError("");
     try {
-      await nextAuthSignIn(provider, { callbackUrl: '/dashboard' });
+      await nextAuthSignIn(provider, { callbackUrl: "/dashboard" });
     } catch (err) {
       setError(`Failed to sign in with ${provider}`);
     } finally {
@@ -72,17 +74,34 @@ export default function SignInForm() {
   };
 
   return (
-    <Box className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-[#0A0A0A]">
-      <Paper elevation={4} sx={{ p: 4, maxWidth: 400, width: '100%' }}>
-        <Typography variant="h5" fontWeight={700} align="center" gutterBottom>
-          Welcome Back
+    <Box className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#fdf4ff] to-[#f0f4ff] dark:from-[#0a0a0a] dark:to-[#111111] relative overflow-hidden">
+      {/* Decorative SVG Blob */}
+      <Box className="absolute inset-0 w-full h-full -z-10">
+        <img
+          src="/your-theme-blob.svg"
+          alt="background blob"
+          className="w-full h-full object-cover opacity-20 dark:opacity-10"
+        />
+      </Box>
+
+      <Paper
+        elevation={3}
+        className="backdrop-blur-md bg-white/80 dark:bg-[#1a1a1a]/80 rounded-2xl p-6 sm:p-10 w-full max-w-md shadow-xl"
+      >
+        <Typography variant="h4" fontWeight={700} align="center" gutterBottom>
+          🚀 Welcome Back
         </Typography>
-        <Typography variant="body2" align="center" color="text.secondary" sx={{ mb: 2 }}>
-          Sign in to your account to continue
+        <Typography
+          variant="body1"
+          align="center"
+          color="text.secondary"
+          className="mb-4"
+        >
+          Sign in to continue your journey
         </Typography>
 
         {error && (
-          <Alert severity="error" sx={{ mb: 2 }}>
+          <Alert severity="error" className="mb-3">
             {error}
           </Alert>
         )}
@@ -90,26 +109,28 @@ export default function SignInForm() {
         <Stack spacing={2}>
           <Button
             variant="outlined"
-            onClick={() => handleOAuthSignIn('google')}
-            startIcon={<img src="/google-icon.svg" alt="Google" width={20} />}
+            onClick={() => handleOAuthSignIn("google")}
+            startIcon={<Google />}
             disabled={isLoading}
-            type="button"
+            className="rounded-xl text-sm"
           >
             Continue with Google
           </Button>
 
           <Button
             variant="outlined"
-            onClick={() => handleOAuthSignIn('github')}
+            onClick={() => handleOAuthSignIn("github")}
             startIcon={<GitHub />}
             disabled={isLoading}
-            type="button"
+            className="rounded-xl text-sm"
           >
             Continue with GitHub
           </Button>
         </Stack>
 
-        <Divider sx={{ my: 3 }}>or</Divider>
+        <Divider className="my-6 text-gray-400 text-xs">
+          or sign in with email
+        </Divider>
 
         <Box component="form" onSubmit={handleSubmit}>
           <Stack spacing={2}>
@@ -132,7 +153,7 @@ export default function SignInForm() {
             <TextField
               label="Password"
               name="password"
-              type={showPassword ? 'text' : 'password'}
+              type={showPassword ? "text" : "password"}
               required
               autoComplete="current-password"
               disabled={isLoading}
@@ -147,7 +168,6 @@ export default function SignInForm() {
                     <IconButton
                       onClick={() => setShowPassword(!showPassword)}
                       edge="end"
-                      aria-label="toggle password visibility"
                       disabled={isLoading}
                     >
                       {showPassword ? <VisibilityOff /> : <Visibility />}
@@ -157,7 +177,11 @@ export default function SignInForm() {
               }}
             />
 
-            <Stack direction="row" justifyContent="space-between" alignItems="center">
+            <Stack
+              direction="row"
+              justifyContent="space-between"
+              alignItems="center"
+            >
               <FormControlLabel
                 control={
                   <Checkbox
@@ -168,7 +192,11 @@ export default function SignInForm() {
                 }
                 label="Remember me"
               />
-              <MuiLink component={Link} href="/forgot-password" underline="hover">
+              <MuiLink
+                component={Link}
+                href="/forgot-password"
+                underline="hover"
+              >
                 Forgot password?
               </MuiLink>
             </Stack>
@@ -176,15 +204,20 @@ export default function SignInForm() {
             <Button
               type="submit"
               variant="contained"
-              fullWidth
               size="large"
+              fullWidth
               disabled={isLoading}
+              className="rounded-xl"
             >
-              {isLoading ? <CircularProgress size={20} color="inherit" /> : 'Sign In'}
+              {isLoading ? (
+                <CircularProgress size={20} color="inherit" />
+              ) : (
+                "Sign In"
+              )}
             </Button>
 
             <Typography variant="body2" align="center">
-              Don't have an account?{' '}
+              Don’t have an account?{" "}
               <MuiLink component={Link} href="/signup" underline="hover">
                 Sign up
               </MuiLink>

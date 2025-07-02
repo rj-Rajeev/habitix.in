@@ -3,7 +3,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { log } from "util";
 
 interface Message {
   role: "system" | "user";
@@ -34,11 +33,8 @@ const createMessage = (role: "system" | "user", text: string): Message => ({
 });
 
 export default function GoalChatPage() {
-  const { data: session, status } = useSession();
-
-  const [messages, setMessages] = useState<Message[]>([
-    createMessage("system", questions[0]),
-  ]);
+  const { data: session } = useSession();
+  const [messages, setMessages] = useState<Message[]>([createMessage("system", questions[0])]);
   const [input, setInput] = useState("");
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState<string[]>([]);
@@ -55,21 +51,15 @@ export default function GoalChatPage() {
 
     const userMessage = createMessage("user", input);
     const updatedAnswers = [...answers, input];
-
-    const newMessages = [...messages, userMessage];
-    setMessages(newMessages);
+    setMessages((prev) => [...prev, userMessage]);
     setAnswers(updatedAnswers);
     setInput("");
-
     const nextIndex = currentQuestionIndex + 1;
     setCurrentQuestionIndex(nextIndex);
 
     if (nextIndex < questions.length) {
       setTimeout(() => {
-        setMessages((prev) => [
-          ...prev,
-          createMessage("system", questions[nextIndex]),
-        ]);
+        setMessages((prev) => [...prev, createMessage("system", questions[nextIndex])]);
       }, 400);
     } else {
       const goalData: GoalData = {
@@ -82,11 +72,7 @@ export default function GoalChatPage() {
       };
 
       setIsSubmitting(true);
-
-      setMessages((prev) => [
-        ...prev,
-        createMessage("system", "Great! Generating your roadmap..."),
-      ]);
+      setMessages((prev) => [...prev, createMessage("system", "Great! Generating your roadmap...")]);
 
       try {
         const roadmapRes = await fetch("/api/generate-roadmap", {
@@ -98,26 +84,12 @@ export default function GoalChatPage() {
         if (!roadmapRes.ok) throw new Error("Roadmap generation failed");
 
         const { roadmap } = await roadmapRes.json();
-        function addDatesToRoadmap(roadmap: any[]) {
-          const startDate = new Date();
-          startDate.setHours(0, 0, 0, 0);
 
-          return roadmap.map((dayData, index) => {
-            const dayOffset = index; // dayNumber starts from 1, index from 0
-            const currentDate = new Date(startDate);
-            currentDate.setDate(startDate.getDate() + dayOffset);
-
-            return {
-              ...dayData,
-              dayDate: currentDate, // YYYY-MM-DD
-            };
-          });
-        }
-
-        // Example usage:
-
-        const roadmapWithDates = addDatesToRoadmap(roadmap);
-        console.log(roadmapWithDates);
+        const roadmapWithDates = roadmap.map((dayData: any, index: number) => {
+          const date = new Date();
+          date.setDate(date.getDate() + index);
+          return { ...dayData, dayDate: date };
+        });
 
         const fullGoal = {
           userId: session?.user.id,
@@ -146,13 +118,10 @@ export default function GoalChatPage() {
 
         router.push(`/dashboard/goals/${id}`);
       } catch (error) {
-        console.error("Generation failed:", error);
+        console.error(error);
         setMessages((prev) => [
           ...prev,
-          createMessage(
-            "system",
-            "❌ Something went wrong. Please try again later."
-          ),
+          createMessage("system", "❌ Something went wrong. Please try again later."),
         ]);
         setIsSubmitting(false);
       }
@@ -160,18 +129,16 @@ export default function GoalChatPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-100 to-slate-300 dark:from-slate-900 dark:to-slate-800 p-6 flex flex-col items-center">
-      <div className="w-full max-w-xl bg-white/40 dark:bg-slate-700/40 backdrop-blur-md rounded-xl shadow-lg p-6 space-y-4">
-        <h2 className="text-xl font-semibold text-center">🎯 Set Your Goal</h2>
-
-        <div className="space-y-2 max-h-[400px] overflow-y-auto pr-2">
+    <div className="min-h-screen flex flex-col bg-gradient-to-br from-[#f3efff] to-[#e6f0ff] dark:from-slate-900 dark:to-slate-800">
+      <div className="flex-1 overflow-y-auto p-4 md:px-10">
+        <div className="max-w-3xl mx-auto space-y-4">
           {messages.map((msg, i) => (
             <div
               key={i}
-              className={`p-3 rounded-lg max-w-[80%] ${
-                msg.role === "system"
-                  ? "bg-indigo-100 text-left"
-                  : "bg-green-100 text-right ml-auto"
+              className={`rounded-xl p-4 text-sm max-w-[80%] md:max-w-[70%] whitespace-pre-line shadow ${
+                msg.role === "user"
+                  ? "bg-green-100 ml-auto text-right"
+                  : "bg-white text-left"
               }`}
             >
               {msg.text}
@@ -179,30 +146,31 @@ export default function GoalChatPage() {
           ))}
           <div ref={bottomRef} />
         </div>
+      </div>
 
-        {currentQuestionIndex < questions.length && !isSubmitting && (
-          <div className="flex items-center gap-2">
-            <input
-              type="text"
-              className="flex-1 p-2 rounded-md border border-gray-300 dark:bg-slate-800"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleSend()}
-              placeholder="Type your answer..."
-            />
-            <button
-              onClick={handleSend}
-              className="bg-indigo-600 text-white px-4 py-2 rounded-md"
-            >
-              Send
-            </button>
-          </div>
-        )}
-
+      <div className="w-full border-t bg-white dark:bg-slate-900 px-4 py-3 shadow-inner">
+        <div className="max-w-3xl mx-auto flex items-center gap-3">
+          <input
+            type="text"
+            className="flex-1 rounded-full border border-gray-300 dark:border-gray-600 p-3 px-4 bg-white dark:bg-slate-800 text-sm focus:outline-none"
+            placeholder="Type your answer..."
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleSend()}
+            disabled={isSubmitting}
+          />
+          <button
+            onClick={handleSend}
+            className="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2 rounded-full text-sm font-medium"
+            disabled={isSubmitting || !input.trim()}
+          >
+            Send
+          </button>
+        </div>
         {isSubmitting && (
-          <div className="text-sm text-gray-600 dark:text-gray-300 text-center">
+          <p className="text-center text-sm text-gray-400 mt-2">
             ⏳ Generating your personalized plan...
-          </div>
+          </p>
         )}
       </div>
     </div>
