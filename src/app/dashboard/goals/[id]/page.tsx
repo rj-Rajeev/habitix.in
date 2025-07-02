@@ -1,8 +1,8 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
 
-import { useState, useEffect } from "react"
+import { useState, useEffect } from "react";
 import {
   Card,
   Chip,
@@ -22,7 +22,7 @@ import {
   Drawer,
   AppBar,
   Toolbar,
-} from "@mui/material"
+} from "@mui/material";
 import {
   PlayArrow,
   Pause,
@@ -44,46 +44,46 @@ import {
   EmojiEvents,
   PersonAdd,
   Menu as MenuIcon,
-} from "@mui/icons-material"
-import { ThemeProvider, createTheme } from "@mui/material/styles"
-import CssBaseline from "@mui/material/CssBaseline"
-import { useParams } from "next/navigation"
+} from "@mui/icons-material";
+import { ThemeProvider, createTheme } from "@mui/material/styles";
+import CssBaseline from "@mui/material/CssBaseline";
+import { useParams } from "next/navigation";
 
 // Types based on your schema
 interface Task {
-  _id: string
-  title: string
-  description: string
-  isCompleted: boolean
-  createdAt: Date
+  _id: string;
+  title: string;
+  description: string;
+  isCompleted: boolean;
+  createdAt: Date;
 }
 
 interface RoadmapDay {
-  dayNumber: number
-  date?: Date
-  unlocked: boolean
-  completed: boolean
-  tasks: Task[]
+  dayNumber: number;
+  date?: Date;
+  unlocked: boolean;
+  completed: boolean;
+  tasks: Task[];
   proof: {
-    uploaded: boolean
-    imageUrl?: string
-    uploadedAt?: Date
-  }
+    uploaded: boolean;
+    imageUrl?: string;
+    uploadedAt?: Date;
+  };
 }
 
 export default function RoadmapApp() {
-  const [isPlaying, setIsPlaying] = useState(false)
-  const [isMuted, setIsMuted] = useState(false)
-  const [currentDay, setCurrentDay] = useState(1)
-  const [progress, setProgress] = useState(0)
-  const [likedTasks, setLikedTasks] = useState<string[]>([])
-  const [snackbarOpen, setSnackbarOpen] = useState(false)
-  const [snackbarMessage, setSnackbarMessage] = useState("")
-  const [uploadDialogOpen, setUploadDialogOpen] = useState(false)
-  const [selectedFile, setSelectedFile] = useState<File | null>(null)
-  const [previewUrl, setPreviewUrl] = useState<string>("")
-  const [drawerOpen, setDrawerOpen] = useState(false)
-  
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
+  const [currentDay, setCurrentDay] = useState(1);
+  const [progress, setProgress] = useState(0);
+  const [likedTasks, setLikedTasks] = useState<string[]>([]);
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState("");
+  const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string>("");
+  const [drawerOpen, setDrawerOpen] = useState(false);
+
   const params = useParams();
 
   // Theme matching the original design
@@ -105,13 +105,13 @@ export default function RoadmapApp() {
         xl: 1536,
       },
     },
-  })
+  });
 
   // Sample roadmap data matching your schema
   const [roadmapData, setRoadmapData] = useState({
     _id: "roadmap_001",
     userId: "user_001",
-    title: "30-Day Productivity Challenge",
+    title: "Loading.....",
     description: "Transform your daily habits and boost productivity",
     startDate: new Date(),
     targetDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
@@ -125,35 +125,35 @@ export default function RoadmapApp() {
         tasks: [
           {
             _id: "task_001",
-            title: "Morning Routine Setup",
+            title: "Loading.....",
             description: "Create a 15-minute morning routine",
             isCompleted: false,
             createdAt: new Date(),
           },
           {
             _id: "task_002",
-            title: "Workspace Organization",
+            title: "Loading.....",
             description: "Clean and organize your workspace",
             isCompleted: false,
             createdAt: new Date(),
           },
           {
             _id: "task_003",
-            title: "Goal Setting",
+            title: "Loading.....",
             description: "Write down 3 specific monthly goals",
             isCompleted: false,
             createdAt: new Date(),
           },
           {
             _id: "task_004",
-            title: "Digital Detox Hour",
+            title: "Loading.....",
             description: "Spend 1 hour without digital devices",
             isCompleted: false,
             createdAt: new Date(),
           },
           {
             _id: "task_005",
-            title: "Evening Reflection",
+            title: "Loading.....",
             description: "Write 3 things you're grateful for",
             isCompleted: false,
             createdAt: new Date(),
@@ -168,21 +168,21 @@ export default function RoadmapApp() {
         tasks: [
           {
             _id: "task_006",
-            title: "Time Blocking",
+            title: "Loading.....",
             description: "Plan your day using time blocks",
             isCompleted: false,
             createdAt: new Date(),
           },
           {
             _id: "task_007",
-            title: "Priority Matrix",
+            title: "Loading.....",
             description: "Use Eisenhower Matrix for tasks",
             isCompleted: false,
             createdAt: new Date(),
           },
           {
             _id: "task_008",
-            title: "Deep Work Session",
+            title: "Loading.....",
             description: "2 hours of focused work",
             isCompleted: false,
             createdAt: new Date(),
@@ -197,14 +197,14 @@ export default function RoadmapApp() {
         tasks: [
           {
             _id: "task_009",
-            title: "Habit Tracking Setup",
+            title: "Loading.....",
             description: "Create a habit tracking system",
             isCompleted: false,
             createdAt: new Date(),
           },
           {
             _id: "task_010",
-            title: "Energy Management",
+            title: "Loading.....",
             description: "Identify your peak energy hours",
             isCompleted: false,
             createdAt: new Date(),
@@ -219,7 +219,7 @@ export default function RoadmapApp() {
         tasks: [
           {
             _id: "task_011",
-            title: "Weekly Review",
+            title: "Loading.....",
             description: "Review progress and adjust plans",
             isCompleted: false,
             createdAt: new Date(),
@@ -230,7 +230,7 @@ export default function RoadmapApp() {
     ],
     createdAt: new Date(),
     updatedAt: new Date(),
-  })
+  });
 
   useEffect(() => {
     const fetchGoal = async () => {
@@ -239,7 +239,6 @@ export default function RoadmapApp() {
         if (!res.ok) throw new Error("Failed to fetch goal");
         const data = await res.json();
         setRoadmapData(data);
-        
       } catch (err) {
         console.error("Error fetching goal:", err);
       }
@@ -248,8 +247,6 @@ export default function RoadmapApp() {
     fetchGoal();
   }, []);
 
-  
-
   // Navigation items
   const navigationItems = [
     { icon: <Bolt />, active: true, label: "Dashboard", color: "#000" },
@@ -257,20 +254,23 @@ export default function RoadmapApp() {
     { icon: <People />, active: false, label: "Community", color: "#6b7280" },
     { icon: <Schedule />, active: false, label: "Schedule", color: "#6b7280" },
     { icon: <Settings />, active: false, label: "Settings", color: "#6b7280" },
-  ]
+  ];
 
   // Get current day data
   const getCurrentDay = () => {
-    return roadmapData.roadmap.find((day) => day.dayNumber === currentDay) || roadmapData.roadmap[0]
-  }
+    return (
+      roadmapData.roadmap.find((day) => day.dayNumber === currentDay) ||
+      roadmapData.roadmap[0]
+    );
+  };
 
-  const currentDayData = getCurrentDay()
+  const currentDayData = getCurrentDay();
 
   // Calculate progress
   const getDayProgress = (day: RoadmapDay) => {
-    const completedTasks = day.tasks.filter((task) => task.isCompleted).length
-    return day.tasks.length > 0 ? (completedTasks / day.tasks.length) * 100 : 0
-  }
+    const completedTasks = day.tasks.filter((task) => task.isCompleted).length;
+    return day.tasks.length > 0 ? (completedTasks / day.tasks.length) * 100 : 0;
+  };
 
   // Progress simulation when "playing"
   useEffect(() => {
@@ -278,81 +278,112 @@ export default function RoadmapApp() {
       const interval = setInterval(() => {
         setProgress((prev) => {
           if (prev >= 100) {
-            setIsPlaying(false)
-            setSnackbarMessage("Day completed! 🎉")
-            setSnackbarOpen(true)
-            return 0
+            setIsPlaying(false);
+            setSnackbarMessage("Day completed! 🎉");
+            setSnackbarOpen(true);
+            return 0;
           }
-          return prev + 2
-        })
-      }, 100)
-      return () => clearInterval(interval)
+          return prev + 2;
+        });
+      }, 100);
+      return () => clearInterval(interval);
     }
-  }, [isPlaying])
+  }, [isPlaying]);
 
   // Event handlers
   const handlePlayPause = () => {
-    setIsPlaying(!isPlaying)
-    setSnackbarMessage(isPlaying ? "Paused" : "Started working on tasks")
-    setSnackbarOpen(true)
-  }
+    setIsPlaying(!isPlaying);
+    setSnackbarMessage(isPlaying ? "Paused" : "Started working on tasks");
+    setSnackbarOpen(true);
+  };
 
-  const handleTaskToggle = (taskId: string) => {
-    setRoadmapData((prev) => ({
-      ...prev,
-      roadmap: prev.roadmap.map((day) => {
+  const handleTaskToggle = async (taskId: string) => {
+    setRoadmapData((prev) => {
+      let updatedRoadmap = prev.roadmap.map((day) => {
         if (day.dayNumber === currentDay) {
           const updatedTasks = day.tasks.map((task) =>
-            task._id === taskId ? { ...task, isCompleted: !task.isCompleted } : task,
-          )
-          const allCompleted = updatedTasks.every((task) => task.isCompleted)
+            task._id === taskId
+              ? { ...task, isCompleted: !task.isCompleted }
+              : task
+          );
 
-          // Unlock next day if current day is completed
-          if (allCompleted) {
-            const nextDayIndex = prev.roadmap.findIndex((d) => d.dayNumber === day.dayNumber + 1)
-            if (nextDayIndex !== -1) {
-              prev.roadmap[nextDayIndex].unlocked = true
-            }
+          const allCompleted = updatedTasks.every((task) => task.isCompleted);
+
+          const nextDayIndex = prev.roadmap.findIndex(
+            (d) => d.dayNumber === day.dayNumber + 1
+          );
+          if (allCompleted && nextDayIndex !== -1) {
+            prev.roadmap[nextDayIndex].unlocked = true;
           }
 
           return {
             ...day,
             tasks: updatedTasks,
             completed: allCompleted,
-          }
+          };
         }
-        return day
-      }),
-    }))
+        return day;
+      });
 
-    setSnackbarMessage("Task updated! 🎉")
-    setSnackbarOpen(true)
-  }
+      return {
+        ...prev,
+        roadmap: updatedRoadmap,
+      };
+    });
+
+    // ✅ API call to update DB
+    try {
+      const res = await fetch(`/api/goals/toggle-task`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          goalId: params.id, // your current goal _id
+          dayNumber: currentDay,
+          taskId,
+        }),
+      });
+
+      if (!res.ok) throw new Error("Failed to update task");
+
+      setSnackbarMessage("Task updated! 🎉");
+    } catch (error) {
+      console.error(error);
+      setSnackbarMessage("Failed to update task 😢");
+    }
+
+    setSnackbarOpen(true);
+  };
 
   const handleLike = (taskId: string) => {
-    setLikedTasks((prev) => (prev.includes(taskId) ? prev.filter((id) => id !== taskId) : [...prev, taskId]))
-    setSnackbarMessage("Task liked! ❤️")
-    setSnackbarOpen(true)
-  }
+    setLikedTasks((prev) =>
+      prev.includes(taskId)
+        ? prev.filter((id) => id !== taskId)
+        : [...prev, taskId]
+    );
+    setSnackbarMessage("Task liked! ❤️");
+    setSnackbarOpen(true);
+  };
 
   const handleDayChange = (day: number) => {
-    const dayData = roadmapData.roadmap.find((d) => d.dayNumber === day)
+    const dayData = roadmapData.roadmap.find((d) => d.dayNumber === day);
     if (dayData?.unlocked) {
-      setCurrentDay(day)
+      setCurrentDay(day);
     } else {
-      setSnackbarMessage("Complete previous day to unlock!")
-      setSnackbarOpen(true)
+      setSnackbarMessage("Complete previous day to unlock!");
+      setSnackbarOpen(true);
     }
-  }
+  };
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
+    const file = event.target.files?.[0];
     if (file) {
-      setSelectedFile(file)
-      const url = URL.createObjectURL(file)
-      setPreviewUrl(url)
+      setSelectedFile(file);
+      const url = URL.createObjectURL(file);
+      setPreviewUrl(url);
     }
-  }
+  };
 
   const handleProofUpload = () => {
     if (selectedFile) {
@@ -368,14 +399,14 @@ export default function RoadmapApp() {
                   uploadedAt: new Date(),
                 },
               }
-            : day,
+            : day
         ),
-      }))
-      setUploadDialogOpen(false)
-      setSnackbarMessage("Proof uploaded! 📸")
-      setSnackbarOpen(true)
+      }));
+      setUploadDialogOpen(false);
+      setSnackbarMessage("Proof uploaded! 📸");
+      setSnackbarOpen(true);
     }
-  }
+  };
 
   return (
     <ThemeProvider theme={theme}>
@@ -392,19 +423,34 @@ export default function RoadmapApp() {
         }}
       >
         <Toolbar>
-          <IconButton edge="start" onClick={() => setDrawerOpen(true)} aria-label="open menu" sx={{ color: "#1f2937" }}>
+          <IconButton
+            edge="start"
+            onClick={() => setDrawerOpen(true)}
+            aria-label="open menu"
+            sx={{ color: "#1f2937" }}
+          >
             <MenuIcon />
           </IconButton>
-          <Typography variant="h6" sx={{ flexGrow: 1, fontWeight: 700, color: "#1f2937" }}>
+          <Typography
+            variant="h6"
+            sx={{ flexGrow: 1, fontWeight: 700, color: "#1f2937" }}
+          >
             RoadmapPro
           </Typography>
         </Toolbar>
       </AppBar>
 
       {/* Mobile Navigation Drawer */}
-      <Drawer anchor="left" open={drawerOpen} onClose={() => setDrawerOpen(false)}>
+      <Drawer
+        anchor="left"
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+      >
         <Box sx={{ width: 280, p: 3 }}>
-          <Typography variant="h6" sx={{ mb: 3, fontWeight: 700, textAlign: "center" }}>
+          <Typography
+            variant="h6"
+            sx={{ mb: 3, fontWeight: 700, textAlign: "center" }}
+          >
             Navigation
           </Typography>
           <div className="space-y-3">
@@ -458,11 +504,16 @@ export default function RoadmapApp() {
                         sx={{
                           width: 48,
                           height: 48,
-                          backgroundColor: item.active ? item.color : "transparent",
+                          backgroundColor: item.active
+                            ? item.color
+                            : "transparent",
                           color: item.active ? "white" : item.color,
-                          borderRadius: index === 0 ? "12px" : index === 1 ? "50%" : "12px",
+                          borderRadius:
+                            index === 0 ? "12px" : index === 1 ? "50%" : "12px",
                           "&:hover": {
-                            backgroundColor: item.active ? item.color : "#f3f4f6",
+                            backgroundColor: item.active
+                              ? item.color
+                              : "#f3f4f6",
                             transform: "scale(1.1)",
                           },
                           transition: "all 0.2s",
@@ -487,43 +538,64 @@ export default function RoadmapApp() {
                   boxShadow: "0 4px 20px rgba(0,0,0,0.08)",
                 }}
               >
-                <div className="flex items-center space-x-8">
-                  <Bolt sx={{ fontSize: 28, color: "#000" }} />
-                  {[1, 2, 3, 4].map((day) => {
-                    const dayData = roadmapData.roadmap.find((d) => d.dayNumber === day)
-                    const isActive = currentDay === day
-                    const isUnlocked = dayData?.unlocked
-                    const isCompleted = dayData?.completed
+                <div className="overflow-x-auto scrollbar-custom">
+                  <div className="flex items-center space-x-4 min-w-max px-2 py-1">
+                    <Bolt sx={{ fontSize: 28, color: "#000" }} />
+                    {roadmapData.roadmap.map((dayData) => {
+                      const day = dayData.dayNumber;
+                      const isActive = currentDay === day;
+                      const isUnlocked = dayData.unlocked;
+                      const isCompleted = dayData.completed;
 
-                    return (
-                      <Button
-                        key={day}
-                        onClick={() => handleDayChange(day)}
-                        disabled={!isUnlocked}
-                        sx={{
-                          color: isActive ? "#1f2937" : isUnlocked ? "#9ca3af" : "#d1d5db",
-                          fontWeight: isActive ? 700 : 400,
-                          fontSize: "1.1rem",
-                          textTransform: "none",
-                          "&:hover": {
-                            backgroundColor: "transparent",
-                            transform: isUnlocked ? "scale(1.05)" : "none",
-                          },
-                        }}
-                      >
-                        {!isUnlocked && <Lock sx={{ fontSize: 16, mr: 1 }} />}
-                        Day {day} {day === 1 && "😊"}
-                        {isCompleted && <CheckCircle sx={{ fontSize: 16, ml: 1, color: "#10b981" }} />}
-                      </Button>
-                    )
-                  })}
+                      return (
+                        <Button
+                          key={day}
+                          onClick={() => handleDayChange(day)}
+                          disabled={!isUnlocked}
+                          sx={{
+                            minWidth: 100,
+                            color: isActive
+                              ? "#1f2937"
+                              : isUnlocked
+                              ? "#9ca3af"
+                              : "#d1d5db",
+                            fontWeight: isActive ? 700 : 400,
+                            fontSize: "1rem",
+                            textTransform: "none",
+                            padding: "6px 12px",
+                            borderRadius: "12px",
+                            scrollSnapAlign: "start",
+                            "&:hover": {
+                              backgroundColor: "transparent",
+                              transform: isUnlocked ? "scale(1.05)" : "none",
+                            },
+                          }}
+                        >
+                          {!isUnlocked && (
+                            <Lock sx={{ fontSize: 16, marginRight: 1 }} />
+                          )}
+                          Day {day} {day === 1 && "😊"}
+                          {isCompleted && (
+                            <CheckCircle
+                              sx={{
+                                fontSize: 16,
+                                marginLeft: 1,
+                                color: "#10b981",
+                              }}
+                            />
+                          )}
+                        </Button>
+                      );
+                    })}
+                  </div>
                 </div>
               </Card>
 
               {/* Main Task Card */}
               <Card
                 sx={{
-                  background: "linear-gradient(135deg, #bfdbfe 0%, #a7f3d0 100%)",
+                  background:
+                    "linear-gradient(135deg, #bfdbfe 0%, #a7f3d0 100%)",
                   borderRadius: "24px",
                   p: 4,
                   boxShadow: "0 4px 20px rgba(0,0,0,0.08)",
@@ -531,8 +603,13 @@ export default function RoadmapApp() {
               >
                 <div className="flex justify-between items-start mb-6">
                   <div>
-                    <Typography variant="h4" sx={{ fontWeight: 700, color: "#1f2937", mb: 1 }}>
-                      Task {currentDayData.tasks.filter((t) => t.isCompleted).length + 1}/{currentDayData.tasks.length}
+                    <Typography
+                      variant="h4"
+                      sx={{ fontWeight: 700, color: "#1f2937", mb: 1 }}
+                    >
+                      Task{" "}
+                      {currentDayData.tasks.filter((t) => t.isCompleted).length}
+                      /{currentDayData.tasks.length}
                     </Typography>
                     <Typography variant="body1" sx={{ color: "#6b7280" }}>
                       Daily productivity tasks
@@ -541,15 +618,25 @@ export default function RoadmapApp() {
                   <IconButton
                     onClick={() => handleLike(currentDayData.tasks[0]?._id)}
                     sx={{
-                      backgroundColor: likedTasks.includes(currentDayData.tasks[0]?._id) ? "#ef4444" : "white",
-                      color: likedTasks.includes(currentDayData.tasks[0]?._id) ? "white" : "#6b7280",
+                      backgroundColor: likedTasks.includes(
+                        currentDayData.tasks[0]?._id
+                      )
+                        ? "#ef4444"
+                        : "white",
+                      color: likedTasks.includes(currentDayData.tasks[0]?._id)
+                        ? "white"
+                        : "#6b7280",
                       width: 48,
                       height: 48,
                       borderRadius: "12px",
                       "&:hover": { transform: "scale(1.1)" },
                     }}
                   >
-                    {likedTasks.includes(currentDayData.tasks[0]?._id) ? <Favorite /> : <FavoriteBorder />}
+                    {likedTasks.includes(currentDayData.tasks[0]?._id) ? (
+                      <Favorite />
+                    ) : (
+                      <FavoriteBorder />
+                    )}
                   </IconButton>
                 </div>
 
@@ -591,7 +678,11 @@ export default function RoadmapApp() {
                         },
                       }}
                     >
-                      {isPlaying ? <Pause sx={{ fontSize: 40 }} /> : <PlayArrow sx={{ fontSize: 40 }} />}
+                      {isPlaying ? (
+                        <Pause sx={{ fontSize: 40 }} />
+                      ) : (
+                        <PlayArrow sx={{ fontSize: 40 }} />
+                      )}
                     </IconButton>
                   </Box>
                   <IconButton
@@ -627,9 +718,25 @@ export default function RoadmapApp() {
 
                 {/* Stats Cards */}
                 <div className="grid grid-cols-4 gap-4">
-                  <Card sx={{ backgroundColor: "#fef3c7", borderRadius: "20px", p: 2, textAlign: "center" }}>
-                    <Typography sx={{ fontSize: "1.5rem", mb: 1 }}>🏃</Typography>
-                    <Typography variant="caption" sx={{ color: "#6b7280", fontWeight: 600, display: "block" }}>
+                  <Card
+                    sx={{
+                      backgroundColor: "#fef3c7",
+                      borderRadius: "20px",
+                      p: 2,
+                      textAlign: "center",
+                    }}
+                  >
+                    <Typography sx={{ fontSize: "1.5rem", mb: 1 }}>
+                      🏃
+                    </Typography>
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        color: "#6b7280",
+                        fontWeight: 600,
+                        display: "block",
+                      }}
+                    >
                       CATEGORY
                     </Typography>
                     <Typography variant="body2" sx={{ fontWeight: 700 }}>
@@ -637,9 +744,25 @@ export default function RoadmapApp() {
                     </Typography>
                   </Card>
 
-                  <Card sx={{ backgroundColor: "#e9d5ff", borderRadius: "20px", p: 2, textAlign: "center" }}>
-                    <Typography sx={{ fontSize: "1.5rem", mb: 1 }}>⭐</Typography>
-                    <Typography variant="caption" sx={{ color: "#6b7280", fontWeight: 600, display: "block" }}>
+                  <Card
+                    sx={{
+                      backgroundColor: "#e9d5ff",
+                      borderRadius: "20px",
+                      p: 2,
+                      textAlign: "center",
+                    }}
+                  >
+                    <Typography sx={{ fontSize: "1.5rem", mb: 1 }}>
+                      ⭐
+                    </Typography>
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        color: "#6b7280",
+                        fontWeight: 600,
+                        display: "block",
+                      }}
+                    >
                       DIFFICULTY
                     </Typography>
                     <Typography variant="body2" sx={{ fontWeight: 700 }}>
@@ -647,9 +770,25 @@ export default function RoadmapApp() {
                     </Typography>
                   </Card>
 
-                  <Card sx={{ backgroundColor: "#d1fae5", borderRadius: "20px", p: 2, textAlign: "center" }}>
-                    <Typography sx={{ fontSize: "1.5rem", mb: 1 }}>⏱️</Typography>
-                    <Typography variant="caption" sx={{ color: "#6b7280", fontWeight: 600, display: "block" }}>
+                  <Card
+                    sx={{
+                      backgroundColor: "#d1fae5",
+                      borderRadius: "20px",
+                      p: 2,
+                      textAlign: "center",
+                    }}
+                  >
+                    <Typography sx={{ fontSize: "1.5rem", mb: 1 }}>
+                      ⏱️
+                    </Typography>
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        color: "#6b7280",
+                        fontWeight: 600,
+                        display: "block",
+                      }}
+                    >
                       TOTAL TASKS
                     </Typography>
                     <Typography variant="body2" sx={{ fontWeight: 700 }}>
@@ -657,9 +796,25 @@ export default function RoadmapApp() {
                     </Typography>
                   </Card>
 
-                  <Card sx={{ backgroundColor: "#fce7f3", borderRadius: "20px", p: 2, textAlign: "center" }}>
-                    <Typography sx={{ fontSize: "1.5rem", mb: 1 }}>⏰</Typography>
-                    <Typography variant="caption" sx={{ color: "#6b7280", fontWeight: 600, display: "block" }}>
+                  <Card
+                    sx={{
+                      backgroundColor: "#fce7f3",
+                      borderRadius: "20px",
+                      p: 2,
+                      textAlign: "center",
+                    }}
+                  >
+                    <Typography sx={{ fontSize: "1.5rem", mb: 1 }}>
+                      ⏰
+                    </Typography>
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        color: "#6b7280",
+                        fontWeight: 600,
+                        display: "block",
+                      }}
+                    >
                       COMPLETED
                     </Typography>
                     <Typography variant="body2" sx={{ fontWeight: 700 }}>
@@ -678,28 +833,51 @@ export default function RoadmapApp() {
                   boxShadow: "0 4px 20px rgba(0,0,0,0.08)",
                 }}
               >
-                <Typography variant="h6" sx={{ mb: 3, fontWeight: 700, color: "#1f2937" }}>
+                <Typography
+                  variant="h6"
+                  sx={{ mb: 3, fontWeight: 700, color: "#1f2937" }}
+                >
                   DESCRIPTION
                 </Typography>
                 <div className="flex items-start space-x-4 mb-4">
-                  <Avatar sx={{ bgcolor: "#1f2937", width: 32, height: 32, fontSize: "0.875rem" }}>1</Avatar>
+                  <Avatar
+                    sx={{
+                      bgcolor: "#1f2937",
+                      width: 32,
+                      height: 32,
+                      fontSize: "0.875rem",
+                    }}
+                  >
+                    1
+                  </Avatar>
                   <div>
                     <Typography variant="body1" sx={{ fontWeight: 600, mb: 1 }}>
                       Start point:
                     </Typography>
                     <Typography variant="body2" sx={{ color: "#6b7280" }}>
-                      Begin with small, manageable tasks that build momentum for the day ahead.
+                      Begin with small, manageable tasks that build momentum for
+                      the day ahead.
                     </Typography>
                   </div>
                 </div>
                 <div className="flex items-start space-x-4">
-                  <Avatar sx={{ bgcolor: "#9ca3af", width: 32, height: 32, fontSize: "0.875rem" }}>2</Avatar>
+                  <Avatar
+                    sx={{
+                      bgcolor: "#9ca3af",
+                      width: 32,
+                      height: 32,
+                      fontSize: "0.875rem",
+                    }}
+                  >
+                    2
+                  </Avatar>
                   <div>
                     <Typography variant="body1" sx={{ fontWeight: 600, mb: 1 }}>
                       Actions:
                     </Typography>
                     <Typography variant="body2" sx={{ color: "#6b7280" }}>
-                      Complete each task mindfully, upload proof of completion, and unlock the next day's challenges.
+                      Complete each task mindfully, upload proof of completion,
+                      and unlock the next day's challenges.
                     </Typography>
                   </div>
                 </div>
@@ -717,36 +895,66 @@ export default function RoadmapApp() {
                   boxShadow: "0 4px 20px rgba(0,0,0,0.08)",
                 }}
               >
-                <Typography variant="h6" sx={{ mb: 3, fontWeight: 700, color: "#1f2937" }}>
+                <Typography
+                  variant="h6"
+                  sx={{ mb: 3, fontWeight: 700, color: "#1f2937" }}
+                >
                   TASKS
                 </Typography>
                 <div className="space-y-3">
                   {currentDayData.tasks.map((task, index) => {
-                    const colors = ["#bfdbfe", "#ddd6fe", "#a7f3d0", "#fecaca", "#fed7aa"]
+                    const colors = [
+                      "#bfdbfe",
+                      "#ddd6fe",
+                      "#a7f3d0",
+                      "#fecaca",
+                      "#fed7aa",
+                    ];
                     return (
                       <div
                         key={task._id}
                         className="flex items-center space-x-3 p-3 rounded-2xl hover:bg-gray-50 transition-all cursor-pointer"
                         onClick={() => handleTaskToggle(task._id)}
-                        style={{ backgroundColor: colors[index % colors.length] }}
+                        style={{
+                          backgroundColor: colors[index % colors.length],
+                        }}
                       >
                         <div
                           className="w-12 h-12 rounded-2xl flex items-center justify-center"
-                          style={{ backgroundColor: colors[index % colors.length] }}
+                          style={{
+                            backgroundColor: colors[index % colors.length],
+                          }}
                         >
                           <Typography sx={{ fontSize: "1.2rem" }}>
-                            {index === 0 ? "🧠" : index === 1 ? "🎯" : index === 2 ? "📝" : index === 3 ? "📱" : "🙏"}
+                            {index === 0
+                              ? "🧠"
+                              : index === 1
+                              ? "🎯"
+                              : index === 2
+                              ? "📝"
+                              : index === 3
+                              ? "📱"
+                              : "🙏"}
                           </Typography>
                         </div>
                         <div className="flex-1">
-                          <Typography variant="body1" sx={{ fontWeight: 600, color: "#1f2937" }}>
+                          <Typography
+                            variant="body1"
+                            sx={{ fontWeight: 600, color: "#1f2937" }}
+                          >
                             {task.title}
                           </Typography>
                           <div className="flex items-center space-x-3 text-sm">
-                            <Typography variant="caption" sx={{ color: "#6b7280" }}>
+                            <Typography
+                              variant="caption"
+                              sx={{ color: "#6b7280" }}
+                            >
                               ⏱️ 15 mins
                             </Typography>
-                            <Typography variant="caption" sx={{ color: "#6b7280" }}>
+                            <Typography
+                              variant="caption"
+                              sx={{ color: "#6b7280" }}
+                            >
                               🔥 Focus
                             </Typography>
                           </div>
@@ -757,7 +965,7 @@ export default function RoadmapApp() {
                           <RadioButtonUnchecked sx={{ color: "#d1d5db" }} />
                         )}
                       </div>
-                    )
+                    );
                   })}
                 </div>
               </Card>
@@ -765,7 +973,8 @@ export default function RoadmapApp() {
               {/* User Level */}
               <Card
                 sx={{
-                  background: "linear-gradient(135deg, #e9d5ff 0%, #fce7f3 100%)",
+                  background:
+                    "linear-gradient(135deg, #e9d5ff 0%, #fce7f3 100%)",
                   borderRadius: "24px",
                   p: 3,
                   boxShadow: "0 4px 20px rgba(0,0,0,0.08)",
@@ -775,7 +984,10 @@ export default function RoadmapApp() {
                   <div className="flex items-center space-x-3">
                     <Typography sx={{ fontSize: "2rem" }}>😊</Typography>
                     <div>
-                      <Typography variant="h6" sx={{ fontWeight: 700, color: "#1f2937" }}>
+                      <Typography
+                        variant="h6"
+                        sx={{ fontWeight: 700, color: "#1f2937" }}
+                      >
                         BEGINNER
                       </Typography>
                       <Typography variant="body2" sx={{ color: "#6b7280" }}>
@@ -785,7 +997,10 @@ export default function RoadmapApp() {
                   </div>
                   <div className="flex items-center space-x-2">
                     <EmojiEvents sx={{ color: "#f59e0b" }} />
-                    <Typography variant="h6" sx={{ fontWeight: 700, color: "#1f2937" }}>
+                    <Typography
+                      variant="h6"
+                      sx={{ fontWeight: 700, color: "#1f2937" }}
+                    >
                       {Math.round(getDayProgress(currentDayData) * 10)}
                     </Typography>
                   </div>
@@ -802,14 +1017,24 @@ export default function RoadmapApp() {
                 }}
               >
                 <div className="flex items-center justify-between mb-4">
-                  <Typography variant="h6" sx={{ fontWeight: 700, color: "#1f2937" }}>
+                  <Typography
+                    variant="h6"
+                    sx={{ fontWeight: 700, color: "#1f2937" }}
+                  >
                     MY FRIENDS
                   </Typography>
-                  <Chip label="+10" sx={{ backgroundColor: "#f97316", color: "white", fontWeight: 600 }} />
+                  <Chip
+                    label="+10"
+                    sx={{
+                      backgroundColor: "#f97316",
+                      color: "white",
+                      fontWeight: 600,
+                    }}
+                  />
                 </div>
                 <div className="flex items-center space-x-2">
                   {["A", "S", "M", "E"].map((initial, index) => {
-                    const colors = ["#6366f1", "#ec4899", "#10b981", "#f59e0b"]
+                    const colors = ["#6366f1", "#ec4899", "#10b981", "#f59e0b"];
                     return (
                       <Avatar
                         key={index}
@@ -824,7 +1049,7 @@ export default function RoadmapApp() {
                       >
                         {initial}
                       </Avatar>
-                    )
+                    );
                   })}
                   <IconButton
                     sx={{
@@ -858,10 +1083,12 @@ export default function RoadmapApp() {
               </div>
               <div className="flex space-x-2 overflow-x-auto pb-2">
                 {[1, 2, 3, 4].map((day) => {
-                  const dayData = roadmapData.roadmap.find((d) => d.dayNumber === day)
-                  const isActive = currentDay === day
-                  const isUnlocked = dayData?.unlocked
-                  const isCompleted = dayData?.completed
+                  const dayData = roadmapData.roadmap.find(
+                    (d) => d.dayNumber === day
+                  );
+                  const isActive = currentDay === day;
+                  const isUnlocked = dayData?.unlocked;
+                  const isCompleted = dayData?.completed;
 
                   return (
                     <Button
@@ -871,7 +1098,11 @@ export default function RoadmapApp() {
                       size="small"
                       sx={{
                         minWidth: "80px",
-                        color: isActive ? "#1f2937" : isUnlocked ? "#9ca3af" : "#d1d5db",
+                        color: isActive
+                          ? "#1f2937"
+                          : isUnlocked
+                          ? "#9ca3af"
+                          : "#d1d5db",
                         fontWeight: isActive ? 700 : 400,
                         fontSize: "0.9rem",
                         textTransform: "none",
@@ -880,9 +1111,13 @@ export default function RoadmapApp() {
                     >
                       {!isUnlocked && <Lock sx={{ fontSize: 14, mr: 0.5 }} />}
                       Day {day} {day === 1 && "😊"}
-                      {isCompleted && <CheckCircle sx={{ fontSize: 14, ml: 0.5, color: "#10b981" }} />}
+                      {isCompleted && (
+                        <CheckCircle
+                          sx={{ fontSize: 14, ml: 0.5, color: "#10b981" }}
+                        />
+                      )}
                     </Button>
-                  )
+                  );
                 })}
               </div>
             </Card>
@@ -897,8 +1132,14 @@ export default function RoadmapApp() {
             >
               <div className="flex justify-between items-start mb-4">
                 <div>
-                  <Typography variant="h5" sx={{ fontWeight: 700, color: "#1f2937", mb: 1 }}>
-                    Task {currentDayData.tasks.filter((t) => t.isCompleted).length + 1}/{currentDayData.tasks.length}
+                  <Typography
+                    variant="h5"
+                    sx={{ fontWeight: 700, color: "#1f2937", mb: 1 }}
+                  >
+                    Task{" "}
+                    {currentDayData.tasks.filter((t) => t.isCompleted).length +
+                      1}
+                    /{currentDayData.tasks.length}
                   </Typography>
                   <Typography variant="body2" sx={{ color: "#6b7280" }}>
                     Daily productivity tasks
@@ -907,14 +1148,24 @@ export default function RoadmapApp() {
                 <IconButton
                   onClick={() => handleLike(currentDayData.tasks[0]?._id)}
                   sx={{
-                    backgroundColor: likedTasks.includes(currentDayData.tasks[0]?._id) ? "#ef4444" : "white",
-                    color: likedTasks.includes(currentDayData.tasks[0]?._id) ? "white" : "#6b7280",
+                    backgroundColor: likedTasks.includes(
+                      currentDayData.tasks[0]?._id
+                    )
+                      ? "#ef4444"
+                      : "white",
+                    color: likedTasks.includes(currentDayData.tasks[0]?._id)
+                      ? "white"
+                      : "#6b7280",
                     width: 40,
                     height: 40,
                     borderRadius: "10px",
                   }}
                 >
-                  {likedTasks.includes(currentDayData.tasks[0]?._id) ? <Favorite /> : <FavoriteBorder />}
+                  {likedTasks.includes(currentDayData.tasks[0]?._id) ? (
+                    <Favorite />
+                  ) : (
+                    <FavoriteBorder />
+                  )}
                 </IconButton>
               </div>
 
@@ -929,7 +1180,7 @@ export default function RoadmapApp() {
                 }}
               >
                 <img
-                  src="/fitness-hero.webp"
+                  src="/1.webp"
                   alt="Productivity workspace setup"
                   className="w-full h-full object-cover"
                 />
@@ -952,7 +1203,11 @@ export default function RoadmapApp() {
                       height: 60,
                     }}
                   >
-                    {isPlaying ? <Pause sx={{ fontSize: 30 }} /> : <PlayArrow sx={{ fontSize: 30 }} />}
+                    {isPlaying ? (
+                      <Pause sx={{ fontSize: 30 }} />
+                    ) : (
+                      <PlayArrow sx={{ fontSize: 30 }} />
+                    )}
                   </IconButton>
                 </Box>
                 <IconButton
@@ -967,7 +1222,11 @@ export default function RoadmapApp() {
                     height: 36,
                   }}
                 >
-                  {isMuted ? <VolumeOff sx={{ fontSize: 20 }} /> : <VolumeUp sx={{ fontSize: 20 }} />}
+                  {isMuted ? (
+                    <VolumeOff sx={{ fontSize: 20 }} />
+                  ) : (
+                    <VolumeUp sx={{ fontSize: 20 }} />
+                  )}
                 </IconButton>
               </Box>
 
@@ -989,9 +1248,19 @@ export default function RoadmapApp() {
 
               {/* Mobile Stats Cards */}
               <div className="grid grid-cols-2 gap-3">
-                <Card sx={{ backgroundColor: "#fef3c7", borderRadius: "16px", p: 2, textAlign: "center" }}>
+                <Card
+                  sx={{
+                    backgroundColor: "#fef3c7",
+                    borderRadius: "16px",
+                    p: 2,
+                    textAlign: "center",
+                  }}
+                >
                   <Typography sx={{ fontSize: "1.2rem", mb: 1 }}>🏃</Typography>
-                  <Typography variant="caption" sx={{ color: "#6b7280", fontWeight: 600, display: "block" }}>
+                  <Typography
+                    variant="caption"
+                    sx={{ color: "#6b7280", fontWeight: 600, display: "block" }}
+                  >
                     CATEGORY
                   </Typography>
                   <Typography variant="body2" sx={{ fontWeight: 700 }}>
@@ -999,9 +1268,19 @@ export default function RoadmapApp() {
                   </Typography>
                 </Card>
 
-                <Card sx={{ backgroundColor: "#e9d5ff", borderRadius: "16px", p: 2, textAlign: "center" }}>
+                <Card
+                  sx={{
+                    backgroundColor: "#e9d5ff",
+                    borderRadius: "16px",
+                    p: 2,
+                    textAlign: "center",
+                  }}
+                >
                   <Typography sx={{ fontSize: "1.2rem", mb: 1 }}>⭐</Typography>
-                  <Typography variant="caption" sx={{ color: "#6b7280", fontWeight: 600, display: "block" }}>
+                  <Typography
+                    variant="caption"
+                    sx={{ color: "#6b7280", fontWeight: 600, display: "block" }}
+                  >
                     DIFFICULTY
                   </Typography>
                   <Typography variant="body2" sx={{ fontWeight: 700 }}>
@@ -1009,9 +1288,19 @@ export default function RoadmapApp() {
                   </Typography>
                 </Card>
 
-                <Card sx={{ backgroundColor: "#d1fae5", borderRadius: "16px", p: 2, textAlign: "center" }}>
+                <Card
+                  sx={{
+                    backgroundColor: "#d1fae5",
+                    borderRadius: "16px",
+                    p: 2,
+                    textAlign: "center",
+                  }}
+                >
                   <Typography sx={{ fontSize: "1.2rem", mb: 1 }}>⏱️</Typography>
-                  <Typography variant="caption" sx={{ color: "#6b7280", fontWeight: 600, display: "block" }}>
+                  <Typography
+                    variant="caption"
+                    sx={{ color: "#6b7280", fontWeight: 600, display: "block" }}
+                  >
                     TOTAL TASKS
                   </Typography>
                   <Typography variant="body2" sx={{ fontWeight: 700 }}>
@@ -1019,9 +1308,19 @@ export default function RoadmapApp() {
                   </Typography>
                 </Card>
 
-                <Card sx={{ backgroundColor: "#fce7f3", borderRadius: "16px", p: 2, textAlign: "center" }}>
+                <Card
+                  sx={{
+                    backgroundColor: "#fce7f3",
+                    borderRadius: "16px",
+                    p: 2,
+                    textAlign: "center",
+                  }}
+                >
                   <Typography sx={{ fontSize: "1.2rem", mb: 1 }}>⏰</Typography>
-                  <Typography variant="caption" sx={{ color: "#6b7280", fontWeight: 600, display: "block" }}>
+                  <Typography
+                    variant="caption"
+                    sx={{ color: "#6b7280", fontWeight: 600, display: "block" }}
+                  >
                     COMPLETED
                   </Typography>
                   <Typography variant="body2" sx={{ fontWeight: 700 }}>
@@ -1033,12 +1332,21 @@ export default function RoadmapApp() {
 
             {/* Mobile Tasks List */}
             <Card sx={{ backgroundColor: "white", borderRadius: "20px", p: 3 }}>
-              <Typography variant="h6" sx={{ mb: 3, fontWeight: 700, color: "#1f2937" }}>
+              <Typography
+                variant="h6"
+                sx={{ mb: 3, fontWeight: 700, color: "#1f2937" }}
+              >
                 TASKS
               </Typography>
               <div className="space-y-3">
                 {currentDayData.tasks.map((task, index) => {
-                  const colors = ["#bfdbfe", "#ddd6fe", "#a7f3d0", "#fecaca", "#fed7aa"]
+                  const colors = [
+                    "#bfdbfe",
+                    "#ddd6fe",
+                    "#a7f3d0",
+                    "#fecaca",
+                    "#fed7aa",
+                  ];
                   return (
                     <div
                       key={task._id}
@@ -1048,14 +1356,27 @@ export default function RoadmapApp() {
                     >
                       <div
                         className="w-10 h-10 rounded-xl flex items-center justify-center"
-                        style={{ backgroundColor: colors[index % colors.length] }}
+                        style={{
+                          backgroundColor: colors[index % colors.length],
+                        }}
                       >
                         <Typography sx={{ fontSize: "1rem" }}>
-                          {index === 0 ? "🧠" : index === 1 ? "🎯" : index === 2 ? "📝" : index === 3 ? "📱" : "🙏"}
+                          {index === 0
+                            ? "🧠"
+                            : index === 1
+                            ? "🎯"
+                            : index === 2
+                            ? "📝"
+                            : index === 3
+                            ? "📱"
+                            : "🙏"}
                         </Typography>
                       </div>
                       <div className="flex-1">
-                        <Typography variant="body2" sx={{ fontWeight: 600, color: "#1f2937" }}>
+                        <Typography
+                          variant="body2"
+                          sx={{ fontWeight: 600, color: "#1f2937" }}
+                        >
                           {task.title}
                         </Typography>
                         <Typography variant="caption" sx={{ color: "#6b7280" }}>
@@ -1065,10 +1386,12 @@ export default function RoadmapApp() {
                       {task.isCompleted ? (
                         <CheckCircle sx={{ color: "#10b981", fontSize: 20 }} />
                       ) : (
-                        <RadioButtonUnchecked sx={{ color: "#d1d5db", fontSize: 20 }} />
+                        <RadioButtonUnchecked
+                          sx={{ color: "#d1d5db", fontSize: 20 }}
+                        />
                       )}
                     </div>
-                  )
+                  );
                 })}
               </div>
             </Card>
@@ -1085,7 +1408,10 @@ export default function RoadmapApp() {
                 <div className="flex items-center space-x-3">
                   <Typography sx={{ fontSize: "1.5rem" }}>😊</Typography>
                   <div>
-                    <Typography variant="h6" sx={{ fontWeight: 700, color: "#1f2937" }}>
+                    <Typography
+                      variant="h6"
+                      sx={{ fontWeight: 700, color: "#1f2937" }}
+                    >
                       BEGINNER
                     </Typography>
                     <Typography variant="body2" sx={{ color: "#6b7280" }}>
@@ -1095,7 +1421,10 @@ export default function RoadmapApp() {
                 </div>
                 <div className="flex items-center space-x-2">
                   <EmojiEvents sx={{ color: "#f59e0b" }} />
-                  <Typography variant="h6" sx={{ fontWeight: 700, color: "#1f2937" }}>
+                  <Typography
+                    variant="h6"
+                    sx={{ fontWeight: 700, color: "#1f2937" }}
+                  >
                     {Math.round(getDayProgress(currentDayData) * 10)}
                   </Typography>
                 </div>
@@ -1105,14 +1434,24 @@ export default function RoadmapApp() {
             {/* Mobile Friends */}
             <Card sx={{ backgroundColor: "white", borderRadius: "20px", p: 3 }}>
               <div className="flex items-center justify-between mb-4">
-                <Typography variant="h6" sx={{ fontWeight: 700, color: "#1f2937" }}>
+                <Typography
+                  variant="h6"
+                  sx={{ fontWeight: 700, color: "#1f2937" }}
+                >
                   MY FRIENDS
                 </Typography>
-                <Chip label="+10" sx={{ backgroundColor: "#f97316", color: "white", fontWeight: 600 }} />
+                <Chip
+                  label="+10"
+                  sx={{
+                    backgroundColor: "#f97316",
+                    color: "white",
+                    fontWeight: 600,
+                  }}
+                />
               </div>
               <div className="flex items-center space-x-2">
                 {["A", "S", "M", "E"].map((initial, index) => {
-                  const colors = ["#6366f1", "#ec4899", "#10b981", "#f59e0b"]
+                  const colors = ["#6366f1", "#ec4899", "#10b981", "#f59e0b"];
                   return (
                     <Avatar
                       key={index}
@@ -1128,7 +1467,7 @@ export default function RoadmapApp() {
                     >
                       {initial}
                     </Avatar>
-                  )
+                  );
                 })}
                 <IconButton
                   sx={{
@@ -1150,29 +1489,58 @@ export default function RoadmapApp() {
 
             {/* Mobile Description */}
             <Card sx={{ backgroundColor: "white", borderRadius: "20px", p: 3 }}>
-              <Typography variant="h6" sx={{ mb: 3, fontWeight: 700, color: "#1f2937" }}>
+              <Typography
+                variant="h6"
+                sx={{ mb: 3, fontWeight: 700, color: "#1f2937" }}
+              >
                 DESCRIPTION
               </Typography>
               <div className="space-y-3">
                 <div className="flex items-start space-x-3">
-                  <Avatar sx={{ bgcolor: "#1f2937", width: 28, height: 28, fontSize: "0.75rem" }}>1</Avatar>
+                  <Avatar
+                    sx={{
+                      bgcolor: "#1f2937",
+                      width: 28,
+                      height: 28,
+                      fontSize: "0.75rem",
+                    }}
+                  >
+                    1
+                  </Avatar>
                   <div>
                     <Typography variant="body2" sx={{ fontWeight: 600, mb: 1 }}>
                       Start point:
                     </Typography>
-                    <Typography variant="body2" sx={{ color: "#6b7280", fontSize: "0.875rem" }}>
-                      Begin with small, manageable tasks that build momentum for the day ahead.
+                    <Typography
+                      variant="body2"
+                      sx={{ color: "#6b7280", fontSize: "0.875rem" }}
+                    >
+                      Begin with small, manageable tasks that build momentum for
+                      the day ahead.
                     </Typography>
                   </div>
                 </div>
                 <div className="flex items-start space-x-3">
-                  <Avatar sx={{ bgcolor: "#9ca3af", width: 28, height: 28, fontSize: "0.75rem" }}>2</Avatar>
+                  <Avatar
+                    sx={{
+                      bgcolor: "#9ca3af",
+                      width: 28,
+                      height: 28,
+                      fontSize: "0.75rem",
+                    }}
+                  >
+                    2
+                  </Avatar>
                   <div>
                     <Typography variant="body2" sx={{ fontWeight: 600, mb: 1 }}>
                       Actions:
                     </Typography>
-                    <Typography variant="body2" sx={{ color: "#6b7280", fontSize: "0.875rem" }}>
-                      Complete each task mindfully, upload proof of completion, and unlock the next day's challenges.
+                    <Typography
+                      variant="body2"
+                      sx={{ color: "#6b7280", fontSize: "0.875rem" }}
+                    >
+                      Complete each task mindfully, upload proof of completion,
+                      and unlock the next day's challenges.
                     </Typography>
                   </div>
                 </div>
@@ -1182,7 +1550,12 @@ export default function RoadmapApp() {
         </div>
 
         {/* Upload Dialog */}
-        <Dialog open={uploadDialogOpen} onClose={() => setUploadDialogOpen(false)} maxWidth="sm" fullWidth>
+        <Dialog
+          open={uploadDialogOpen}
+          onClose={() => setUploadDialogOpen(false)}
+          maxWidth="sm"
+          fullWidth
+        >
           <DialogTitle>Upload Completion Proof</DialogTitle>
           <DialogContent>
             <Box sx={{ textAlign: "center", py: 3 }}>
@@ -1194,7 +1567,12 @@ export default function RoadmapApp() {
                 onChange={handleFileSelect}
               />
               <label htmlFor="proof-upload">
-                <Button variant="outlined" component="span" startIcon={<Camera />} sx={{ mb: 2 }}>
+                <Button
+                  variant="outlined"
+                  component="span"
+                  startIcon={<Camera />}
+                  sx={{ mb: 2 }}
+                >
                   Select Image
                 </Button>
               </label>
@@ -1210,10 +1588,18 @@ export default function RoadmapApp() {
             </Box>
           </DialogContent>
           <DialogActions>
-            <Button onClick={() => setUploadDialogOpen(false)} startIcon={<Close />}>
+            <Button
+              onClick={() => setUploadDialogOpen(false)}
+              startIcon={<Close />}
+            >
               Cancel
             </Button>
-            <Button onClick={handleProofUpload} variant="contained" disabled={!selectedFile} startIcon={<Check />}>
+            <Button
+              onClick={handleProofUpload}
+              variant="contained"
+              disabled={!selectedFile}
+              startIcon={<Check />}
+            >
               Upload
             </Button>
           </DialogActions>
@@ -1226,11 +1612,15 @@ export default function RoadmapApp() {
           onClose={() => setSnackbarOpen(false)}
           anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
         >
-          <Alert onClose={() => setSnackbarOpen(false)} severity="success" variant="filled">
+          <Alert
+            onClose={() => setSnackbarOpen(false)}
+            severity="success"
+            variant="filled"
+          >
             {snackbarMessage}
           </Alert>
         </Snackbar>
       </div>
     </ThemeProvider>
-  )
+  );
 }

@@ -98,6 +98,25 @@ export default function GoalChatPage() {
         if (!roadmapRes.ok) throw new Error("Roadmap generation failed");
 
         const { roadmap } = await roadmapRes.json();
+        function addDatesToRoadmap(roadmap: any[], startDateStr: string) {
+          const startDate = new Date(startDateStr);
+
+          return roadmap.map((dayData, index) => {
+            const dayOffset = index; // dayNumber starts from 1, index from 0
+            const currentDate = new Date(startDate);
+            currentDate.setDate(startDate.getDate() + dayOffset);
+
+            return {
+              ...dayData,
+              dayDate: currentDate, // YYYY-MM-DD
+            };
+          });
+        }
+
+        // Example usage:
+
+        const roadmapWithDates = addDatesToRoadmap(roadmap, "2025-06-29");
+        console.log(roadmapWithDates);
 
         const fullGoal = {
           userId: session?.user.id,
@@ -110,11 +129,10 @@ export default function GoalChatPage() {
           startDate: new Date(),
           targetDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
           status: "in_progress",
-          roadmap,
+          roadmap: roadmapWithDates,
           createdAt: new Date(),
           updatedAt: new Date(),
         };
-
 
         const saveRes = await fetch("/api/goals", {
           method: "POST",

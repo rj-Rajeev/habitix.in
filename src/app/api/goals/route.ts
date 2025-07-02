@@ -15,12 +15,8 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json();
     const goal = await Goal.create({
-      userId: session.user.id,
       ...body,
     });
-  console.log("----body----------", body);
-  console.log("----goal----------", goal);
-
 
     return NextResponse.json({ id: goal._id });
   } catch (error) {
