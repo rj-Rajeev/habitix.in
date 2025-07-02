@@ -1,4 +1,3 @@
-"use client";
 
 import connectDb from "@/lib/db";
 import Goal from "@/models/Goal";

@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/authOptions";
 import connectDb from "@/lib/db";
 import Goal from "@/models/Goal";
 
 export async function GET(req: NextRequest) {
   await connectDb();
 
-  const session = await getServerSession();
-  console.log(session, "-----------");
+  const session = await getServerSession(authOptions);
 
   if (!session || !session.user?.id) {
     return NextResponse.json(
@@ -17,31 +17,41 @@ export async function GET(req: NextRequest) {
   }
 
   const userId = session.user.id;
-  const todayStr = new Date().toISOString().split("T")[0];
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const todayDate = today.toISOString();
 
   try {
-    const userGoals = await Goal.find({ userId });
-
-    const todaysTasks = [];
-
-    for (const goal of userGoals) {
-      for (const day of goal.roadmap) {
-        const dayDateStr = new Date(day.dayDate).toISOString().split("T")[0];
-        if (dayDateStr === todayStr) {
-          for (const task of day.tasks) {
-            todaysTasks.push({
-              goalId: goal._id,
-              goalTitle: goal.title,
-              dayNumber: day.dayNumber,
-              taskId: task._id,
-              taskTitle: task.title,
-              isCompleted: task.isCompleted,
-              dayDate: dayDateStr,
-            });
-          }
-        }
-      }
-    }
+    const todaysTasks = await Goal.aggregate([
+      {
+        $match: {
+          userId: userId,
+        },
+      },
+      {
+        $unwind: "$roadmap",
+      },
+      {
+        $match: {
+          "roadmap.dayDate": `${todayDate}`,
+        },
+      },
+      {
+        $unwind: "$roadmap.tasks",
+      },
+      {
+        $project: {
+          _id: 0,
+          goalId: "$_id",
+          goalTitle: "$title",
+          dayNumber: "$roadmap.dayNumber",
+          dayDate: "$roadmap.dayDate",
+          tasks: "$roadmap.tasks",
+        },
+      },
+    ]);
 
     return NextResponse.json({
       success: true,
