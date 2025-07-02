@@ -62,5 +62,5 @@ const GoalSchema = new Schema<IGoal>({
   createdAt: { type: Date, default: Date.now },
 });
 
-const Goal = models.Goal || model<IGoal>("Goal", GoalSchema);
+const Goal = models?.Goal || model<IGoal>("Goal", GoalSchema);
 export default Goal;
