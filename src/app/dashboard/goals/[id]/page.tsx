@@ -1082,13 +1082,11 @@ export default function RoadmapApp() {
                 </Typography>
               </div>
               <div className="flex space-x-2 overflow-x-auto pb-2">
-                {[1, 2, 3, 4].map((day) => {
-                  const dayData = roadmapData.roadmap.find(
-                    (d) => d.dayNumber === day
-                  );
+                {roadmapData.roadmap.map((dayData) => {
+                  const day = dayData.dayNumber;
                   const isActive = currentDay === day;
-                  const isUnlocked = dayData?.unlocked;
-                  const isCompleted = dayData?.completed;
+                  const isUnlocked = dayData.unlocked;
+                  const isCompleted = dayData.completed;
 
                   return (
                     <Button
@@ -1137,8 +1135,7 @@ export default function RoadmapApp() {
                     sx={{ fontWeight: 700, color: "#1f2937", mb: 1 }}
                   >
                     Task{" "}
-                    {currentDayData.tasks.filter((t) => t.isCompleted).length +
-                      1}
+                    {currentDayData.tasks.filter((t) => t.isCompleted).length}
                     /{currentDayData.tasks.length}
                   </Typography>
                   <Typography variant="body2" sx={{ color: "#6b7280" }}>
