@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { GoogleGenAI } from '@google/genai';
+import { NextRequest, NextResponse } from "next/server";
+import { GoogleGenAI } from "@google/genai";
 
 const apiKey = process.env.GEMINI_API_KEY!;
 const ai = new GoogleGenAI({ apiKey });
@@ -7,10 +7,17 @@ const ai = new GoogleGenAI({ apiKey });
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { title, hoursPerDay, daysPerWeek, preferredTime, motivation } = body;
+    const {
+      title,
+      duration,
+      hoursPerDay,
+      daysPerWeek,
+      preferredTime,
+      motivation,
+    } = body;
 
     const prompt = `
-You're a productivity and goal-setting coach. Create a detailed ${preferredTime} plan for achieving the following goal.
+You're a productivity and goal-setting coach. Create a detailed ${duration} plan (maximum 10 days) for achieving the following goal.
 
 Goal: ${title}
 Preferred working time in days: ${preferredTime}
@@ -38,15 +45,15 @@ ONLY RETURN JSON. Do not include explanations.
 `;
 
     const response = await ai.models.generateContent({
-      model: 'gemini-1.5-flash',
-      contents: [{ role: 'user', parts: [{ text: prompt }] }],
+      model: "gemini-1.5-flash",
+      contents: [{ role: "user", parts: [{ text: prompt }] }],
     });
 
     const text = response.candidates?.[0]?.content?.parts?.[0]?.text;
     if (!text) throw new Error("No content in Gemini response");
 
-    const jsonStart = text.indexOf('[');
-    const jsonEnd = text.lastIndexOf(']') + 1;
+    const jsonStart = text.indexOf("[");
+    const jsonEnd = text.lastIndexOf("]") + 1;
     const jsonString = text.slice(jsonStart, jsonEnd);
 
     const parsed = JSON.parse(jsonString);
@@ -59,17 +66,19 @@ ONLY RETURN JSON. Do not include explanations.
       tasks: day.tasks.map((t: any) => ({
         title: t.title,
         isCompleted: false,
-        createdAt: new Date()
+        createdAt: new Date(),
       })),
       proof: {
-        uploaded: false
-      }
+        uploaded: false,
+      },
     }));
 
     return NextResponse.json({ roadmap });
-
   } catch (err) {
-    console.error('Gemini Error:', err);
-    return NextResponse.json({ error: '❌ Failed to generate roadmap' }, { status: 500 });
+    console.error("Gemini Error:", err);
+    return NextResponse.json(
+      { error: "❌ Failed to generate roadmap" },
+      { status: 500 }
+    );
   }
 }
