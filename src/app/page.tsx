@@ -22,6 +22,7 @@ import {
 import Navbar from "@/components/ui/Navbar";
 import Footer from "@/components/ui/Footer";
 import Link from "next/link";
+import AutoNotificationPrompt from "@/components/notifications/AutoNotificationPrompt";
 
 export default function HabitixLanding() {
   const theme = useTheme();
@@ -920,6 +921,7 @@ export default function HabitixLanding() {
 
       {/* Footer */}
       <Footer />
+      <AutoNotificationPrompt />
     </Box>
   );
 }
