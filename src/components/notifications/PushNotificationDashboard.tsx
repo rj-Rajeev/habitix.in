@@ -1,60 +1,73 @@
 // Improved Push Notification Dashboard UI
 // File: components/PushNotificationDashboard.tsx
 
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { Bell, Send, UserPlus } from 'lucide-react';
+import { useEffect, useState } from "react";
+import { Bell, Send, UserPlus } from "lucide-react";
 
 const urlBase64ToUint8Array = (base64String: string): Uint8Array => {
-  const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
-  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
   const rawData = window.atob(base64);
   return Uint8Array.from([...rawData].map((char) => char.charCodeAt(0)));
 };
 
 const PushNotificationDashboard = () => {
-  const [userId, setUserId] = useState('');
+  const [userId, setUserId] = useState("");
   const [categories, setCategories] = useState<string[]>([]);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-  const [message, setMessage] = useState('');
-  const [title, setTitle] = useState('Habitix Alert');
-  const [status, setStatus] = useState('');
+  const [message, setMessage] = useState("");
+  const [title, setTitle] = useState("Habitix Alert");
+  const [status, setStatus] = useState("");
+
+  console.log(process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!);
 
   useEffect(() => {
-    setCategories(['health', 'focus', 'reminder', 'habit', 'goal']);
-    navigator.serviceWorker.register('/sw.js');
+    setCategories(["health", "focus", "reminder", "habit", "goal"]);
+    navigator.serviceWorker.register("/sw.js");
   }, []);
 
   const subscribe = async () => {
     const permission = await Notification.requestPermission();
-    if (permission !== 'granted') return alert('Permission not granted');
+    if (permission !== "granted") return alert("Opps Permission not granted");
 
     const reg = await navigator.serviceWorker.ready;
     const sub = await reg.pushManager.subscribe({
       userVisibleOnly: true,
       applicationServerKey: urlBase64ToUint8Array(
-        process.env.VAPID_PUBLIC_KEY!
+        process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!
       ),
     });
 
-    await fetch('/api/notifications/subscribe', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ subscription: sub.toJSON(), userId, categories: selectedCategories })
+    console.log("subscription Start");
+
+    await fetch("/api/notifications/subscribe", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        subscription: sub.toJSON(),
+        userId,
+        categories: selectedCategories,
+      }),
     });
 
-    setStatus('Subscribed successfully');
+    setStatus("Subscribed successfully");
   };
 
   const send = async () => {
-    await fetch('/api/notifications/send', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId, category: selectedCategories[0], message, title })
+    await fetch("/api/notifications/send", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        userId,
+        category: selectedCategories[0],
+        message,
+        title,
+      }),
     });
 
-    setStatus('Notification sent');
+    setStatus("Notification sent");
   };
 
   const toggleCategory = (cat: string) => {
@@ -87,8 +100,8 @@ const PushNotificationDashboard = () => {
               onClick={() => toggleCategory(cat)}
               className={`px-4 py-1.5 text-sm rounded-full transition ${
                 selectedCategories.includes(cat)
-                  ? 'bg-blue-600 text-white shadow'
-                  : 'bg-slate-200 text-slate-800 hover:bg-slate-300'
+                  ? "bg-blue-600 text-white shadow"
+                  : "bg-slate-200 text-slate-800 hover:bg-slate-300"
               }`}
             >
               {cat}
