@@ -1,14 +1,31 @@
-"use client"
-import type React from "react"
-import { Box, Container, Grid, Typography, Button, IconButton, TextField, InputAdornment } from "@mui/material"
-import { Check, Send, Facebook, Twitter, Instagram, LinkedIn } from "@mui/icons-material"
+"use client";
+import type React from "react";
+import {
+  Box,
+  Container,
+  Grid,
+  Typography,
+  Button,
+  IconButton,
+  TextField,
+  InputAdornment,
+} from "@mui/material";
+import {
+  Check,
+  Send,
+  Facebook,
+  Twitter,
+  Instagram,
+  LinkedIn,
+} from "@mui/icons-material";
+import Link from "next/link";
 
 export default function Footer() {
   const handleNewsletterSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault();
     // Handle newsletter subscription
-    console.log("Newsletter subscription")
-  }
+    console.log("Newsletter subscription");
+  };
 
   const footerSections = [
     {
@@ -23,14 +40,14 @@ export default function Footer() {
       title: "Support",
       links: ["Help Center", "Contact", "Privacy Policy", "Terms of Service"],
     },
-  ]
+  ];
 
   const socialLinks = [
     { icon: <Facebook />, href: "#", label: "Facebook" },
     { icon: <Twitter />, href: "#", label: "Twitter" },
     { icon: <Instagram />, href: "#", label: "Instagram" },
     { icon: <LinkedIn />, href: "#", label: "LinkedIn" },
-  ]
+  ];
 
   return (
     <Box
@@ -46,7 +63,9 @@ export default function Footer() {
         <Grid container spacing={8}>
           {/* Brand Section */}
           <Grid size={{ xs: 12, md: 4 }}>
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 4 }}>
+            <Box
+              sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 4 }}
+            >
               <Box
                 sx={{
                   width: "40px",
@@ -81,7 +100,8 @@ export default function Footer() {
                 mb: 4,
               }}
             >
-              Build better habits and achieve your goals with the most intuitive habit tracking app available today.
+              Build better habits and achieve your goals with the most intuitive
+              habit tracking app available today.
             </Typography>
 
             {/* Newsletter Signup */}
@@ -147,7 +167,7 @@ export default function Footer() {
 
           {/* Footer Links */}
           {footerSections.map((section, index) => (
-            <Grid size={{ xs: 12,sm:6, md: 2 }} key={index}>
+            <Grid size={{ xs: 6, sm: 6, md: 2 }} key={index}>
               <Typography
                 variant="h6"
                 sx={{
@@ -236,9 +256,13 @@ export default function Footer() {
             gap: 4,
           }}
         >
-          <Typography sx={{ color: "#9ca3af", fontSize: "16px" }}>© 2024 HABITIX. All rights reserved.</Typography>
+          <Typography sx={{ color: "#9ca3af", fontSize: "16px" }}>
+            © 2024 HABITIX. All rights reserved.
+          </Typography>
           <Box sx={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
             <Button
+              component={Link}
+              href="/privacy-policy"
               sx={{
                 color: "#9ca3af",
                 textTransform: "none",
@@ -253,6 +277,8 @@ export default function Footer() {
               Privacy Policy
             </Button>
             <Button
+              component={Link}
+              href="/privacy-policy"
               sx={{
                 color: "#9ca3af",
                 textTransform: "none",
@@ -284,5 +310,5 @@ export default function Footer() {
         </Box>
       </Container>
     </Box>
-  )
+  );
 }

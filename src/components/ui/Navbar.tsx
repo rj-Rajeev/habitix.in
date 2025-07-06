@@ -151,7 +151,7 @@ export default function Navbar() {
                     },
                   }}
                 >
-                  <Link href={'/signin'}>Get Started</Link>
+                  <Link href={'/pricing'}>Get Started</Link>
                 </Button>
               </Box>
             )}
@@ -261,7 +261,7 @@ export default function Navbar() {
             },
           }}
         >
-          <Link href={'/signin'}>Get Started</Link>
+          <Link href={'/pricing'}>Get Started</Link>
         </Button>
       </Drawer>
     </>

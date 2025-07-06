@@ -19,8 +19,6 @@ import {
   ArrowForward,
   PlayArrow,
 } from "@mui/icons-material";
-import Navbar from "@/components/ui/Navbar";
-import Footer from "@/components/ui/Footer";
 import Link from "next/link";
 import AutoNotificationPrompt from "@/components/notifications/AutoNotificationPrompt";
 
@@ -150,8 +148,6 @@ export default function HabitixLanding() {
         }}
       />
 
-      {/* Navbar */}
-      <Navbar />
 
       {/* Main Content */}
       <Container maxWidth="lg" sx={{ position: "relative", zIndex: 5, pt: 12 }}>
@@ -233,7 +229,7 @@ export default function HabitixLanding() {
                     }}
                     endIcon={<ArrowForward />}
                   >
-                    <Link href={"/signin"}>Get Started</Link>
+                    <Link href={"/pricing"}>Get Started</Link>
                   </Button>
 
                   <Button
@@ -735,7 +731,7 @@ export default function HabitixLanding() {
                   }}
                   endIcon={<ArrowForward />}
                 >
-                  <Link href={"/signin"}>Start Tracking</Link>
+                  <Link href={"/pricing"}>Start Tracking</Link>
                 </Button>
               </Box>
             </Grid>
@@ -919,8 +915,6 @@ export default function HabitixLanding() {
         </Box>
       </Container>
 
-      {/* Footer */}
-      <Footer />
       <AutoNotificationPrompt />
     </Box>
   );

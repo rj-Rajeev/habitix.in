@@ -3,7 +3,11 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 export async function middleware(request: NextRequest) {
-  const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET });
+
+  const token = await getToken({
+    req: request,
+    secret: process.env.NEXTAUTH_SECRET,
+  });
   const { pathname } = request.nextUrl;
 
   const isAuthPage = pathname === "/signin" || pathname === "/signup";
@@ -19,6 +23,9 @@ export async function middleware(request: NextRequest) {
   // ✅ If logged in and trying to access signin or signup page
   if (token && isAuthPage) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
+  }
+
+  if (pathname === "/pricing") {
   }
 
   return NextResponse.next();
