@@ -9,39 +9,69 @@ const urlBase64ToUint8Array = (base64String: string): Uint8Array => {
   return Uint8Array.from([...rawData].map((char) => char.charCodeAt(0)));
 };
 
-const AutoNotificationPrompt = ({ userId }: { userId?: string }) => {
-  const [attempted, setAttempted] = useState(false);
+const subscribeWithTimeout = async (
+  reg: ServiceWorkerRegistration
+): Promise<PushSubscription> => {
+  return new Promise((resolve, reject) => {
+    const timeout = setTimeout(() => reject(new Error("Subscription timeout after 5s")), 5000);
 
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    if (Notification.permission !== "default" || attempted) return;
-
-    setAttempted(true);
-
-    Notification.requestPermission().then(async (permission) => {
-      if (permission !== "granted") return;
-
-      const reg = await navigator.serviceWorker.ready;
-      const sub = await reg.pushManager.subscribe({
+    reg.pushManager
+      .subscribe({
         userVisibleOnly: true,
         applicationServerKey: urlBase64ToUint8Array(
           process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!
         ),
+      })
+      .then((sub) => {
+        clearTimeout(timeout);
+        resolve(sub);
+      })
+      .catch((err) => {
+        clearTimeout(timeout);
+        reject(err);
       });
+  });
+};
 
-      await fetch("/api/notifications/subscribe", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          subscription: sub.toJSON(),
-          userId,
-          categories: ["default"],
-        }),
-      });
-    });
+const AutoNotificationPrompt = ({ userId }: { userId?: string }) => {
+  const [attempted, setAttempted] = useState(false);
+
+  useEffect(() => {
+    navigator.serviceWorker.register("/sw.js");
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || Notification.permission !== "default" || attempted) return;
+
+    setAttempted(true);
+
+    const subscribe = async () => {
+      try {
+        const permission = await Notification.requestPermission();
+        if (permission !== "granted") return;
+
+        const reg = await navigator.serviceWorker.ready;
+        const existingSub = await reg.pushManager.getSubscription();
+        const sub = existingSub || await subscribeWithTimeout(reg);
+
+        await fetch("/api/notifications/subscribe", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            subscription: sub.toJSON(),
+            userId,
+            categories: ["default"],
+          }),
+        });
+      } catch (error) {
+        console.error("AutoNotification subscription error:", error);
+      }
+    };
+
+    subscribe();
   }, [userId, attempted]);
 
-  return null; // This component is silent
+  return null;
 };
 
 export default AutoNotificationPrompt;

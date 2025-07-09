@@ -19,10 +19,7 @@ export default function SignUp() {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoading(true);
-    setError('');
-
-    console.log('signup is clicked');
-    
+    setError('');    
 
     // Extract form data.
     const form = e.currentTarget;
@@ -30,8 +27,6 @@ export default function SignUp() {
     const fullname = formData.get('name') as string;
     const email = formData.get('email') as string;
     const password = formData.get('password') as string;
-
-    console.log(fullname, email, password,"-----");
     
     try {
       // Call the registration API endpoint.

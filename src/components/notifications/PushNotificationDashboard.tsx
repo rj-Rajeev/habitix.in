@@ -21,7 +21,6 @@ const PushNotificationDashboard = () => {
   const [title, setTitle] = useState("Habitix Alert");
   const [status, setStatus] = useState("");
 
-  console.log(process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!);
 
   useEffect(() => {
     setCategories(["health", "focus", "reminder", "habit", "goal"]);

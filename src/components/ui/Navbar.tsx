@@ -1,5 +1,5 @@
-"use client"
-import { useState, useEffect } from "react"
+"use client";
+import { useState, useEffect } from "react";
 import {
   AppBar,
   Toolbar,
@@ -15,27 +15,31 @@ import {
   ListItem,
   ListItemButton,
   ListItemText,
-} from "@mui/material"
-import { Check, Menu as MenuIcon, Close } from "@mui/icons-material"
-import Link from "next/link"
+} from "@mui/material";
+import { Check, Menu as MenuIcon, Close } from "@mui/icons-material";
+import Link from "next/link";
 
 export default function Navbar() {
-  const theme = useTheme()
-  const isMobile = useMediaQuery(theme.breakpoints.down("md"))
-  const [scrollY, setScrollY] = useState(0)
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
+  const [scrollY, setScrollY] = useState(0);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
-    const handleScroll = () => setScrollY(window.scrollY)
-    window.addEventListener("scroll", handleScroll, { passive: true })
-    return () => window.removeEventListener("scroll", handleScroll)
-  }, [])
+    const handleScroll = () => setScrollY(window.scrollY);
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   const handleMobileMenuToggle = () => {
-    setMobileMenuOpen(!mobileMenuOpen)
-  }
+    setMobileMenuOpen(!mobileMenuOpen);
+  };
 
-  const navItems = ["Features", "About", "Contact"]
+  const navItems = [
+    { label: "Features", href: "/features" },
+    { label: "About", href: "/" },
+    { label: "Contact", href: "/" },
+  ];
 
   return (
     <>
@@ -50,7 +54,9 @@ export default function Navbar() {
         }}
       >
         <Container maxWidth="lg">
-          <Toolbar sx={{ justifyContent: "space-between", py: 2, minHeight: "80px" }}>
+          <Toolbar
+            sx={{ justifyContent: "space-between", py: 2, minHeight: "80px" }}
+          >
             <Box
               sx={{
                 display: "flex",
@@ -97,9 +103,10 @@ export default function Navbar() {
 
             {!isMobile && (
               <Box sx={{ display: "flex", gap: 6, alignItems: "center" }}>
-                {navItems.map((item) => (
+                {navItems.map((item, id) => (
                   <Button
-                    key={item}
+                    href={item.href}
+                    key={id}
                     sx={{
                       color: "#374151",
                       textTransform: "none",
@@ -130,7 +137,7 @@ export default function Navbar() {
                       },
                     }}
                   >
-                    {item}
+                    {item.label}
                   </Button>
                 ))}
                 <Button
@@ -151,7 +158,7 @@ export default function Navbar() {
                     },
                   }}
                 >
-                  <Link href={'/pricing'}>Get Started</Link>
+                  <Link href={"/pricing"}>Get Started</Link>
                 </Button>
               </Box>
             )}
@@ -187,7 +194,14 @@ export default function Navbar() {
           },
         }}
       >
-        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 4 }}>
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            mb: 4,
+          }}
+        >
           <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
             <Box
               sx={{
@@ -219,9 +233,11 @@ export default function Navbar() {
         </Box>
 
         <List>
-          {navItems.map((item) => (
-            <ListItem key={item} disablePadding>
+          {navItems.map((item, id) => (
+            <ListItem key={id} disablePadding>
               <ListItemButton
+                component={Link}
+                href={item.href}
                 sx={{
                   borderRadius: "8px",
                   mb: 1,
@@ -231,7 +247,7 @@ export default function Navbar() {
                 }}
               >
                 <ListItemText
-                  primary={item}
+                  primary={item.label}
                   sx={{
                     "& .MuiListItemText-primary": {
                       fontSize: "16px",
@@ -261,9 +277,9 @@ export default function Navbar() {
             },
           }}
         >
-          <Link href={'/pricing'}>Get Started</Link>
+          <Link href={"/pricing"}>Get Started</Link>
         </Button>
       </Drawer>
     </>
-  )
+  );
 }

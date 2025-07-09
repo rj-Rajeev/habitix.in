@@ -30,17 +30,33 @@ export default function Footer() {
   const footerSections = [
     {
       title: "Product",
-      links: ["Features", "Download", "Integrations", "API"],
+      links: [
+        { label: "Features", href: "/features" },
+        { label: "Download", href: "/download" },
+        { label: "Integrations", href: "/integrations" },
+        { label: "API", href: "/api-docs" },
+      ],
     },
     {
       title: "Company",
-      links: ["About", "Blog", "Careers", "Press"],
+      links: [
+        { label: "About", href: "/about" },
+        { label: "Blog", href: "/blog" },
+        { label: "Careers", href: "/careers" },
+        { label: "Press", href: "/press" },
+      ],
     },
     {
       title: "Support",
-      links: ["Help Center", "Contact", "Privacy Policy", "Terms of Service"],
+      links: [
+        { label: "Help Center", href: "/help" },
+        { label: "Contact", href: "/contact" },
+        { label: "Privacy Policy", href: "/privacy-policy" },
+        { label: "Terms of Service", href: "/terms" },
+      ],
     },
   ];
+
 
   const socialLinks = [
     { icon: <Facebook />, href: "#", label: "Facebook" },
@@ -180,9 +196,10 @@ export default function Footer() {
                 {section.title}
               </Typography>
               <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                {section.links.map((link) => (
+                {section.links.map((link,id) => (
                   <Button
-                    key={link}
+                    {...(link.href ? { component: Link, href: link.href } : {})}
+                    key={id}
                     sx={{
                       color: "#9ca3af",
                       justifyContent: "flex-start",
@@ -196,7 +213,7 @@ export default function Footer() {
                       },
                     }}
                   >
-                    {link}
+                    {link.label}
                   </Button>
                 ))}
               </Box>

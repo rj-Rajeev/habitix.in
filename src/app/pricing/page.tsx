@@ -10,6 +10,7 @@ import {
 } from "@mui/material";
 import { Check, Close } from "@mui/icons-material";
 import PaymentButton from "@/components/razorpay/PaymentButton";
+import Link from "next/link";
 
 const theme = createTheme({
   palette: {
@@ -221,11 +222,28 @@ export default function PricingPage() {
                 </Box>
 
                 {/* CTA Button */}
-                <PaymentButton
-                  amount={9}
-                  buttonStyle={plan.buttonStyle}
-                  buttonText={plan.buttonText}
-                />
+                {plan.price === "Free" && (
+                  <Button
+                    component={Link}
+                    href="/signin"
+                    variant={plan.buttonStyle}
+                    fullWidth
+                    className={
+                      plan.buttonStyle === "contained"
+                        ? "bg-gradient-to-r from-purple-600 to-indigo-600 text-white hover:from-purple-700 hover:to-indigo-700 py-4"
+                        : "border-2 border-slate-800 text-slate-800 hover:bg-slate-50 py-4"
+                    }
+                  >
+                    {plan.buttonText}
+                  </Button>
+                )}
+                {plan.price != "Free" && (
+                  <PaymentButton
+                    amount={9}
+                    buttonStyle={plan.buttonStyle}
+                    buttonText={plan.buttonText}
+                  />
+                )}
               </div>
             ))}
           </div>
