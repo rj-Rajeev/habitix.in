@@ -274,7 +274,7 @@ export default function Footer() {
           }}
         >
           <Typography sx={{ color: "#9ca3af", fontSize: "16px" }}>
-            © 2024 HABITIX. All rights reserved.
+            © 2025 HABITIX. All rights reserved.
           </Typography>
           <Box sx={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
             <Button
