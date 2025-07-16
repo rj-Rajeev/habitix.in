@@ -54,10 +54,10 @@ export default function PrivacyPolicyPage() {
         If you have any questions or concerns, contact us at:
         <br />
         <a
-          href="mailto:contect.rajeevbhardwaj@gmail.com"
+          href="mailto:habitix.in@gmail.com"
           className="text-blue-600 underline hover:text-blue-800"
         >
-          contect.rajeevbhardwaj@gmail.com
+          habitix.in@gmail.com
         </a>
       </p>
     </div>
