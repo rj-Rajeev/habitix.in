@@ -16,14 +16,16 @@ export async function POST(req: NextRequest) {
   try {
     const transporter = nodemailer.createTransport({
       service: "gmail",
+      port: 565,
+      secure: true,
       auth: {
         user: "habitix.in@gmail.com",
-        pass: "Rajeevjii@1234", // ⚠️ WARNING: Store this securely in env file
+        pass: "somt ntzg rish cdby", // ⚠️ WARNING: Store this securely in env file
       },
     });
 
     await transporter.sendMail({
-      from: `Habitix <habitix.in@gmail.com>`,
+      from: `habitix.in@gmail.com`,
       to: email,
       subject: `Habitix Update - ${category || "No Category"}`,
       text: message,
