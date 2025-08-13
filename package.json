@@ -29,6 +29,7 @@
     "next-auth": "^4.24.11",
     "nodemailer": "^6.10.1",
     "npm": "^11.4.2",
+    "openai": "^5.12.2",
     "razorpay": "^2.9.6",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",

@@ -10,7 +10,16 @@ export default function LayoutWrapper({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const hideLayout = pathname === "/dashboard/goal-chat";
+    // Define all paths where layout should be hidden
+  const hideLayoutPaths = [
+    "/dashboard/goal-chat",
+  ];
+
+  // Check for exact matches or dynamic segments
+  const hideLayout =
+    hideLayoutPaths.includes(pathname) ||
+    pathname.startsWith("/personas/");
+
 
   return (
     <>
