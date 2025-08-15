@@ -480,46 +480,45 @@ export default function PersonaChatPage() {
       .catch(() => setPersonas([]));
   }, []);
 
-  async function sendMessage() {
-    if (!input.trim() || loading) return;
+ async function sendMessage() {
+  if (!input.trim() || loading) return;
 
-    const userMessage: ChatMessage = { role: "user", content: input };
-    setMessages((prev) => [...prev, userMessage]);
-    setInput("");
-    setLoading(true);
-    setThinkingStage("thinking");
+  const userMessage: ChatMessage = { role: "user", content: input };
+  const updatedMessages = [...messages, userMessage];
 
-    setTimeout(() => setThinkingStage("processing"), 800);
-    setTimeout(() => setThinkingStage("generating"), 1800);
-    setTimeout(() => setThinkingStage("finalizing"), 2600);
+  setMessages(updatedMessages);
+  setInput("");
+  setLoading(true);
 
-    try {
-      const res = await fetch(`/api-v2/chat/${personaId}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: input }),
-      });
-      const data = await res.json();
+  try {
+    const res = await fetch(`/api-v2/chat/${personaId}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        messages: updatedMessages, // send full history
+        personaId,
+      }),
+    });
 
-      setLoading(false);
-      setIsTyping(true);
+    const data = await res.json();
 
-      // Add message with typewriter effect
-      setMessages((prev) => [
-        ...prev,
-        { role: "assistant", content: data.reply },
-      ]);
-    } catch (error) {
-      setLoading(false);
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: "assistant",
-          content: "Sorry, I encountered an error. Please try again.",
-        },
-      ]);
-    }
+    setLoading(false);
+    setIsTyping(true);
+    setMessages((prev) => [
+      ...prev,
+      { role: "assistant", content: data.reply },
+    ]);
+  } catch (error) {
+    setLoading(false);
+    setMessages((prev) => [
+      ...prev,
+      {
+        role: "assistant",
+        content: "Sorry, I encountered an error. Please try again.",
+      },
+    ]);
   }
+}
 
   return (
     <div className="flex h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
