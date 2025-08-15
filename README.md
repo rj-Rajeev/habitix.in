@@ -1,22 +1,51 @@
-# 🧠 **TrackNest** — AI-Powered Gamified Goal & Task Tracker
+🚀 Big News from Habitix! — Introducing Persona-Based AI Chat 🎉
+
+We’re thrilled to announce a brand-new Habitix feature that takes your goals to the next level:
+🤖 Persona-Based AI Chat — your own AI mentors, coaches, and companions, built exactly how you want them.
+
+Now, you can:
+
+Create a custom AI Persona with its own name, tone, and expertise
+
+Chat in English, Hinglish, or your preferred style
+
+Get goal-aware advice directly connected to your Habitix roadmap
+
+Switch between multiple mentors instantly for different challenges
+
+💡 Example:
+
+Goal: “Lose 10 kg in 60 days”
+
+Create FitBuddy — a supportive but firm fitness coach
+
+FitBuddy breaks your 60 days into clear daily steps
+
+Each day, they check in, motivate you, and adjust your plan
+
+Habitix gamifies the journey and celebrates every win with you 🎯
+
+This isn’t just chat — it’s personalized, interactive, and fully integrated into your Habitix experience. Whether you’re building habits, chasing big dreams, or learning new skills, your AI Persona will keep you on track, motivated, and accountable.
+
+# 🧠 **Habitix** — AI-Powered Gamified Goal & Task Tracker
 
 > _Stay consistent. Beat procrastination. Achieve goals like never before._
 
-TrackNest is a smart, **gamified goal-achievement platform** that breaks your big dreams into **daily achievable steps**, boosts consistency with **rewards**, and uses **AI + motivation psychology** to guide you through your journey.
+Habitix is a smart, **gamified goal-achievement platform** that breaks your big dreams into **daily achievable steps**, boosts consistency with **rewards**, and uses **AI + motivation psychology** to guide you through your journey.
 
-Whether it's losing weight, building habits, or finishing a course — **TrackNest helps you win the long game.**
+Whether it's losing weight, building habits, or finishing a course — **Habitix helps you win the long game.**
 
 ---
 
 ## 🎯 **Use Case Example**
 
 > **Goal:** _“Lose 10 kg in 60 days”_  
-> 🔄 TrackNest will:
+> 🔄 Habitix will:
 > - Break it into 60 personalized daily steps  
 > - Motivate with rewards for consistency  
 > - Display your roadmap like a game level map  
 
-➡️ _You focus on execution, TrackNest handles the rest._
+➡️ _You focus on execution, Habitix handles the rest._
 
 ---
 
@@ -80,7 +109,7 @@ Whether it's losing weight, building habits, or finishing a course — **TrackNe
 
 ---
 
-## 🔍 **Why TrackNest?**
+## 🔍 **Why Habitix?**
 
 Most productivity tools are:
 
@@ -88,7 +117,7 @@ Most productivity tools are:
 - ❌ Too complex  
 - ❌ Not motivating enough
 
-TrackNest solves this by:
+Habitix solves this by:
 
 ✅ Giving users a **clear, AI-generated roadmap**  
 ✅ Breaking goals into **tiny, daily tasks**  
@@ -103,4 +132,4 @@ TrackNest solves this by:
 
 Help yourself (or your students, team, or community) achieve what truly matters — one consistent day at a time.
 
-**TrackNest: Where goals turn into game levels — and you’re the hero.**
+**Habitix: Where goals turn into game levels — and you’re the hero.**
