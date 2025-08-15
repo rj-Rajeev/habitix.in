@@ -1,8 +1,11 @@
 
-
 🚀 ## Big News from Habitix! — Introducing Persona-Based AI Chat 🎉
 
 # 🚀 New Feature: **Persona-Based AI Chat**  
+
+## 🌐 Try It Out
+👉 **[habitix.in/personas](https://habitix.in/personas)** — Start chatting with prebuilt personas or create your own today!
+
 
 Bring your favorite personalities to life and chat with them — **anytime, anywhere!** 🎭  
 
@@ -42,11 +45,14 @@ Now you can:
 
 ---
 
-## 🚀 How to Get Started
-1. **Update** to the latest version of the app.
-2. Go to **Persona Chat** section.
-3. Choose from **Prebuilt Personas** or **Create Your Own**.
-4. Start an unforgettable conversation.
+## 🛠 Tech Stack
+This feature is built with:
+- ⚡ **Next.js** — Fast, modern React framework for building web apps.
+- 📦 **MongoDB** — Flexible NoSQL database to store your personas.
+- 🤖 **Gemini AI** — Powering intelligent, human-like conversations.
+- 🎨 **Tailwind CSS** — Beautiful, responsive, utility-first styling.
+
+
 
 ---
 
