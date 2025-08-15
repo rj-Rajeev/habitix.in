@@ -753,7 +753,10 @@ export default function PersonaChatPage() {
 
         <CustomCard className="sticky bottom-0 border-t border-gray-200/50 backdrop-blur-sm bg-white/90 rounded-none shadow-lg">
           <div className="p-4">
-            <div className="flex items-end gap-3 bg-gradient-to-r from-gray-50 to-gray-100 rounded-2xl p-4 border border-gray-200 shadow-inner">
+            <div className="flex items-end gap-3 
+                bg-gradient-to-r from-gray-50 to-gray-100 
+                dark:from-gray-800 dark:to-gray-700
+                rounded-2xl p-4 border border-gray-200 dark:border-gray-600 shadow-inner">
               <div className="flex-1 min-h-[40px] max-h-32">
                 <textarea
                   value={input}
@@ -765,7 +768,9 @@ export default function PersonaChatPage() {
                     }
                   }}
                   placeholder="Type your message..."
-                  className="w-full bg-transparent outline-none resize-none text-sm leading-relaxed placeholder:text-gray-500 font-medium"
+                  className="w-full bg-transparent outline-none resize-none text-sm leading-relaxed 
+             placeholder:text-gray-500 dark:placeholder:text-gray-400 
+             font-medium text-gray-800 dark:text-gray-100"
                   rows={1}
                   style={{
                     height: "auto",
