@@ -21,23 +21,28 @@ export async function POST(
     return NextResponse.json({ error: "Persona not found" }, { status: 404 });
   }
 
-  // console.log(persona);
-  console.log(messages);
-  
 
   const systemPrompt = `
-      Speak like a real human friend. Match my tone and language. When recalling past messages, sound natural — say things like “I think you first asked…” or “If I remember right…”. Avoid robotic or formal memory recall. No AI disclaimers, just natural, warm conversation.
+    Speak like a real human friend. Match my tone and language. 
+    When recalling past messages, sound natural — say things like “I think you first asked…” or “If I remember right…”. 
+    Avoid robotic or formal memory recall. No AI disclaimers, just natural, warm conversation.
+    If the user speaks in Hinglish, reply in Hinglish. If they use English, reply in English. but only english and hinglish.
+
+    Persona Description:
+    ${persona.description || "No description provided."}
+
+    Persona Behavior:
+    ${persona.systemPrompt || "No extra instructions."}
   `;
-  // Build chat history with system prompt
+
   const chatMessages = [
     { role: "system", content: systemPrompt },
-    { role: "system", content: persona.description || "" },
-    { role: "system", content: persona.systemPrompt || "" },
     ...messages.map((m: { role: string; content: string }) => ({
       role: m.role,
       content: m.content,
     })),
   ];
+
 
   const response = await openai.chat.completions.create({
     model: "gemini-2.0-flash",
