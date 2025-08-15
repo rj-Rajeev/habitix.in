@@ -124,6 +124,136 @@ function CloseIcon() {
   )
 }
 
+function CopyIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <rect width="14" height="14" x="8" y="8" rx="2" ry="2"/>
+      <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>
+    </svg>
+  )
+}
+
+// Enhanced markdown renderer component
+function MarkdownRenderer({ content, isTyping = false }: { content: string; isTyping?: boolean }) {
+  const [renderedContent, setRenderedContent] = useState("")
+  
+  // Helper function to render markdown content within special blocks
+  const renderInnerMarkdown = (text: string): string => {
+    return text
+      // Headers
+      .replace(/^### (.*$)/gm, '<h3 class="text-sm font-semibold mt-2 mb-1 text-gray-700">$1</h3>')
+      .replace(/^## (.*$)/gm, '<h2 class="text-base font-semibold mt-2 mb-1 text-gray-700">$1</h2>')
+      .replace(/^# (.*$)/gm, '<h1 class="text-lg font-bold mt-2 mb-1 text-gray-700">$1</h1>')
+      
+      // Bold and italic
+      .replace(/\*\*\*(.*?)\*\*\*/g, '<strong class="font-bold"><em class="italic">$1</em></strong>')
+      .replace(/\*\*(.*?)\*\*/g, '<strong class="font-bold">$1</strong>')
+      .replace(/\*(.*?)\*/g, '<em class="italic">$1</em>')
+      
+      // Lists (simplified for inner content)
+      .replace(/^\* (.*$)/gm, '<div class="ml-2 mb-1">• $1</div>')
+      .replace(/^- (.*$)/gm, '<div class="ml-2 mb-1">• $1</div>')
+      .replace(/^\d+\. (.*$)/gm, '<div class="ml-2 mb-1">$1</div>')
+      
+      // Links
+      .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" class="text-blue-500 hover:text-blue-700 underline text-sm" target="_blank" rel="noopener noreferrer">$1</a>')
+      
+      // Line breaks
+      .replace(/\n/g, '<br>')
+  }
+  
+  useEffect(() => {
+    // Enhanced markdown parsing
+    let html = content
+      
+      // Handle code blocks with markdown content (look for 'markdown' or 'md' language)
+      .replace(/```(markdown|md)\n?([\s\S]*?)```/g, (match, lang, code) => {
+        const renderedMarkdown = renderInnerMarkdown(code.trim())
+        return `<div class="my-3">
+          <div class="bg-blue-50 border border-blue-200 rounded-t-lg px-3 py-2 text-xs font-medium text-blue-800 flex items-center justify-between">
+            <span class="flex items-center gap-2">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M14 3v4a1 1 0 0 0 1 1h4"></path>
+                <path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2z"></path>
+                <path d="M9 9h1"></path>
+                <path d="M9 13h6"></path>
+                <path d="M9 17h6"></path>
+              </svg>
+              Rendered Markdown
+            </span>
+            <button onclick="navigator.clipboard.writeText('${code.replace(/'/g, "\\'")}'); this.innerHTML='Copied!'; setTimeout(() => this.innerHTML='Copy Raw', 2000)" class="text-blue-600 hover:text-blue-800 text-xs px-2 py-1 hover:bg-blue-100 rounded transition-colors">Copy Raw</button>
+          </div>
+          <div class="bg-white border-l border-r border-b border-blue-200 p-4 rounded-b-lg">
+            <div class="rendered-markdown">${renderedMarkdown}</div>
+          </div>
+        </div>`
+      })
+      
+      // Regular code blocks (non-markdown)
+      .replace(/```(\w+)?\n?([\s\S]*?)```/g, (match, lang, code) => {
+        const language = lang || 'text'
+        return `<div class="my-3">
+          <div class="bg-gray-800 text-gray-200 px-3 py-2 text-xs font-mono rounded-t-lg flex items-center justify-between">
+            <span class="text-gray-400">${language}</span>
+            <button onclick="navigator.clipboard.writeText('${code.replace(/'/g, "\\'")}'); this.innerHTML='Copied!'; setTimeout(() => this.innerHTML='Copy', 2000)" class="text-gray-400 hover:text-white text-xs px-2 py-1 hover:bg-gray-700 rounded transition-colors">Copy</button>
+          </div>
+          <pre class="bg-gray-900 text-gray-100 p-4 rounded-b-lg overflow-x-auto"><code class="text-sm">${code.trim()}</code></pre>
+        </div>`
+      })
+      
+      // Handle inline markdown code specially
+      .replace(/`([^`]*(?:\*\*|__|#|\[|\*)[^`]*)`/g, (match, code) => {
+        const renderedInline = renderInnerMarkdown(code)
+        return `<span class="inline-flex items-center gap-1 bg-blue-50 border border-blue-200 px-2 py-1 rounded text-sm">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" class="text-blue-600">
+            <path d="M14 3v4a1 1 0 0 0 1 1h4"></path>
+            <path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2z"></path>
+          </svg>
+          <span class="text-blue-800">${renderedInline}</span>
+        </span>`
+      })
+      
+      // Regular inline code (no markdown syntax detected)
+      .replace(/`([^`]+)`/g, '<code class="bg-gray-100 text-gray-800 px-2 py-1 rounded text-sm font-mono">$1</code>')
+      
+      // Headers
+      .replace(/^### (.*$)/gm, '<h3 class="text-lg font-semibold mt-4 mb-2 text-gray-800">$1</h3>')
+      .replace(/^## (.*$)/gm, '<h2 class="text-xl font-semibold mt-4 mb-3 text-gray-800">$1</h2>')
+      .replace(/^# (.*$)/gm, '<h1 class="text-2xl font-bold mt-4 mb-3 text-gray-800">$1</h1>')
+      
+      // Bold and italic
+      .replace(/\*\*\*(.*?)\*\*\*/g, '<strong class="font-bold"><em class="italic">$1</em></strong>')
+      .replace(/\*\*(.*?)\*\*/g, '<strong class="font-bold">$1</strong>')
+      .replace(/\*(.*?)\*/g, '<em class="italic">$1</em>')
+      
+      // Lists
+      .replace(/^\* (.*$)/gm, '<li class="ml-4 mb-1">• $1</li>')
+      .replace(/^- (.*$)/gm, '<li class="ml-4 mb-1">• $1</li>')
+      .replace(/^\d+\. (.*$)/gm, '<li class="ml-4 mb-1 list-decimal">$1</li>')
+      
+      // Links
+      .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" class="text-blue-600 hover:text-blue-800 underline" target="_blank" rel="noopener noreferrer">$1</a>')
+      
+      // Blockquotes
+      .replace(/^> (.*$)/gm, '<blockquote class="border-l-4 border-gray-300 pl-4 py-2 my-2 italic text-gray-700 bg-gray-50 rounded-r">$1</blockquote>')
+      
+      // Line breaks
+      .replace(/\n/g, '<br>')
+
+    // Wrap lists properly
+    html = html.replace(/(<li class="ml-4[^>]*>.*?<\/li>)(\s*<br>)*(?=<li|$)/g, '<ul class="my-2">$1</ul>')
+    
+    setRenderedContent(html)
+  }, [content])
+
+  return (
+    <div 
+      className="markdown-content leading-relaxed"
+      dangerouslySetInnerHTML={{ __html: renderedContent + (isTyping ? '<span class="animate-pulse">|</span>' : '') }}
+    />
+  )
+}
+
 function TypewriterText({ text, onComplete }: { text: string; onComplete?: () => void }) {
   const [displayedText, setDisplayedText] = useState("")
   const [currentIndex, setCurrentIndex] = useState(0)
@@ -145,12 +275,7 @@ function TypewriterText({ text, onComplete }: { text: string; onComplete?: () =>
     setCurrentIndex(0)
   }, [text])
 
-  return (
-    <span>
-      {displayedText}
-      <span className="animate-pulse">|</span>
-    </span>
-  )
+  return <MarkdownRenderer content={displayedText} isTyping={true} />
 }
 
 function ThinkingIndicator({ stage }: { stage: "thinking" | "processing" | "generating" | "finalizing" }) {
@@ -411,16 +536,22 @@ export default function PersonaChatPage() {
               )}
 
               <CustomCard
-                className={`px-4 py-3 max-w-[85%] sm:max-w-md break-words shadow-sm border-none transition-all duration-200 hover:shadow-md ${
+                className={`px-4 py-3 max-w-[85%] sm:max-w-2xl break-words shadow-sm border-none transition-all duration-200 hover:shadow-md ${
                   m.role === "user"
                     ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-2xl rounded-br-md"
                     : "bg-gradient-to-r from-gray-50 to-gray-100 text-gray-800 rounded-2xl rounded-bl-md border border-gray-200"
                 }`}
               >
-                {m.role === "assistant" && i === messages.length - 1 && isTyping ? (
-                  <div className="text-sm leading-relaxed font-medium">
-                    <TypewriterText text={m.content} onComplete={() => setIsTyping(false)} />
-                  </div>
+                {m.role === "assistant" ? (
+                  i === messages.length - 1 && isTyping ? (
+                    <div className="text-sm">
+                      <TypewriterText text={m.content} onComplete={() => setIsTyping(false)} />
+                    </div>
+                  ) : (
+                    <div className="text-sm">
+                      <MarkdownRenderer content={m.content} />
+                    </div>
+                  )
                 ) : (
                   <span className="text-sm leading-relaxed font-medium">{m.content}</span>
                 )}
