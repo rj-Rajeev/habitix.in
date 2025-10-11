@@ -8,6 +8,17 @@ const openai = new OpenAI({
   baseURL: "https://generativelanguage.googleapis.com/v1beta/openai/",
 });
 
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    status: 204,
+    headers: {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type, Authorization",
+    },
+  });
+}
+
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ personaId: string }> }
@@ -49,6 +60,12 @@ export async function POST(
     messages: chatMessages,
   });
 
-  const reply = response.choices[0].message?.content || "No reply";
-  return NextResponse.json({ reply });
+  return new NextResponse(JSON.stringify({ reply }), {
+    status: 200,
+    headers: {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type, Authorization",
+    },
+  });
 }
