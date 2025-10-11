@@ -60,6 +60,8 @@ export async function POST(
     messages: chatMessages,
   });
 
+  const reply = response.choices[0].message?.content || "No reply";
+
   return new NextResponse(JSON.stringify({ reply }), {
     status: 200,
     headers: {
