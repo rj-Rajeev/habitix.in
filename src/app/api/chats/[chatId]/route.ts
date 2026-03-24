@@ -2,10 +2,7 @@ import { NextResponse } from "next/server";
 import dbConnect from "@/lib/db";
 import Message from "@/models/PeoplesChat/Message";
 
-export async function GET(
-  req: Request,
-  { params }: { params: { chatId: string } }
-) {
+export async function GET(req: Request, { params }: any) {
   await dbConnect();
 
   const messages = await Message.find({
