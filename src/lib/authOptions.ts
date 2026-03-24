@@ -46,9 +46,23 @@ export const authOptions: NextAuthOptions = {
   },
   callbacks: {
     async jwt({ token, user }) {
-      if (user?.id && !token.sub) {
-        token.sub = user.id;
+      await connectDb();
+
+      // For OAuth login
+      if (user && user.email) {
+        let dbUser = await User.findOne({ email: user.email });
+
+        // create user if not exists
+        if (!dbUser) {
+          dbUser = await registerUser({
+            email: user.email,
+            fullname: user.name || "User",
+          });
+        }
+
+        token.sub = dbUser._id.toString(); // ✅ ALWAYS Mongo _id
       }
+
       return token;
     },
     async session({ session, token }) {

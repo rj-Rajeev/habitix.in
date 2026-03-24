@@ -97,94 +97,126 @@ export default function Dashboard() {
   };
 
   return (
-    <main className="min-h-screen bg-[#f5f3ff] dark:bg-[#141021] px-5 py-8 space-y-10">
-      {/* Greeting */}
-      <div className="bg-gradient-to-r from-[#b39ddb] to-[#ce93d8] dark:from-[#2a2150] dark:to-[#3c1f5e] p-6 rounded-3xl text-center text-white shadow-lg">
-        <h1 className="text-3xl font-extrabold mb-1">Welcome, {userName} 👋</h1>
-        <p className="text-sm opacity-90 mb-3">
-          You're doing great. Let's make today count!
-        </p>
-        <LogoutButton />
-      </div>
+    <main className="min-h-[100dvh] bg-gray-50 px-4 py-6 flex justify-center">
 
-      {/* Summary Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {[
-          { label: "Goals", icon: <TrendingUp fontSize="small" />, value: summary.activeGoals },
-          { label: "Completed", icon: <CheckCircleOutline fontSize="small" />, value: summary.completedTasks },
-          { label: "Sessions", icon: <Timeline fontSize="small" />, value: summary.ongoingSessions },
-          { label: "Streak", icon: <EmojiObjects fontSize="small" />, value: summary.streak },
-        ].map((item) => (
-          <div
-            key={item.label}
-            className="rounded-2xl p-4 bg-white dark:bg-[#1c1b2f] shadow-sm hover:shadow-lg transition flex flex-col items-center text-center"
-          >
-            <div className="text-[#8e24aa] dark:text-[#ce93d8] mb-2">{item.icon}</div>
-            <p className="text-sm text-gray-500 dark:text-gray-400">{item.label}</p>
-            <p className="text-xl font-bold">{item.value}</p>
+      <div className="w-full max-w-5xl space-y-6">
+
+        {/* 🔷 Header */}
+        <div className="flex justify-between items-center bg-white p-5 rounded-2xl shadow-sm border">
+          <div>
+            <h1 className="text-xl font-semibold">
+              Hi, {userName} 👋
+            </h1>
+            <p className="text-sm text-gray-500">
+              Let’s stay consistent today
+            </p>
           </div>
-        ))}
-      </div>
 
-      {/* Today's Tasks */}
-      <section className="bg-white dark:bg-[#1c1b2f] p-6 rounded-3xl shadow-md">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold">📌 Today’s Tasks</h2>
-          <span className="text-sm text-gray-400">{todaysTasks.length} total</span>
+          <LogoutButton />
         </div>
 
-        {todaysTasks.length === 0 ? (
-          <p className="italic text-gray-500">Nothing for today. You’re all set!</p>
-        ) : (
-          <ul className="space-y-4">
-            {todaysTasks.map((task) => (
-              <li
-                key={task.tasks._id}
-                className={`flex justify-between items-start rounded-xl p-4 border shadow-sm transition cursor-pointer ${
-                  task.tasks.isCompleted
-                    ? "bg-[#e8f5e9] dark:bg-green-900/20 border-green-200 dark:border-green-800"
-                    : "bg-[#f3e5f5] dark:bg-[#302346] border-[#ce93d8] dark:border-[#7e57c2]"
-                }`}
-              >
-                <div className="space-y-1">
-                  <p className={`font-medium ${task.tasks.isCompleted ? "line-through text-gray-400" : ""}`}>
-                    {task.tasks.title}
-                  </p>
-                  <p className="text-xs text-gray-500 italic">Goal: {task.goalTitle}</p>
-                </div>
-                <button
-                  onClick={() => toggleTask(task)}
-                  disabled={loading}
-                  className="w-7 h-7 flex items-center justify-center rounded-full bg-white dark:bg-[#3f2d5c] border"
-                >
-                  {loading ? (
-                    <CircularProgress size={16} />
-                  ) : task.tasks.isCompleted ? (
-                    <CheckCircleOutline className="text-green-600" fontSize="small" />
-                  ) : (
-                    <span className="block w-3 h-3 bg-[#8e24aa] rounded-full" />
-                  )}
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+        {/* 🔷 Stats */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {[
+            { label: "Goals", value: summary.activeGoals },
+            { label: "Completed", value: summary.completedTasks },
+            { label: "Sessions", value: summary.ongoingSessions },
+            { label: "Streak", value: summary.streak },
+          ].map((item) => (
+            <div
+              key={item.label}
+              className="bg-white p-4 rounded-xl border shadow-sm"
+            >
+              <p className="text-xs text-gray-500">{item.label}</p>
+              <p className="text-lg font-semibold mt-1">{item.value}</p>
+            </div>
+          ))}
+        </div>
 
-      {/* Footer FAB */}
-      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 flex gap-4">
-        <Link
-          href="/dashboard/goal-chat"
-          className="flex items-center gap-2 px-6 py-3 bg-[#8e24aa] hover:bg-[#6a1b9a] text-white rounded-full text-sm font-semibold shadow-xl"
-        >
-          <AddCircleOutline fontSize="small" /> New Goal
-        </Link>
-        <Link
-          href="/dashboard/goals"
-          className="flex items-center gap-2 px-6 py-3 bg-[#4a148c] hover:bg-[#311b92] text-white rounded-full text-sm font-semibold shadow-xl"
-        >
-          <Timeline fontSize="small" /> My Roadmaps
-        </Link>
+        {/* 🔷 Tasks */}
+        <div className="bg-white p-5 rounded-2xl border shadow-sm">
+
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="font-semibold text-lg">Today’s Tasks</h2>
+            <span className="text-sm text-gray-400">
+              {todaysTasks.length} tasks
+            </span>
+          </div>
+
+          {todaysTasks.length === 0 ? (
+            <div className="text-center py-10 text-gray-400 text-sm">
+              Nothing planned for today ✅
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {todaysTasks.map((task) => {
+                const isDone = task.tasks.isCompleted;
+
+                return (
+                  <div
+                    key={task.tasks._id}
+                    className={`flex justify-between items-center p-4 rounded-xl border transition ${
+                      isDone
+                        ? "bg-green-50 border-green-200"
+                        : "bg-gray-50 hover:bg-gray-100"
+                    }`}
+                  >
+                    <div className="flex flex-col">
+                      <p
+                        className={`text-sm font-medium ${
+                          isDone && "line-through text-gray-400"
+                        }`}
+                      >
+                        {task.tasks.title}
+                      </p>
+                      <p className="text-xs text-gray-400">
+                        {task.goalTitle}
+                      </p>
+                    </div>
+
+                    <button
+                      onClick={() => toggleTask(task)}
+                      disabled={loading}
+                      className={`w-8 h-8 rounded-full flex items-center justify-center border ${
+                        isDone
+                          ? "bg-green-500 text-white"
+                          : "bg-white"
+                      }`}
+                    >
+                      {loading ? (
+                        <CircularProgress size={16} />
+                      ) : isDone ? (
+                        "✓"
+                      ) : null}
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* 🔷 Actions */}
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 w-full max-w-md px-4">
+          <div className="flex gap-3">
+
+            <Link
+              href="/dashboard/goal-chat"
+              className="flex-1 text-center py-3 rounded-xl bg-black text-white text-sm font-medium"
+            >
+              + New Goal
+            </Link>
+
+            <Link
+              href="/dashboard/goals"
+              className="flex-1 text-center py-3 rounded-xl bg-gray-200 text-sm font-medium"
+            >
+              Roadmaps
+            </Link>
+
+          </div>
+        </div>
+
       </div>
     </main>
   );

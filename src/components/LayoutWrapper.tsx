@@ -18,7 +18,8 @@ export default function LayoutWrapper({
   // Check for exact matches or dynamic segments
   const hideLayout =
     hideLayoutPaths.includes(pathname) ||
-    pathname.startsWith("/personas/");
+    pathname.startsWith("/personas/") ||
+    pathname.startsWith("/people/");
 
 
   return (

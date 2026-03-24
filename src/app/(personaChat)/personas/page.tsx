@@ -71,7 +71,7 @@ export default function PersonasPage() {
       
       <button
         onClick={() => router.push("/personas/new")}
-        className="group relative bg-gradient-to-r from-purple-600 via-blue-600 to-indigo-600 text-white px-12 py-4 rounded-2xl font-semibold text-lg shadow-2xl hover:shadow-purple-500/25 transition-all duration-500 transform hover:scale-105 overflow-hidden"
+        className="group relative bg-gradient-to-r from-purple-600 via-blue-600 to-indigo-600 text-contrast px-12 py-4 rounded-2xl font-semibold text-lg shadow-2xl hover:shadow-purple-500/25 transition-all duration-500 transform hover:scale-105 overflow-hidden"
       >
         <div className="absolute inset-0 bg-gradient-to-r from-purple-700 via-blue-700 to-indigo-700 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
         <div className="absolute inset-0 bg-white/20 transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
@@ -150,7 +150,7 @@ export default function PersonasPage() {
             {/* Add Persona Button - Keep original onClick */}
             <button
               onClick={() => router.push("/personas/new")}
-              className="group relative bg-gradient-to-r from-purple-600 to-blue-600 text-white px-8 py-3 rounded-2xl font-semibold shadow-2xl hover:shadow-purple-500/50 transition-all duration-500 transform hover:scale-105 overflow-hidden"
+              className="group relative bg-gradient-to-r from-purple-600 to-blue-600 text-contrast px-8 py-3 rounded-2xl font-semibold shadow-2xl hover:shadow-purple-500/50 transition-all duration-500 transform hover:scale-105 overflow-hidden"
             >
               <div className="absolute inset-0 bg-gradient-to-r from-purple-700 to-blue-700 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
               <div className="absolute inset-0 bg-white/20 transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
@@ -167,7 +167,7 @@ export default function PersonasPage() {
           searchQuery ? (
             <div className="flex flex-col items-center justify-center py-24">
               <div className="text-6xl mb-6 opacity-50">🔍</div>
-              <h3 className="text-2xl font-semibold text-white mb-4">No personas found</h3>
+              <h3 className="text-2xl font-semibold text-contrast mb-4">No personas found</h3>
               <p className="text-gray-400 text-center">Try adjusting your search query</p>
             </div>
           ) : (
@@ -219,7 +219,7 @@ export default function PersonasPage() {
                       </div>
 
                       {/* Name */}
-                      <h2 className="text-xl font-bold text-white mb-2 group-hover:text-purple-200 transition-colors duration-300">
+                      <h2 className="text-xl font-bold text-contrast mb-2 group-hover:text-purple-200 transition-colors duration-300">
                         {persona.name}
                       </h2>
                       

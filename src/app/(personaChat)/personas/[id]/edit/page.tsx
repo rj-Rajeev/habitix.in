@@ -97,9 +97,9 @@ export default function PersonaDetailPage() {
   if (!persona) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
-        <div className="text-center">
+          <div className="text-center">
           <div className="text-6xl mb-6">😔</div>
-          <h2 className="text-2xl font-bold text-white mb-4">Persona Not Found</h2>
+          <h2 className="text-2xl font-bold text-contrast mb-4">Persona Not Found</h2>
           <p className="text-slate-200 mb-8">The persona you're looking for doesn't exist.</p>
           <button
             onClick={() => router.push('/personas')}
@@ -130,10 +130,10 @@ export default function PersonaDetailPage() {
               onClick={() => router.back()}
               className="group bg-white/20 backdrop-blur-xl border border-white/30 rounded-2xl p-3 hover:bg-white/30 transition-all duration-300 shadow-lg"
             >
-              <span className="text-white text-xl group-hover:-translate-x-1 transition-transform duration-300">←</span>
+              <span className="text-contrast text-xl group-hover:-translate-x-1 transition-transform duration-300">←</span>
             </button>
             <div>
-              <h1 className="text-3xl font-bold text-white">Persona Details</h1>
+              <h1 className="text-3xl font-bold text-contrast">Persona Details</h1>
               <p className="text-slate-200">Complete information about your AI personality</p>
             </div>
           </div>
@@ -182,7 +182,7 @@ export default function PersonaDetailPage() {
                   </span>
                 )}
               </div>
-              <h2 className="text-3xl font-bold text-white mb-2">{persona.name}</h2>
+              <h2 className="text-3xl font-bold text-contrast mb-2">{persona.name}</h2>
               {persona.createdAt && (
                 <p className="text-slate-300 text-sm">
                   Created {new Date(persona.createdAt).toLocaleDateString('en-US', { 
@@ -199,7 +199,7 @@ export default function PersonaDetailPage() {
           <div className="bg-white/10 backdrop-blur-xl rounded-3xl p-8 border border-white/30 shadow-2xl">
             <div className="flex items-center gap-3 mb-6">
               <span className="text-3xl">📋</span>
-              <h3 className="text-2xl font-bold text-white">About This Persona</h3>
+              <h3 className="text-2xl font-bold text-contrast">About This Persona</h3>
             </div>
             <div className="bg-slate-800/40 rounded-2xl p-6 border border-slate-600/50">
               <div className="text-slate-100 leading-relaxed text-lg whitespace-pre-line">
@@ -213,9 +213,9 @@ export default function PersonaDetailPage() {
           {/* System Prompt */}
           {persona.systemPrompt && (
             <div className="bg-white/10 backdrop-blur-xl rounded-3xl p-8 border border-white/30 shadow-2xl">
-              <div className="flex items-center gap-3 mb-6">
+                <div className="flex items-center gap-3 mb-6">
                 <span className="text-3xl">⚙️</span>
-                <h3 className="text-2xl font-bold text-white">System Configuration</h3>
+                <h3 className="text-2xl font-bold text-contrast">System Configuration</h3>
                 <span className="bg-blue-500/20 text-blue-200 px-3 py-1 rounded-full text-sm font-medium border border-blue-400/30">
                   Technical Details
                 </span>

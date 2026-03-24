@@ -1,4 +1,5 @@
 "use client";
+
 import { useState, useEffect } from "react";
 import {
   AppBar,
@@ -15,9 +16,14 @@ import {
   ListItem,
   ListItemButton,
   ListItemText,
+  Avatar,
+  Menu,
+  MenuItem,
+  Divider,
 } from "@mui/material";
 import { Check, Menu as MenuIcon, Close } from "@mui/icons-material";
 import Link from "next/link";
+import { useSession, signOut } from "next-auth/react";
 
 export default function Navbar() {
   const theme = useTheme();
@@ -25,20 +31,29 @@ export default function Navbar() {
   const [scrollY, setScrollY] = useState(0);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
+  const { data: session } = useSession();
+
+  // Profile dropdown
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const open = Boolean(anchorEl);
+
+  const handleProfileClick = (e: React.MouseEvent<HTMLElement>) => {
+    setAnchorEl(e.currentTarget);
+  };
+
+  const handleClose = () => setAnchorEl(null);
+
   useEffect(() => {
     const handleScroll = () => setScrollY(window.scrollY);
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  const handleMobileMenuToggle = () => {
-    setMobileMenuOpen(!mobileMenuOpen);
-  };
-
   const navItems = [
+    { label: "Dashboard", href: "/dashboard" },
     { label: "Features", href: "/features" },
-    { label: "About", href: "/" },
-    { label: "Contact", href: "/" },
+    { label: "People & Chats", href: "/people" },
+    { label: "Pricing", href: "/pricing" },
   ];
 
   return (
@@ -46,134 +61,122 @@ export default function Navbar() {
       <AppBar
         position="fixed"
         sx={{
-          bgcolor: scrollY > 50 ? "rgba(255,255,255,0.95)" : "transparent",
-          boxShadow: scrollY > 50 ? "0 2px 20px rgba(0,0,0,0.08)" : "none",
-          backdropFilter: scrollY > 50 ? "blur(20px)" : "none",
-          transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-          zIndex: 1000,
+          bgcolor: scrollY > 20 ? "rgba(255,255,255,0.9)" : "transparent",
+          backdropFilter: scrollY > 20 ? "blur(12px)" : "none",
+          boxShadow: scrollY > 20 ? "0 2px 10px rgba(0,0,0,0.05)" : "none",
+          transition: "all 0.3s ease",
         }}
       >
         <Container maxWidth="lg">
-          <Toolbar
-            sx={{ justifyContent: "space-between", py: 2, minHeight: "80px" }}
-          >
-            <Box
-              sx={{
-                display: "flex",
-                alignItems: "center",
-                gap: 1.5,
-                cursor: "pointer",
-                transition: "transform 0.2s ease",
-                "&:hover": {
-                  transform: "scale(1.02)",
-                },
-              }}
-            >
-              <Box
-                sx={{
-                  width: "40px",
-                  height: "40px",
-                  bgcolor: "#10b981",
-                  borderRadius: "8px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  transition: "all 0.3s ease",
-                  "&:hover": {
-                    bgcolor: "#059669",
-                    transform: "rotate(5deg)",
-                  },
-                }}
-              >
-                <Check sx={{ color: "white", fontSize: "24px" }} />
-              </Box>
-              <Typography
-                variant="h5"
-                component="div"
-                sx={{
-                  fontWeight: "700",
-                  color: "#1f2937",
-                  fontFamily: "system-ui, -apple-system, sans-serif",
-                  fontSize: "1.5rem",
-                }}
-              >
-                HABITIX
-              </Typography>
-            </Box>
+          <Toolbar sx={{ justifyContent: "space-between", minHeight: 70 }}>
 
+            {/* 🔷 Logo */}
+            <Link href="/" style={{ textDecoration: "none" }}>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+                <Box
+                  sx={{
+                    width: 36,
+                    height: 36,
+                    bgcolor: "#10b981",
+                    borderRadius: 2,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Check sx={{ color: "white" }} />
+                </Box>
+                <Typography
+                  sx={{ fontWeight: 700, fontSize: "1.4rem", color: "#111" }}
+                >
+                  HABITIX
+                </Typography>
+              </Box>
+            </Link>
+
+            {/* 🔷 Desktop */}
             {!isMobile && (
-              <Box sx={{ display: "flex", gap: 6, alignItems: "center" }}>
-                {navItems.map((item, id) => (
+              <Box sx={{ display: "flex", alignItems: "center", gap: 3 }}>
+
+                {/* Nav Links */}
+                {navItems.map((item) => (
                   <Button
+                    key={item.label}
+                    component={Link}
                     href={item.href}
-                    key={id}
                     sx={{
-                      color: "#374151",
                       textTransform: "none",
-                      fontSize: "16px",
+                      color: "#333",
                       fontWeight: 500,
-                      py: 1,
-                      px: 2,
-                      borderRadius: "8px",
-                      position: "relative",
-                      transition: "all 0.2s ease",
                       "&:hover": {
                         color: "#10b981",
-                        bgcolor: "rgba(16, 185, 129, 0.1)",
-                        "&::after": {
-                          width: "100%",
-                        },
-                      },
-                      "&::after": {
-                        content: '""',
-                        position: "absolute",
-                        bottom: 0,
-                        left: "50%",
-                        transform: "translateX(-50%)",
-                        width: 0,
-                        height: "2px",
-                        bgcolor: "#10b981",
-                        transition: "width 0.3s ease",
                       },
                     }}
                   >
                     {item.label}
                   </Button>
                 ))}
-                <Button
-                  sx={{
-                    bgcolor: "#8b7cf6",
-                    color: "white",
-                    minWidth: "120px",
-                    height: "44px",
-                    borderRadius: "22px",
-                    textTransform: "none",
-                    fontWeight: 600,
-                    fontSize: "16px",
-                    transition: "all 0.2s ease",
-                    "&:hover": {
-                      bgcolor: "#7c3aed",
-                      transform: "translateY(-1px)",
-                      boxShadow: "0 8px 25px rgba(139, 124, 246, 0.3)",
-                    },
-                  }}
-                >
-                  <Link href={"/pricing"}>Get Started</Link>
-                </Button>
+
+                {/* 🔷 Profile */}
+                {session?.user ? (
+                  <>
+                    <Box
+                      onClick={handleProfileClick}
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 1,
+                        cursor: "pointer",
+                        px: 1.5,
+                        py: 0.8,
+                        borderRadius: "20px",
+                        "&:hover": {
+                          bgcolor: "rgba(0,0,0,0.05)",
+                        },
+                      }}
+                    >
+                      <Avatar sx={{ width: 30, height: 30 }}>
+                        {session.user.email?.charAt(0).toUpperCase()}
+                      </Avatar>
+                    </Box>
+
+                    <Menu
+                      anchorEl={anchorEl}
+                      open={open}
+                      onClose={handleClose}
+                    >
+                      <MenuItem disabled>
+                        {session.user.email}
+                      </MenuItem>
+                      <Divider />
+                      <MenuItem onClick={() => signOut()}>
+                        Logout
+                      </MenuItem>
+                    </Menu>
+                  </>
+                ) : (
+                  <Button
+                    component={Link}
+                    href="/login"
+                    sx={{
+                      bgcolor: "#10b981",
+                      color: "white",
+                      borderRadius: "20px",
+                      px: 3,
+                      "&:hover": {
+                        bgcolor: "#059669",
+                      },
+                    }}
+                  >
+                    Login
+                  </Button>
+                )}
               </Box>
             )}
 
+            {/* 🔷 Mobile */}
             {isMobile && (
-              <IconButton
-                onClick={handleMobileMenuToggle}
-                sx={{
-                  color: "#374151",
-                  transition: "transform 0.2s ease",
-                  "&:hover": {
-                    transform: "scale(1.1)",
-                  },
-                }}
-              >
+              <IconButton onClick={() => setMobileMenuOpen(true)}>
                 <MenuIcon />
               </IconButton>
             )}
@@ -181,104 +184,136 @@ export default function Navbar() {
         </Container>
       </AppBar>
 
-      {/* Mobile Drawer */}
+      {/* 🔷 Mobile Drawer */}
       <Drawer
         anchor="right"
         open={mobileMenuOpen}
-        onClose={handleMobileMenuToggle}
-        sx={{
-          "& .MuiDrawer-paper": {
-            width: 280,
-            bgcolor: "white",
-            p: 2,
-          },
-        }}
+        onClose={() => setMobileMenuOpen(false)}
       >
         <Box
           sx={{
+            width: 280,
+            height: "100%",
             display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            mb: 4,
+            flexDirection: "column",
+            p: 2,
           }}
         >
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+
+          {/* 🔷 Top Section */}
+          <Box>
+
+            {/* Header */}
             <Box
               sx={{
-                width: "32px",
-                height: "32px",
-                bgcolor: "#10b981",
-                borderRadius: "6px",
                 display: "flex",
+                justifyContent: "space-between",
                 alignItems: "center",
-                justifyContent: "center",
+                mb: 2,
               }}
             >
-              <Check sx={{ color: "white", fontSize: "20px" }} />
+              <Typography fontWeight={700}>Menu</Typography>
+              <IconButton onClick={() => setMobileMenuOpen(false)}>
+                <Close />
+              </IconButton>
             </Box>
-            <Typography
-              variant="h6"
-              sx={{
-                fontWeight: "700",
-                color: "#1f2937",
-                fontFamily: "system-ui, -apple-system, sans-serif",
-              }}
-            >
-              HABITIX
-            </Typography>
-          </Box>
-          <IconButton onClick={handleMobileMenuToggle}>
-            <Close />
-          </IconButton>
-        </Box>
 
-        <List>
-          {navItems.map((item, id) => (
-            <ListItem key={id} disablePadding>
-              <ListItemButton
-                component={Link}
-                href={item.href}
+            {/* 🔷 User Info */}
+            {session?.user && (
+              <Box
                 sx={{
-                  borderRadius: "8px",
-                  mb: 1,
-                  "&:hover": {
-                    bgcolor: "rgba(16, 185, 129, 0.1)",
-                  },
+                  mb: 3,
+                  p: 2,
+                  borderRadius: 2,
+                  bgcolor: "rgba(0,0,0,0.05)",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 2,
+                  overflow: "hidden",
                 }}
               >
-                <ListItemText
-                  primary={item.label}
-                  sx={{
-                    "& .MuiListItemText-primary": {
-                      fontSize: "16px",
-                      fontWeight: 500,
-                      color: "#374151",
-                    },
-                  }}
-                />
-              </ListItemButton>
-            </ListItem>
-          ))}
-        </List>
+                <Avatar>
+                  {session.user.email?.charAt(0).toUpperCase()}
+                </Avatar>
 
-        <Button
-          fullWidth
-          sx={{
-            bgcolor: "#8b7cf6",
-            color: "white",
-            py: 2,
-            mt: 4,
-            borderRadius: "12px",
-            textTransform: "none",
-            fontWeight: 600,
-            fontSize: "16px",
-            "&:hover": {
-              bgcolor: "#7c3aed",
-            },
-          }}
-        >
-          <Link href={"/pricing"}>Get Started</Link>
-        </Button>
+                <Box sx={{ minWidth: 0 }}>
+                  {/* Email (TRUNCATED) */}
+                  <Typography
+                    fontSize={14}
+                    fontWeight={600}
+                    noWrap
+                    sx={{ maxWidth: 160 }}
+                  >
+                    {session.user.email}
+                  </Typography>
+
+                  <Typography fontSize={12} color="gray">
+                    Logged in
+                  </Typography>
+                </Box>
+              </Box>
+            )}
+
+            {/* 🔷 Nav Items */}
+            <List>
+              {navItems.map((item) => (
+                <ListItem key={item.label} disablePadding>
+                  <ListItemButton
+                    component={Link}
+                    href={item.href}
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    <ListItemText primary={item.label} />
+                  </ListItemButton>
+                </ListItem>
+              ))}
+            </List>
+          </Box>
+
+          {/* 🔷 Bottom Section */}
+          <Box sx={{ mt: "auto" }}>
+
+            <Divider sx={{ my: 2 }} />
+
+            {/* 🔷 User ID */}
+            {session?.user && (
+              <Typography
+                fontSize={12}
+                color="gray"
+                sx={{
+                  mb: 1,
+                  wordBreak: "break-all",
+                }}
+              >
+                ID: {session.user.id}
+              </Typography>
+            )}
+
+            {/* 🔷 Auth Button */}
+            {session?.user ? (
+              <Button
+                fullWidth
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  signOut();
+                }}
+              >
+                Logout
+              </Button>
+            ) : (
+              <Button
+                fullWidth
+                component={Link}
+                href="/signin"
+                variant="contained"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Sign In
+              </Button>
+            )}
+          </Box>
+
+        </Box>
       </Drawer>
     </>
   );
