@@ -50,7 +50,7 @@ export default function Navbar() {
   }, []);
 
   const navItems = [
-    { label: "Dashboard", href: "/dashboard" },
+    { label: "Today", href: "/today" },
     { label: "Features", href: "/features" },
     { label: "People & Chats", href: "/people" },
     { label: "Pricing", href: "/pricing" },

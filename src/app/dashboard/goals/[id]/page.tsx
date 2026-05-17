@@ -1,1623 +1,442 @@
 "use client";
 
-import type React from "react";
-
-import { useState, useEffect } from "react";
-import {
-  Card,
-  Chip,
-  Avatar,
-  IconButton,
-  Tooltip,
-  LinearProgress,
-  Snackbar,
-  Alert,
-  Box,
-  Typography,
-  Button,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Drawer,
-  AppBar,
-  Toolbar,
-} from "@mui/material";
-import {
-  PlayArrow,
-  Pause,
-  Favorite,
-  FavoriteBorder,
-  Bolt,
-  Chat,
-  People,
-  Schedule,
-  Settings,
-  VolumeUp,
-  VolumeOff,
-  CheckCircle,
-  RadioButtonUnchecked,
-  Camera,
-  Check,
-  Close,
-  Lock,
-  EmojiEvents,
-  PersonAdd,
-  Menu as MenuIcon,
-} from "@mui/icons-material";
-import { ThemeProvider, createTheme } from "@mui/material/styles";
-import CssBaseline from "@mui/material/CssBaseline";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { useParams } from "next/navigation";
+import {
+  AlertCircle,
+  BookOpen,
+  Calendar,
+  Check,
+  ChevronLeft,
+  Clock3,
+  GripVertical,
+  Loader2,
+  Plus,
+  Target,
+} from "lucide-react";
+import AppShell from "@/components/app/AppShell";
 
-// Types based on your schema
-interface Task {
+type RoadmapTask = {
+  _id?: string;
+  title: string;
+  isCompleted?: boolean;
+  createdAt?: string;
+};
+
+type RoadmapDay = {
+  dayNumber: number;
+  dayDate?: string;
+  date?: string;
+  unlocked?: boolean;
+  completed?: boolean;
+  tasks: RoadmapTask[];
+};
+
+type GoalDetail = {
   _id: string;
   title: string;
-  description: string;
-  isCompleted: boolean;
-  createdAt: Date;
+  description?: string;
+  targetDate?: string;
+  hoursPerDay?: number;
+  daysPerWeek?: number;
+  preferredTime?: string;
+  motivation?: string;
+  roadmap?: RoadmapDay[];
+};
+
+type GoalTask = {
+  _id: string;
+  title: string;
+  description?: string;
+  status: "pending" | "in_progress" | "completed" | "skipped" | "cancelled";
+  scheduledDate: string;
+  estimatedMinutes?: number;
+  type?: "execution" | "revision" | "recovery";
+};
+
+type TaskSection = {
+  key: string;
+  title: string;
+  dateKey?: string;
+  dateLabel: string;
+  tasks: Array<{
+    id: string;
+    title: string;
+    description?: string;
+    completed: boolean;
+    minutes: number;
+    source: "task" | "roadmap";
+    dayNumber?: number;
+  }>;
+};
+
+function formatDate(value?: string) {
+  if (!value) return "Unscheduled";
+  const parsed = new Date(`${value}T12:00:00`);
+  if (Number.isNaN(parsed.getTime())) return value;
+  return parsed.toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+  });
 }
 
-interface RoadmapDay {
-  dayNumber: number;
-  date?: Date;
-  unlocked: boolean;
-  completed: boolean;
-  tasks: Task[];
-  proof: {
-    uploaded: boolean;
-    imageUrl?: string;
-    uploadedAt?: Date;
-  };
+function sectionsFromTasks(tasks: GoalTask[]): TaskSection[] {
+  const groups = new Map<string, GoalTask[]>();
+  tasks.forEach((task) => {
+    const key = task.scheduledDate || "unscheduled";
+    groups.set(key, [...(groups.get(key) ?? []), task]);
+  });
+
+  return [...groups.entries()].map(([date, items], index) => ({
+    key: date,
+    title: index === 0 ? "First block" : `Block ${index + 1}`,
+    dateKey: date,
+    dateLabel: formatDate(date),
+    tasks: items.map((task) => ({
+      id: task._id,
+      title: task.title,
+      description: task.description,
+      completed: task.status === "completed",
+      minutes: task.estimatedMinutes ?? 30,
+      source: "task",
+    })),
+  }));
 }
 
-export default function RoadmapApp() {
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [isMuted, setIsMuted] = useState(false);
-  const [currentDay, setCurrentDay] = useState(1);
-  const [progress, setProgress] = useState(0);
-  const [likedTasks, setLikedTasks] = useState<string[]>([]);
-  const [snackbarOpen, setSnackbarOpen] = useState(false);
-  const [snackbarMessage, setSnackbarMessage] = useState("");
-  const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string>("");
-  const [drawerOpen, setDrawerOpen] = useState(false);
-
-  const params = useParams();
-
-  // Theme matching the original design
-  const theme = createTheme({
-    palette: {
-      mode: "light",
-      background: {
-        default: "#e2e8f0",
-        paper: "#ffffff",
-      },
-    },
-    shape: { borderRadius: 20 },
-    breakpoints: {
-      values: {
-        xs: 0,
-        sm: 600,
-        md: 900,
-        lg: 1200,
-        xl: 1536,
-      },
-    },
-  });
-
-  // Sample roadmap data matching your schema
-  const [roadmapData, setRoadmapData] = useState({
-    _id: "roadmap_001",
-    userId: "user_001",
-    title: "Loading.....",
-    description: "Transform your daily habits and boost productivity",
-    startDate: new Date(),
-    targetDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-    status: "in_progress" as const,
-    roadmap: [
-      {
-        dayNumber: 1,
-        date: new Date(),
-        unlocked: true,
-        completed: false,
-        tasks: [
-          {
-            _id: "task_001",
-            title: "Loading.....",
-            description: "Create a 15-minute morning routine",
-            isCompleted: false,
-            createdAt: new Date(),
-          },
-          {
-            _id: "task_002",
-            title: "Loading.....",
-            description: "Clean and organize your workspace",
-            isCompleted: false,
-            createdAt: new Date(),
-          },
-          {
-            _id: "task_003",
-            title: "Loading.....",
-            description: "Write down 3 specific monthly goals",
-            isCompleted: false,
-            createdAt: new Date(),
-          },
-          {
-            _id: "task_004",
-            title: "Loading.....",
-            description: "Spend 1 hour without digital devices",
-            isCompleted: false,
-            createdAt: new Date(),
-          },
-          {
-            _id: "task_005",
-            title: "Loading.....",
-            description: "Write 3 things you're grateful for",
-            isCompleted: false,
-            createdAt: new Date(),
-          },
-        ],
-        proof: { uploaded: false },
-      },
-      {
-        dayNumber: 2,
-        unlocked: false,
-        completed: false,
-        tasks: [
-          {
-            _id: "task_006",
-            title: "Loading.....",
-            description: "Plan your day using time blocks",
-            isCompleted: false,
-            createdAt: new Date(),
-          },
-          {
-            _id: "task_007",
-            title: "Loading.....",
-            description: "Use Eisenhower Matrix for tasks",
-            isCompleted: false,
-            createdAt: new Date(),
-          },
-          {
-            _id: "task_008",
-            title: "Loading.....",
-            description: "2 hours of focused work",
-            isCompleted: false,
-            createdAt: new Date(),
-          },
-        ],
-        proof: { uploaded: false },
-      },
-      {
-        dayNumber: 3,
-        unlocked: false,
-        completed: false,
-        tasks: [
-          {
-            _id: "task_009",
-            title: "Loading.....",
-            description: "Create a habit tracking system",
-            isCompleted: false,
-            createdAt: new Date(),
-          },
-          {
-            _id: "task_010",
-            title: "Loading.....",
-            description: "Identify your peak energy hours",
-            isCompleted: false,
-            createdAt: new Date(),
-          },
-        ],
-        proof: { uploaded: false },
-      },
-      {
-        dayNumber: 4,
-        unlocked: false,
-        completed: false,
-        tasks: [
-          {
-            _id: "task_011",
-            title: "Loading.....",
-            description: "Review progress and adjust plans",
-            isCompleted: false,
-            createdAt: new Date(),
-          },
-        ],
-        proof: { uploaded: false },
-      },
-    ],
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  });
-
-  useEffect(() => {
-    const fetchGoal = async () => {
-      try {
-        const res = await fetch(`/api/goals/${params.id}`); // Change ID dynamically if needed
-        if (!res.ok) throw new Error("Failed to fetch goal");
-        const data = await res.json();
-        setRoadmapData(data);
-      } catch (err) {
-        console.error("Error fetching goal:", err);
-      }
+function sectionsFromRoadmap(roadmap: RoadmapDay[] = []): TaskSection[] {
+  return roadmap.map((day) => {
+    const date = day.dayDate ?? day.date;
+    return {
+      key: String(day.dayNumber),
+      title: `Day ${day.dayNumber}`,
+      dateKey: date,
+      dateLabel: formatDate(date),
+      tasks: day.tasks.map((task, index) => ({
+        id: task._id ?? `${day.dayNumber}-${index}`,
+        title: task.title,
+        completed: Boolean(task.isCompleted),
+        minutes: 30,
+        source: "roadmap" as const,
+        dayNumber: day.dayNumber,
+      })),
     };
+  });
+}
 
-    fetchGoal();
-  }, []);
+export default function GoalDetailPage() {
+  const params = useParams<{ id: string }>();
+  const goalId = params.id;
+  const [goal, setGoal] = useState<GoalDetail | null>(null);
+  const [tasks, setTasks] = useState<GoalTask[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [busyTaskId, setBusyTaskId] = useState<string | null>(null);
+  const [dragTaskId, setDragTaskId] = useState<string | null>(null);
 
-  // Navigation items
-  const navigationItems = [
-    { icon: <Bolt />, active: true, label: "Dashboard", color: "#000" },
-    { icon: <Chat />, active: false, label: "Tasks", color: "#f97316" },
-    { icon: <People />, active: false, label: "Community", color: "#6b7280" },
-    { icon: <Schedule />, active: false, label: "Schedule", color: "#6b7280" },
-    { icon: <Settings />, active: false, label: "Settings", color: "#6b7280" },
-  ];
-
-  // Get current day data
-  const getCurrentDay = () => {
-    return (
-      roadmapData.roadmap.find((day) => day.dayNumber === currentDay) ||
-      roadmapData.roadmap[0]
-    );
-  };
-
-  const currentDayData = getCurrentDay();
-
-  // Calculate progress
-  const getDayProgress = (day: RoadmapDay) => {
-    const completedTasks = day.tasks.filter((task) => task.isCompleted).length;
-    return day.tasks.length > 0 ? (completedTasks / day.tasks.length) * 100 : 0;
-  };
-
-  // Progress simulation when "playing"
-  useEffect(() => {
-    if (isPlaying) {
-      const interval = setInterval(() => {
-        setProgress((prev) => {
-          if (prev >= 100) {
-            setIsPlaying(false);
-            setSnackbarMessage("Day completed! 🎉");
-            setSnackbarOpen(true);
-            return 0;
-          }
-          return prev + 2;
-        });
-      }, 100);
-      return () => clearInterval(interval);
-    }
-  }, [isPlaying]);
-
-  // Event handlers
-  const handlePlayPause = () => {
-    setIsPlaying(!isPlaying);
-    setSnackbarMessage(isPlaying ? "Paused" : "Started working on tasks");
-    setSnackbarOpen(true);
-  };
-
-  const handleTaskToggle = async (taskId: string) => {
-    setRoadmapData((prev) => {
-      let updatedRoadmap = prev.roadmap.map((day) => {
-        if (day.dayNumber === currentDay) {
-          const updatedTasks = day.tasks.map((task) =>
-            task._id === taskId
-              ? { ...task, isCompleted: !task.isCompleted }
-              : task
-          );
-
-          const allCompleted = updatedTasks.every((task) => task.isCompleted);
-
-          const nextDayIndex = prev.roadmap.findIndex(
-            (d) => d.dayNumber === day.dayNumber + 1
-          );
-          if (allCompleted && nextDayIndex !== -1) {
-            prev.roadmap[nextDayIndex].unlocked = true;
-          }
-
-          return {
-            ...day,
-            tasks: updatedTasks,
-            completed: allCompleted,
-          };
-        }
-        return day;
-      });
-
-      return {
-        ...prev,
-        roadmap: updatedRoadmap,
-      };
-    });
-
-    // ✅ API call to update DB
+  const loadGoal = useCallback(async () => {
+    setLoading(true);
+    setError(null);
     try {
-      const res = await fetch(`/api/goals/toggle-task`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          goalId: params.id, // your current goal _id
-          dayNumber: currentDay,
-          taskId,
-        }),
-      });
+      const [goalRes, tasksRes] = await Promise.all([
+        fetch(`/api/v1/goals/${goalId}`),
+        fetch(`/api/v1/goals/${goalId}/tasks`),
+      ]);
+
+      const goalJson = await goalRes.json().catch(() => ({}));
+      const tasksJson = await tasksRes.json().catch(() => ({}));
+
+      if (!goalRes.ok || !goalJson.success) {
+        throw new Error(goalJson?.error?.message || "Failed to load goal");
+      }
+
+      setGoal(goalJson.data);
+      setTasks(tasksJson?.success && Array.isArray(tasksJson.data) ? tasksJson.data : []);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load goal");
+    } finally {
+      setLoading(false);
+    }
+  }, [goalId]);
+
+  useEffect(() => {
+    loadGoal();
+  }, [loadGoal]);
+
+  const sections = useMemo(() => {
+    if (tasks.length > 0) return sectionsFromTasks(tasks);
+    return sectionsFromRoadmap(goal?.roadmap ?? []);
+  }, [goal?.roadmap, tasks]);
+
+  const totalTasks = sections.reduce((sum, section) => sum + section.tasks.length, 0);
+  const completedTasks = sections.reduce(
+    (sum, section) => sum + section.tasks.filter((task) => task.completed).length,
+    0
+  );
+  const progress = totalTasks ? Math.round((completedTasks / totalTasks) * 100) : 0;
+
+  const toggleTaskDone = async (task: TaskSection["tasks"][number]) => {
+    setBusyTaskId(task.id);
+    try {
+      const res = task.completed
+        ? await fetch(`/api/v1/tasks/${task.id}/reopen`, { method: "PATCH" })
+        : task.source === "roadmap"
+          ? await fetch("/api/goals/toggle-task", {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                goalId,
+                dayNumber: task.dayNumber,
+                taskId: task.id,
+              }),
+            })
+          : await fetch(`/api/v1/tasks/${task.id}/complete`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ scheduleRevision: "none" }),
+            });
 
       if (!res.ok) throw new Error("Failed to update task");
-
-      setSnackbarMessage("Task updated! 🎉");
-    } catch (error) {
-      console.error(error);
-      setSnackbarMessage("Failed to update task 😢");
-    }
-
-    setSnackbarOpen(true);
-  };
-
-  const handleLike = (taskId: string) => {
-    setLikedTasks((prev) =>
-      prev.includes(taskId)
-        ? prev.filter((id) => id !== taskId)
-        : [...prev, taskId]
-    );
-    setSnackbarMessage("Task liked! ❤️");
-    setSnackbarOpen(true);
-  };
-
-  const handleDayChange = (day: number) => {
-    const dayData = roadmapData.roadmap.find((d) => d.dayNumber === day);
-    if (dayData?.unlocked) {
-      setCurrentDay(day);
-    } else {
-      setSnackbarMessage("Complete previous day to unlock!");
-      setSnackbarOpen(true);
+      await loadGoal();
+    } finally {
+      setBusyTaskId(null);
     }
   };
 
-  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      setSelectedFile(file);
-      const url = URL.createObjectURL(file);
-      setPreviewUrl(url);
-    }
-  };
-
-  const handleProofUpload = () => {
-    if (selectedFile) {
-      setRoadmapData((prev) => ({
-        ...prev,
-        roadmap: prev.roadmap.map((day) =>
-          day.dayNumber === currentDay
-            ? {
-                ...day,
-                proof: {
-                  uploaded: true,
-                  imageUrl: previewUrl,
-                  uploadedAt: new Date(),
-                },
-              }
-            : day
-        ),
-      }));
-      setUploadDialogOpen(false);
-      setSnackbarMessage("Proof uploaded! 📸");
-      setSnackbarOpen(true);
+  const rescheduleTask = async (taskId: string, scheduledDate?: string) => {
+    if (!scheduledDate) return;
+    setBusyTaskId(taskId);
+    try {
+      const res = await fetch(`/api/v1/tasks/${taskId}/reschedule`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ scheduledDate }),
+      });
+      if (!res.ok) throw new Error("Failed to reschedule task");
+      await loadGoal();
+    } finally {
+      setBusyTaskId(null);
+      setDragTaskId(null);
     }
   };
 
   return (
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
-
-      {/* Mobile App Bar */}
-      <AppBar
-        position="sticky"
-        elevation={0}
-        sx={{
-          backgroundColor: "white",
-          borderBottom: "1px solid #e5e7eb",
-          display: { xs: "flex", lg: "none" },
-        }}
-      >
-        <Toolbar>
-          <IconButton
-            edge="start"
-            onClick={() => setDrawerOpen(true)}
-            aria-label="open menu"
-            sx={{ color: "#1f2937" }}
-          >
-            <MenuIcon />
-          </IconButton>
-          <Typography
-            variant="h6"
-            sx={{ flexGrow: 1, fontWeight: 700, color: "#1f2937" }}
-          >
-            RoadmapPro
-          </Typography>
-        </Toolbar>
-      </AppBar>
-
-      {/* Mobile Navigation Drawer */}
-      <Drawer
-        anchor="left"
-        open={drawerOpen}
-        onClose={() => setDrawerOpen(false)}
-      >
-        <Box sx={{ width: 280, p: 3 }}>
-          <Typography
-            variant="h6"
-            sx={{ mb: 3, fontWeight: 700, textAlign: "center" }}
-          >
-            Navigation
-          </Typography>
-          <div className="space-y-3">
-            {navigationItems.map((item, index) => (
-              <Button
-                key={index}
-                fullWidth
-                startIcon={item.icon}
-                sx={{
-                  justifyContent: "flex-start",
-                  p: 2,
-                  borderRadius: 3,
-                  backgroundColor: item.active ? item.color : "transparent",
-                  color: item.active ? "white" : item.color,
-                  "&:hover": {
-                    backgroundColor: item.active ? item.color : "#f3f4f6",
-                  },
-                }}
-              >
-                {item.label}
-              </Button>
-            ))}
-          </div>
-        </Box>
-      </Drawer>
-
-      <div
-        className="min-h-screen"
-        style={{
-          background: "linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 100%)",
-          // paddingTop: { xs: 0, lg: 24 },
-        }}
-      >
-        <div className="max-w-7xl mx-auto p-3 lg:p-6">
-          {/* Desktop Layout */}
-          <div className="hidden lg:grid lg:grid-cols-12 gap-6 h-screen max-h-[900px]">
-            {/* Left Sidebar - Desktop Only */}
-            <div className="col-span-1">
-              <Card
-                className="h-full flex flex-col items-center py-6 px-2"
-                sx={{
-                  backgroundColor: "white",
-                  borderRadius: "24px",
-                  boxShadow: "0 4px 20px rgba(0,0,0,0.08)",
-                }}
-              >
-                <div className="space-y-4">
-                  {navigationItems.map((item, index) => (
-                    <Tooltip key={index} title={item.label} placement="right">
-                      <IconButton
-                        sx={{
-                          width: 48,
-                          height: 48,
-                          backgroundColor: item.active
-                            ? item.color
-                            : "transparent",
-                          color: item.active ? "white" : item.color,
-                          borderRadius:
-                            index === 0 ? "12px" : index === 1 ? "50%" : "12px",
-                          "&:hover": {
-                            backgroundColor: item.active
-                              ? item.color
-                              : "#f3f4f6",
-                            transform: "scale(1.1)",
-                          },
-                          transition: "all 0.2s",
-                        }}
-                      >
-                        {item.icon}
-                      </IconButton>
-                    </Tooltip>
-                  ))}
-                </div>
-              </Card>
-            </div>
-
-            {/* Main Content - Desktop */}
-            <div className="col-span-7 space-y-6">
-              {/* Day Navigation Header */}
-              <Card
-                sx={{
-                  backgroundColor: "white",
-                  borderRadius: "24px",
-                  p: 3,
-                  boxShadow: "0 4px 20px rgba(0,0,0,0.08)",
-                }}
-              >
-                <div className="overflow-x-auto scrollbar-custom">
-                  <div className="flex items-center space-x-4 min-w-max px-2 py-1">
-                    <Bolt sx={{ fontSize: 28, color: "#000" }} />
-                    {roadmapData.roadmap.map((dayData) => {
-                      const day = dayData.dayNumber;
-                      const isActive = currentDay === day;
-                      const isUnlocked = dayData.unlocked;
-                      const isCompleted = dayData.completed;
-
-                      return (
-                        <Button
-                          key={day}
-                          onClick={() => handleDayChange(day)}
-                          disabled={!isUnlocked}
-                          sx={{
-                            minWidth: 100,
-                            color: isActive
-                              ? "#1f2937"
-                              : isUnlocked
-                              ? "#9ca3af"
-                              : "#d1d5db",
-                            fontWeight: isActive ? 700 : 400,
-                            fontSize: "1rem",
-                            textTransform: "none",
-                            padding: "6px 12px",
-                            borderRadius: "12px",
-                            scrollSnapAlign: "start",
-                            "&:hover": {
-                              backgroundColor: "transparent",
-                              transform: isUnlocked ? "scale(1.05)" : "none",
-                            },
-                          }}
-                        >
-                          {!isUnlocked && (
-                            <Lock sx={{ fontSize: 16, marginRight: 1 }} />
-                          )}
-                          Day {day} {day === 1 && "😊"}
-                          {isCompleted && (
-                            <CheckCircle
-                              sx={{
-                                fontSize: 16,
-                                marginLeft: 1,
-                                color: "#10b981",
-                              }}
-                            />
-                          )}
-                        </Button>
-                      );
-                    })}
-                  </div>
-                </div>
-              </Card>
-
-              {/* Main Task Card */}
-              <Card
-                sx={{
-                  background:
-                    "linear-gradient(135deg, #bfdbfe 0%, #a7f3d0 100%)",
-                  borderRadius: "24px",
-                  p: 4,
-                  boxShadow: "0 4px 20px rgba(0,0,0,0.08)",
-                }}
-              >
-                <div className="flex justify-between items-start mb-6">
-                  <div>
-                    <Typography
-                      variant="h4"
-                      sx={{ fontWeight: 700, color: "#1f2937", mb: 1 }}
-                    >
-                      Task{" "}
-                      {currentDayData.tasks.filter((t) => t.isCompleted).length}
-                      /{currentDayData.tasks.length}
-                    </Typography>
-                    <Typography variant="body1" sx={{ color: "#6b7280" }}>
-                      Daily productivity tasks
-                    </Typography>
-                  </div>
-                  <IconButton
-                    onClick={() => handleLike(currentDayData.tasks[0]?._id)}
-                    sx={{
-                      backgroundColor: likedTasks.includes(
-                        currentDayData.tasks[0]?._id
-                      )
-                        ? "#ef4444"
-                        : "white",
-                      color: likedTasks.includes(currentDayData.tasks[0]?._id)
-                        ? "white"
-                        : "#6b7280",
-                      width: 48,
-                      height: 48,
-                      borderRadius: "12px",
-                      "&:hover": { transform: "scale(1.1)" },
-                    }}
-                  >
-                    {likedTasks.includes(currentDayData.tasks[0]?._id) ? (
-                      <Favorite />
-                    ) : (
-                      <FavoriteBorder />
-                    )}
-                  </IconButton>
-                </div>
-
-                {/* Task Image Area */}
-                <Box
-                  sx={{
-                    position: "relative",
-                    borderRadius: "20px",
-                    overflow: "hidden",
-                    mb: 4,
-                    height: 300,
-                  }}
-                >
-                  <img
-                    src="/1.webp"
-                    alt="Productivity workspace setup"
-                    className="w-full h-full object-cover"
-                  />
-                  <Box
-                    sx={{
-                      position: "absolute",
-                      inset: 0,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      backgroundColor: "rgba(0,0,0,0.1)",
-                    }}
-                  >
-                    <IconButton
-                      onClick={handlePlayPause}
-                      sx={{
-                        backgroundColor: "rgba(255,255,255,0.9)",
-                        color: "#1f2937",
-                        width: 80,
-                        height: 80,
-                        "&:hover": {
-                          backgroundColor: "white",
-                          transform: "scale(1.1)",
-                        },
-                      }}
-                    >
-                      {isPlaying ? (
-                        <Pause sx={{ fontSize: 40 }} />
-                      ) : (
-                        <PlayArrow sx={{ fontSize: 40 }} />
-                      )}
-                    </IconButton>
-                  </Box>
-                  <IconButton
-                    onClick={() => setIsMuted(!isMuted)}
-                    sx={{
-                      position: "absolute",
-                      top: 16,
-                      right: 16,
-                      backgroundColor: "rgba(255,255,255,0.2)",
-                      color: "white",
-                      "&:hover": { backgroundColor: "rgba(255,255,255,0.3)" },
-                    }}
-                  >
-                    {isMuted ? <VolumeOff /> : <VolumeUp />}
-                  </IconButton>
-                </Box>
-
-                {/* Progress Bar */}
-                {isPlaying && (
-                  <Box sx={{ mb: 4 }}>
-                    <LinearProgress
-                      variant="determinate"
-                      value={progress}
-                      sx={{
-                        height: 8,
-                        borderRadius: 4,
-                        backgroundColor: "rgba(255,255,255,0.3)",
-                        "& .MuiLinearProgress-bar": { borderRadius: 4 },
-                      }}
-                    />
-                  </Box>
+    <AppShell
+      eyebrow="Goal"
+      title={goal?.title ?? "Goal"}
+      action={
+        <Link
+          href="/goals"
+          className="inline-flex h-10 items-center gap-2 rounded-full border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700"
+        >
+          <ChevronLeft className="h-4 w-4" />
+          Back
+        </Link>
+      }
+    >
+      {loading ? (
+        <div className="flex min-h-72 items-center justify-center rounded-3xl bg-white text-slate-500">
+          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          Loading
+        </div>
+      ) : error ? (
+        <div className="flex gap-3 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+          {error}
+        </div>
+      ) : goal ? (
+        <div className="space-y-5">
+          <section className="rounded-3xl bg-slate-950 p-5 text-white shadow-sm">
+            <div className="flex items-start justify-between gap-4">
+              <div className="min-w-0">
+                <h2 className="text-2xl font-semibold tracking-tight">
+                  {goal.title}
+                </h2>
+                {goal.description && (
+                  <p className="mt-2 line-clamp-3 text-sm leading-6 text-slate-300">
+                    {goal.description}
+                  </p>
                 )}
-
-                {/* Stats Cards */}
-                <div className="grid grid-cols-4 gap-4">
-                  <Card
-                    sx={{
-                      backgroundColor: "#fef3c7",
-                      borderRadius: "20px",
-                      p: 2,
-                      textAlign: "center",
-                    }}
-                  >
-                    <Typography sx={{ fontSize: "1.5rem", mb: 1 }}>
-                      🏃
-                    </Typography>
-                    <Typography
-                      variant="caption"
-                      sx={{
-                        color: "#6b7280",
-                        fontWeight: 600,
-                        display: "block",
-                      }}
-                    >
-                      CATEGORY
-                    </Typography>
-                    <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                      Productivity
-                    </Typography>
-                  </Card>
-
-                  <Card
-                    sx={{
-                      backgroundColor: "#e9d5ff",
-                      borderRadius: "20px",
-                      p: 2,
-                      textAlign: "center",
-                    }}
-                  >
-                    <Typography sx={{ fontSize: "1.5rem", mb: 1 }}>
-                      ⭐
-                    </Typography>
-                    <Typography
-                      variant="caption"
-                      sx={{
-                        color: "#6b7280",
-                        fontWeight: 600,
-                        display: "block",
-                      }}
-                    >
-                      DIFFICULTY
-                    </Typography>
-                    <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                      {currentDay}
-                    </Typography>
-                  </Card>
-
-                  <Card
-                    sx={{
-                      backgroundColor: "#d1fae5",
-                      borderRadius: "20px",
-                      p: 2,
-                      textAlign: "center",
-                    }}
-                  >
-                    <Typography sx={{ fontSize: "1.5rem", mb: 1 }}>
-                      ⏱️
-                    </Typography>
-                    <Typography
-                      variant="caption"
-                      sx={{
-                        color: "#6b7280",
-                        fontWeight: 600,
-                        display: "block",
-                      }}
-                    >
-                      TOTAL TASKS
-                    </Typography>
-                    <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                      {currentDayData.tasks.length}
-                    </Typography>
-                  </Card>
-
-                  <Card
-                    sx={{
-                      backgroundColor: "#fce7f3",
-                      borderRadius: "20px",
-                      p: 2,
-                      textAlign: "center",
-                    }}
-                  >
-                    <Typography sx={{ fontSize: "1.5rem", mb: 1 }}>
-                      ⏰
-                    </Typography>
-                    <Typography
-                      variant="caption"
-                      sx={{
-                        color: "#6b7280",
-                        fontWeight: 600,
-                        display: "block",
-                      }}
-                    >
-                      COMPLETED
-                    </Typography>
-                    <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                      {currentDayData.tasks.filter((t) => t.isCompleted).length}
-                    </Typography>
-                  </Card>
-                </div>
-              </Card>
-
-              {/* Description Section */}
-              <Card
-                sx={{
-                  backgroundColor: "white",
-                  borderRadius: "24px",
-                  p: 4,
-                  boxShadow: "0 4px 20px rgba(0,0,0,0.08)",
-                }}
-              >
-                <Typography
-                  variant="h6"
-                  sx={{ mb: 3, fontWeight: 700, color: "#1f2937" }}
-                >
-                  DESCRIPTION
-                </Typography>
-                <div className="flex items-start space-x-4 mb-4">
-                  <Avatar
-                    sx={{
-                      bgcolor: "#1f2937",
-                      width: 32,
-                      height: 32,
-                      fontSize: "0.875rem",
-                    }}
-                  >
-                    1
-                  </Avatar>
-                  <div>
-                    <Typography variant="body1" sx={{ fontWeight: 600, mb: 1 }}>
-                      Start point:
-                    </Typography>
-                    <Typography variant="body2" sx={{ color: "#6b7280" }}>
-                      Begin with small, manageable tasks that build momentum for
-                      the day ahead.
-                    </Typography>
-                  </div>
-                </div>
-                <div className="flex items-start space-x-4">
-                  <Avatar
-                    sx={{
-                      bgcolor: "#9ca3af",
-                      width: 32,
-                      height: 32,
-                      fontSize: "0.875rem",
-                    }}
-                  >
-                    2
-                  </Avatar>
-                  <div>
-                    <Typography variant="body1" sx={{ fontWeight: 600, mb: 1 }}>
-                      Actions:
-                    </Typography>
-                    <Typography variant="body2" sx={{ color: "#6b7280" }}>
-                      Complete each task mindfully, upload proof of completion,
-                      and unlock the next day's challenges.
-                    </Typography>
-                  </div>
-                </div>
-              </Card>
+              </div>
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white/10">
+                <Target className="h-6 w-6 text-emerald-300" />
+              </div>
             </div>
 
-            {/* Right Sidebar - Desktop */}
-            <div className="col-span-4 space-y-6">
-              {/* Tasks List */}
-              <Card
-                sx={{
-                  backgroundColor: "white",
-                  borderRadius: "24px",
-                  p: 3,
-                  boxShadow: "0 4px 20px rgba(0,0,0,0.08)",
-                }}
-              >
-                <Typography
-                  variant="h6"
-                  sx={{ mb: 3, fontWeight: 700, color: "#1f2937" }}
+            <div className="mt-5">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-slate-300">Progress</span>
+                <span className="font-semibold">{progress}%</span>
+              </div>
+              <div className="mt-2 h-2 rounded-full bg-white/10">
+                <div
+                  className="h-full rounded-full bg-emerald-400 transition-all"
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
+            </div>
+
+            <div className="mt-5 grid grid-cols-3 gap-2">
+              <div className="rounded-2xl bg-white/10 p-3">
+                <p className="text-lg font-semibold">{completedTasks}</p>
+                <p className="text-xs text-slate-300">Done</p>
+              </div>
+              <div className="rounded-2xl bg-white/10 p-3">
+                <p className="text-lg font-semibold">{totalTasks}</p>
+                <p className="text-xs text-slate-300">Tasks</p>
+              </div>
+              <div className="rounded-2xl bg-white/10 p-3">
+                <p className="text-lg font-semibold">
+                  {goal.targetDate ? formatDate(goal.targetDate) : "Open"}
+                </p>
+                <p className="text-xs text-slate-300">Target</p>
+              </div>
+            </div>
+          </section>
+
+          <section className="grid grid-cols-2 gap-3">
+            <Link
+              href="/today"
+              className="rounded-2xl border border-slate-200 bg-white p-4 text-sm font-semibold text-slate-900 shadow-sm"
+            >
+              Today queue
+            </Link>
+            <Link
+              href="/goals/new"
+              className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white p-4 text-sm font-semibold text-slate-900 shadow-sm"
+            >
+              <Plus className="h-4 w-4" />
+              New goal
+            </Link>
+            <Link
+              href="/resources"
+              className="col-span-2 inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white p-4 text-sm font-semibold text-slate-900 shadow-sm"
+            >
+              <BookOpen className="h-4 w-4" />
+              Resources
+            </Link>
+          </section>
+
+          <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-900">
+            Drag tasks between dated blocks to restructure the plan. On mobile,
+            use the date field inside a task for the same result.
+          </div>
+
+          {sections.length === 0 ? (
+            <div className="rounded-3xl border border-dashed border-slate-300 bg-white/70 p-6 text-center text-sm text-slate-500">
+              No tasks in this goal yet.
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {sections.map((section) => (
+                <section
+                  key={section.key}
+                  onDragOver={(event) => event.preventDefault()}
+                  onDrop={() => {
+                    if (dragTaskId && section.dateKey) {
+                      void rescheduleTask(dragTaskId, section.dateKey);
+                    }
+                  }}
+                  className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm"
                 >
-                  TASKS
-                </Typography>
-                <div className="space-y-3">
-                  {currentDayData.tasks.map((task, index) => {
-                    const colors = [
-                      "#bfdbfe",
-                      "#ddd6fe",
-                      "#a7f3d0",
-                      "#fecaca",
-                      "#fed7aa",
-                    ];
-                    return (
+                  <div className="mb-4 flex items-center justify-between gap-3">
+                    <div>
+                      <h3 className="font-semibold text-slate-950">
+                        {section.title}
+                      </h3>
+                      <p className="mt-1 flex items-center gap-1 text-xs text-slate-500">
+                        <Calendar className="h-3.5 w-3.5" />
+                        {section.dateLabel}
+                      </p>
+                    </div>
+                    <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600">
+                      {section.tasks.filter((task) => task.completed).length}/
+                      {section.tasks.length}
+                    </span>
+                  </div>
+
+                  <div className="space-y-2">
+                    {section.tasks.map((task) => (
                       <div
-                        key={task._id}
-                        className="flex items-center space-x-3 p-3 rounded-2xl hover:bg-gray-50 transition-all cursor-pointer"
-                        onClick={() => handleTaskToggle(task._id)}
-                        style={{
-                          backgroundColor: colors[index % colors.length],
-                        }}
+                        key={task.id}
+                        draggable={task.source === "task"}
+                        onDragStart={() => setDragTaskId(task.id)}
+                        onDragEnd={() => setDragTaskId(null)}
+                        className={`flex w-full items-start gap-3 rounded-2xl border border-slate-100 bg-slate-50 p-3 text-left transition ${
+                          dragTaskId === task.id ? "opacity-50" : ""
+                        }`}
                       >
-                        <div
-                          className="w-12 h-12 rounded-2xl flex items-center justify-center"
-                          style={{
-                            backgroundColor: colors[index % colors.length],
-                          }}
+                        <span className="mt-1 text-slate-300">
+                          <GripVertical className="h-4 w-4" />
+                        </span>
+                        <button
+                          type="button"
+                          disabled={busyTaskId === task.id}
+                          onClick={() => toggleTaskDone(task)}
+                          className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border ${
+                            task.completed
+                              ? "border-emerald-600 bg-emerald-600 text-white"
+                              : "border-slate-300 bg-white text-slate-400"
+                          }`}
+                          aria-label={task.completed ? "Mark incomplete" : "Mark complete"}
                         >
-                          <Typography sx={{ fontSize: "1.2rem" }}>
-                            {index === 0
-                              ? "🧠"
-                              : index === 1
-                              ? "🎯"
-                              : index === 2
-                              ? "📝"
-                              : index === 3
-                              ? "📱"
-                              : "🙏"}
-                          </Typography>
-                        </div>
-                        <div className="flex-1">
-                          <Typography
-                            variant="body1"
-                            sx={{ fontWeight: 600, color: "#1f2937" }}
+                          {busyTaskId === task.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Check className="h-4 w-4" />
+                          )}
+                        </button>
+                        <div className="min-w-0 flex-1">
+                          <span
+                            className={`block text-sm font-semibold leading-5 ${
+                              task.completed
+                                ? "text-slate-400 line-through"
+                                : "text-slate-900"
+                            }`}
                           >
                             {task.title}
-                          </Typography>
-                          <div className="flex items-center space-x-3 text-sm">
-                            <Typography
-                              variant="caption"
-                              sx={{ color: "#6b7280" }}
-                            >
-                              ⏱️ 15 mins
-                            </Typography>
-                            <Typography
-                              variant="caption"
-                              sx={{ color: "#6b7280" }}
-                            >
-                              🔥 Focus
-                            </Typography>
+                          </span>
+                          {task.description && (
+                            <span className="mt-1 line-clamp-2 block text-xs leading-5 text-slate-500">
+                              {task.description}
+                            </span>
+                          )}
+                          <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
+                            <span className="inline-flex items-center gap-1 text-xs text-slate-500">
+                              <Clock3 className="h-3.5 w-3.5" />
+                              {task.minutes}m
+                            </span>
+                            {task.source === "task" && (
+                              <input
+                                type="date"
+                                defaultValue={section.dateKey}
+                                onChange={(event) =>
+                                  rescheduleTask(task.id, event.target.value)
+                                }
+                                className="h-9 rounded-xl border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700"
+                                aria-label="Change task date"
+                              />
+                            )}
                           </div>
                         </div>
-                        {task.isCompleted ? (
-                          <CheckCircle sx={{ color: "#10b981" }} />
-                        ) : (
-                          <RadioButtonUnchecked sx={{ color: "#d1d5db" }} />
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </Card>
-
-              {/* User Level */}
-              <Card
-                sx={{
-                  background:
-                    "linear-gradient(135deg, #e9d5ff 0%, #fce7f3 100%)",
-                  borderRadius: "24px",
-                  p: 3,
-                  boxShadow: "0 4px 20px rgba(0,0,0,0.08)",
-                }}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <Typography sx={{ fontSize: "2rem" }}>😊</Typography>
-                    <div>
-                      <Typography
-                        variant="h6"
-                        sx={{ fontWeight: 700, color: "#1f2937" }}
-                      >
-                        BEGINNER
-                      </Typography>
-                      <Typography variant="body2" sx={{ color: "#6b7280" }}>
-                        YOUR LEVEL
-                      </Typography>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <EmojiEvents sx={{ color: "#f59e0b" }} />
-                    <Typography
-                      variant="h6"
-                      sx={{ fontWeight: 700, color: "#1f2937" }}
-                    >
-                      {Math.round(getDayProgress(currentDayData) * 10)}
-                    </Typography>
-                  </div>
-                </div>
-              </Card>
-
-              {/* Friends */}
-              <Card
-                sx={{
-                  backgroundColor: "white",
-                  borderRadius: "24px",
-                  p: 3,
-                  boxShadow: "0 4px 20px rgba(0,0,0,0.08)",
-                }}
-              >
-                <div className="flex items-center justify-between mb-4">
-                  <Typography
-                    variant="h6"
-                    sx={{ fontWeight: 700, color: "#1f2937" }}
-                  >
-                    MY FRIENDS
-                  </Typography>
-                  <Chip
-                    label="+10"
-                    sx={{
-                      backgroundColor: "#f97316",
-                      color: "white",
-                      fontWeight: 600,
-                    }}
-                  />
-                </div>
-                <div className="flex items-center space-x-2">
-                  {["A", "S", "M", "E"].map((initial, index) => {
-                    const colors = ["#6366f1", "#ec4899", "#10b981", "#f59e0b"];
-                    return (
-                      <Avatar
-                        key={index}
-                        sx={{
-                          bgcolor: colors[index],
-                          width: 40,
-                          height: 40,
-                          cursor: "pointer",
-                          "&:hover": { transform: "scale(1.1)" },
-                          transition: "transform 0.2s",
-                        }}
-                      >
-                        {initial}
-                      </Avatar>
-                    );
-                  })}
-                  <IconButton
-                    sx={{
-                      backgroundColor: "#f97316",
-                      color: "white",
-                      width: 40,
-                      height: 40,
-                      ml: 2,
-                      "&:hover": {
-                        backgroundColor: "#ea580c",
-                        transform: "scale(1.1)",
-                      },
-                    }}
-                  >
-                    <PersonAdd />
-                  </IconButton>
-                </div>
-              </Card>
-            </div>
-          </div>
-
-          {/* Mobile Layout */}
-          <div className="lg:hidden space-y-4">
-            {/* Mobile Day Navigation */}
-            <Card sx={{ backgroundColor: "white", borderRadius: "20px", p: 3 }}>
-              <div className="flex items-center justify-between mb-4">
-                <Bolt sx={{ fontSize: 24, color: "#000" }} />
-                <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                  Day {currentDay}
-                </Typography>
-              </div>
-              <div className="flex space-x-2 overflow-x-auto pb-2">
-                {roadmapData.roadmap.map((dayData) => {
-                  const day = dayData.dayNumber;
-                  const isActive = currentDay === day;
-                  const isUnlocked = dayData.unlocked;
-                  const isCompleted = dayData.completed;
-
-                  return (
-                    <Button
-                      key={day}
-                      onClick={() => handleDayChange(day)}
-                      disabled={!isUnlocked}
-                      size="small"
-                      sx={{
-                        minWidth: "80px",
-                        color: isActive
-                          ? "#1f2937"
-                          : isUnlocked
-                          ? "#9ca3af"
-                          : "#d1d5db",
-                        fontWeight: isActive ? 700 : 400,
-                        fontSize: "0.9rem",
-                        textTransform: "none",
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      {!isUnlocked && <Lock sx={{ fontSize: 14, mr: 0.5 }} />}
-                      Day {day} {day === 1 && "😊"}
-                      {isCompleted && (
-                        <CheckCircle
-                          sx={{ fontSize: 14, ml: 0.5, color: "#10b981" }}
-                        />
-                      )}
-                    </Button>
-                  );
-                })}
-              </div>
-            </Card>
-
-            {/* Mobile Main Task Card */}
-            <Card
-              sx={{
-                background: "linear-gradient(135deg, #bfdbfe 0%, #a7f3d0 100%)",
-                borderRadius: "20px",
-                p: 3,
-              }}
-            >
-              <div className="flex justify-between items-start mb-4">
-                <div>
-                  <Typography
-                    variant="h5"
-                    sx={{ fontWeight: 700, color: "#1f2937", mb: 1 }}
-                  >
-                    Task{" "}
-                    {currentDayData.tasks.filter((t) => t.isCompleted).length}
-                    /{currentDayData.tasks.length}
-                  </Typography>
-                  <Typography variant="body2" sx={{ color: "#6b7280" }}>
-                    Daily productivity tasks
-                  </Typography>
-                </div>
-                <IconButton
-                  onClick={() => handleLike(currentDayData.tasks[0]?._id)}
-                  sx={{
-                    backgroundColor: likedTasks.includes(
-                      currentDayData.tasks[0]?._id
-                    )
-                      ? "#ef4444"
-                      : "white",
-                    color: likedTasks.includes(currentDayData.tasks[0]?._id)
-                      ? "white"
-                      : "#6b7280",
-                    width: 40,
-                    height: 40,
-                    borderRadius: "10px",
-                  }}
-                >
-                  {likedTasks.includes(currentDayData.tasks[0]?._id) ? (
-                    <Favorite />
-                  ) : (
-                    <FavoriteBorder />
-                  )}
-                </IconButton>
-              </div>
-
-              {/* Mobile Image Area */}
-              <Box
-                sx={{
-                  position: "relative",
-                  borderRadius: "16px",
-                  overflow: "hidden",
-                  mb: 3,
-                  height: 200,
-                }}
-              >
-                <img
-                  src="/1.webp"
-                  alt="Productivity workspace setup"
-                  className="w-full h-full object-cover"
-                />
-                <Box
-                  sx={{
-                    position: "absolute",
-                    inset: 0,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    backgroundColor: "rgba(0,0,0,0.1)",
-                  }}
-                >
-                  <IconButton
-                    onClick={handlePlayPause}
-                    sx={{
-                      backgroundColor: "rgba(255,255,255,0.9)",
-                      color: "#1f2937",
-                      width: 60,
-                      height: 60,
-                    }}
-                  >
-                    {isPlaying ? (
-                      <Pause sx={{ fontSize: 30 }} />
-                    ) : (
-                      <PlayArrow sx={{ fontSize: 30 }} />
-                    )}
-                  </IconButton>
-                </Box>
-                <IconButton
-                  onClick={() => setIsMuted(!isMuted)}
-                  sx={{
-                    position: "absolute",
-                    top: 12,
-                    right: 12,
-                    backgroundColor: "rgba(255,255,255,0.2)",
-                    color: "white",
-                    width: 36,
-                    height: 36,
-                  }}
-                >
-                  {isMuted ? (
-                    <VolumeOff sx={{ fontSize: 20 }} />
-                  ) : (
-                    <VolumeUp sx={{ fontSize: 20 }} />
-                  )}
-                </IconButton>
-              </Box>
-
-              {/* Mobile Progress Bar */}
-              {isPlaying && (
-                <Box sx={{ mb: 3 }}>
-                  <LinearProgress
-                    variant="determinate"
-                    value={progress}
-                    sx={{
-                      height: 6,
-                      borderRadius: 3,
-                      backgroundColor: "rgba(255,255,255,0.3)",
-                      "& .MuiLinearProgress-bar": { borderRadius: 3 },
-                    }}
-                  />
-                </Box>
-              )}
-
-              {/* Mobile Stats Cards */}
-              <div className="grid grid-cols-2 gap-3">
-                <Card
-                  sx={{
-                    backgroundColor: "#fef3c7",
-                    borderRadius: "16px",
-                    p: 2,
-                    textAlign: "center",
-                  }}
-                >
-                  <Typography sx={{ fontSize: "1.2rem", mb: 1 }}>🏃</Typography>
-                  <Typography
-                    variant="caption"
-                    sx={{ color: "#6b7280", fontWeight: 600, display: "block" }}
-                  >
-                    CATEGORY
-                  </Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                    Productivity
-                  </Typography>
-                </Card>
-
-                <Card
-                  sx={{
-                    backgroundColor: "#e9d5ff",
-                    borderRadius: "16px",
-                    p: 2,
-                    textAlign: "center",
-                  }}
-                >
-                  <Typography sx={{ fontSize: "1.2rem", mb: 1 }}>⭐</Typography>
-                  <Typography
-                    variant="caption"
-                    sx={{ color: "#6b7280", fontWeight: 600, display: "block" }}
-                  >
-                    DIFFICULTY
-                  </Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                    {currentDay}
-                  </Typography>
-                </Card>
-
-                <Card
-                  sx={{
-                    backgroundColor: "#d1fae5",
-                    borderRadius: "16px",
-                    p: 2,
-                    textAlign: "center",
-                  }}
-                >
-                  <Typography sx={{ fontSize: "1.2rem", mb: 1 }}>⏱️</Typography>
-                  <Typography
-                    variant="caption"
-                    sx={{ color: "#6b7280", fontWeight: 600, display: "block" }}
-                  >
-                    TOTAL TASKS
-                  </Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                    {currentDayData.tasks.length}
-                  </Typography>
-                </Card>
-
-                <Card
-                  sx={{
-                    backgroundColor: "#fce7f3",
-                    borderRadius: "16px",
-                    p: 2,
-                    textAlign: "center",
-                  }}
-                >
-                  <Typography sx={{ fontSize: "1.2rem", mb: 1 }}>⏰</Typography>
-                  <Typography
-                    variant="caption"
-                    sx={{ color: "#6b7280", fontWeight: 600, display: "block" }}
-                  >
-                    COMPLETED
-                  </Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                    {currentDayData.tasks.filter((t) => t.isCompleted).length}
-                  </Typography>
-                </Card>
-              </div>
-            </Card>
-
-            {/* Mobile Tasks List */}
-            <Card sx={{ backgroundColor: "white", borderRadius: "20px", p: 3 }}>
-              <Typography
-                variant="h6"
-                sx={{ mb: 3, fontWeight: 700, color: "#1f2937" }}
-              >
-                TASKS
-              </Typography>
-              <div className="space-y-3">
-                {currentDayData.tasks.map((task, index) => {
-                  const colors = [
-                    "#bfdbfe",
-                    "#ddd6fe",
-                    "#a7f3d0",
-                    "#fecaca",
-                    "#fed7aa",
-                  ];
-                  return (
-                    <div
-                      key={task._id}
-                      className="flex items-center space-x-3 p-3 rounded-xl hover:bg-gray-50 transition-all cursor-pointer"
-                      onClick={() => handleTaskToggle(task._id)}
-                      style={{ backgroundColor: colors[index % colors.length] }}
-                    >
-                      <div
-                        className="w-10 h-10 rounded-xl flex items-center justify-center"
-                        style={{
-                          backgroundColor: colors[index % colors.length],
-                        }}
-                      >
-                        <Typography sx={{ fontSize: "1rem" }}>
-                          {index === 0
-                            ? "🧠"
-                            : index === 1
-                            ? "🎯"
-                            : index === 2
-                            ? "📝"
-                            : index === 3
-                            ? "📱"
-                            : "🙏"}
-                        </Typography>
-                      </div>
-                      <div className="flex-1">
-                        <Typography
-                          variant="body2"
-                          sx={{ fontWeight: 600, color: "#1f2937" }}
+                        {/* 
+                          Preserve visible completion state in a small, reversible control.
+                          The card itself is for restructuring, not accidental completion.
+                        */}
+                        <span
+                          className="sr-only"
                         >
-                          {task.title}
-                        </Typography>
-                        <Typography variant="caption" sx={{ color: "#6b7280" }}>
-                          ⏱️ 15 mins • 🔥 Focus
-                        </Typography>
+                          {task.completed ? "Completed" : "Pending"}
+                        </span>
                       </div>
-                      {task.isCompleted ? (
-                        <CheckCircle sx={{ color: "#10b981", fontSize: 20 }} />
-                      ) : (
-                        <RadioButtonUnchecked
-                          sx={{ color: "#d1d5db", fontSize: 20 }}
-                        />
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </Card>
-
-            {/* Mobile User Level */}
-            <Card
-              sx={{
-                background: "linear-gradient(135deg, #e9d5ff 0%, #fce7f3 100%)",
-                borderRadius: "20px",
-                p: 3,
-              }}
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <Typography sx={{ fontSize: "1.5rem" }}>😊</Typography>
-                  <div>
-                    <Typography
-                      variant="h6"
-                      sx={{ fontWeight: 700, color: "#1f2937" }}
-                    >
-                      BEGINNER
-                    </Typography>
-                    <Typography variant="body2" sx={{ color: "#6b7280" }}>
-                      YOUR LEVEL
-                    </Typography>
+                    ))}
                   </div>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <EmojiEvents sx={{ color: "#f59e0b" }} />
-                  <Typography
-                    variant="h6"
-                    sx={{ fontWeight: 700, color: "#1f2937" }}
-                  >
-                    {Math.round(getDayProgress(currentDayData) * 10)}
-                  </Typography>
-                </div>
-              </div>
-            </Card>
-
-            {/* Mobile Friends */}
-            <Card sx={{ backgroundColor: "white", borderRadius: "20px", p: 3 }}>
-              <div className="flex items-center justify-between mb-4">
-                <Typography
-                  variant="h6"
-                  sx={{ fontWeight: 700, color: "#1f2937" }}
-                >
-                  MY FRIENDS
-                </Typography>
-                <Chip
-                  label="+10"
-                  sx={{
-                    backgroundColor: "#f97316",
-                    color: "white",
-                    fontWeight: 600,
-                  }}
-                />
-              </div>
-              <div className="flex items-center space-x-2">
-                {["A", "S", "M", "E"].map((initial, index) => {
-                  const colors = ["#6366f1", "#ec4899", "#10b981", "#f59e0b"];
-                  return (
-                    <Avatar
-                      key={index}
-                      sx={{
-                        bgcolor: colors[index],
-                        width: 36,
-                        height: 36,
-                        fontSize: "0.875rem",
-                        cursor: "pointer",
-                        "&:hover": { transform: "scale(1.1)" },
-                        transition: "transform 0.2s",
-                      }}
-                    >
-                      {initial}
-                    </Avatar>
-                  );
-                })}
-                <IconButton
-                  sx={{
-                    backgroundColor: "#f97316",
-                    color: "white",
-                    width: 36,
-                    height: 36,
-                    ml: 2,
-                    "&:hover": {
-                      backgroundColor: "#ea580c",
-                      transform: "scale(1.1)",
-                    },
-                  }}
-                >
-                  <PersonAdd sx={{ fontSize: 18 }} />
-                </IconButton>
-              </div>
-            </Card>
-
-            {/* Mobile Description */}
-            <Card sx={{ backgroundColor: "white", borderRadius: "20px", p: 3 }}>
-              <Typography
-                variant="h6"
-                sx={{ mb: 3, fontWeight: 700, color: "#1f2937" }}
-              >
-                DESCRIPTION
-              </Typography>
-              <div className="space-y-3">
-                <div className="flex items-start space-x-3">
-                  <Avatar
-                    sx={{
-                      bgcolor: "#1f2937",
-                      width: 28,
-                      height: 28,
-                      fontSize: "0.75rem",
-                    }}
-                  >
-                    1
-                  </Avatar>
-                  <div>
-                    <Typography variant="body2" sx={{ fontWeight: 600, mb: 1 }}>
-                      Start point:
-                    </Typography>
-                    <Typography
-                      variant="body2"
-                      sx={{ color: "#6b7280", fontSize: "0.875rem" }}
-                    >
-                      Begin with small, manageable tasks that build momentum for
-                      the day ahead.
-                    </Typography>
-                  </div>
-                </div>
-                <div className="flex items-start space-x-3">
-                  <Avatar
-                    sx={{
-                      bgcolor: "#9ca3af",
-                      width: 28,
-                      height: 28,
-                      fontSize: "0.75rem",
-                    }}
-                  >
-                    2
-                  </Avatar>
-                  <div>
-                    <Typography variant="body2" sx={{ fontWeight: 600, mb: 1 }}>
-                      Actions:
-                    </Typography>
-                    <Typography
-                      variant="body2"
-                      sx={{ color: "#6b7280", fontSize: "0.875rem" }}
-                    >
-                      Complete each task mindfully, upload proof of completion,
-                      and unlock the next day's challenges.
-                    </Typography>
-                  </div>
-                </div>
-              </div>
-            </Card>
-          </div>
+                </section>
+              ))}
+            </div>
+          )}
         </div>
-
-        {/* Upload Dialog */}
-        <Dialog
-          open={uploadDialogOpen}
-          onClose={() => setUploadDialogOpen(false)}
-          maxWidth="sm"
-          fullWidth
-        >
-          <DialogTitle>Upload Completion Proof</DialogTitle>
-          <DialogContent>
-            <Box sx={{ textAlign: "center", py: 3 }}>
-              <input
-                accept="image/*"
-                style={{ display: "none" }}
-                id="proof-upload"
-                type="file"
-                onChange={handleFileSelect}
-              />
-              <label htmlFor="proof-upload">
-                <Button
-                  variant="outlined"
-                  component="span"
-                  startIcon={<Camera />}
-                  sx={{ mb: 2 }}
-                >
-                  Select Image
-                </Button>
-              </label>
-              {previewUrl && (
-                <Box sx={{ mt: 2 }}>
-                  <img
-                    src={previewUrl || "/placeholder.svg"}
-                    alt="Preview"
-                    className="w-full max-w-xs mx-auto rounded-lg"
-                  />
-                </Box>
-              )}
-            </Box>
-          </DialogContent>
-          <DialogActions>
-            <Button
-              onClick={() => setUploadDialogOpen(false)}
-              startIcon={<Close />}
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={handleProofUpload}
-              variant="contained"
-              disabled={!selectedFile}
-              startIcon={<Check />}
-            >
-              Upload
-            </Button>
-          </DialogActions>
-        </Dialog>
-
-        {/* Snackbar */}
-        <Snackbar
-          open={snackbarOpen}
-          autoHideDuration={3000}
-          onClose={() => setSnackbarOpen(false)}
-          anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
-        >
-          <Alert
-            onClose={() => setSnackbarOpen(false)}
-            severity="success"
-            variant="filled"
-          >
-            {snackbarMessage}
-          </Alert>
-        </Snackbar>
-      </div>
-    </ThemeProvider>
+      ) : null}
+    </AppShell>
   );
 }

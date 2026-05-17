@@ -3,13 +3,26 @@ import connectDb from "@/lib/db";
 import PushSubscription from "@/models/PushSubscription";
 import webpush from "web-push";
 
-webpush.setVapidDetails(
-  process.env.VAPID_SUBJECT!,
-  process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
-  process.env.VAPID_PRIVATE_KEY!
-);
+function ensureVapid() {
+  const subject = process.env.VAPID_SUBJECT;
+  const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+  const privateKey = process.env.VAPID_PRIVATE_KEY;
+  if (!subject || !publicKey || !privateKey) {
+    throw new Error("Push notifications are not configured");
+  }
+  webpush.setVapidDetails(subject, publicKey, privateKey);
+}
 
 export async function POST(req: NextRequest) {
+  try {
+    ensureVapid();
+  } catch {
+    return NextResponse.json(
+      { error: "Push notifications not configured" },
+      { status: 503 }
+    );
+  }
+
   await connectDb();
   const body = await req.json();
   const { message, title = "Habitix", userId, category } = body;

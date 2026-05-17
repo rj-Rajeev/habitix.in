@@ -157,29 +157,27 @@ export default function GoalChatPage() {
 
       const { roadmap } = await roadmapRes.json();
 
-      const roadmapWithDates = roadmap.map((dayData: any, index: number) => {
+      const roadmapWithDates = roadmap.map((dayData: { dayNumber: number; tasks: unknown[]; unlocked?: boolean; completed?: boolean }, index: number) => {
         const date = new Date();
         date.setDate(date.getDate() + index);
-        return { ...dayData, dayDate: date };
+        return {
+          ...dayData,
+          dayDate: date.toISOString().slice(0, 10),
+        };
       });
 
       const fullGoal = {
-        userId: session?.user?.id,
         title: goalData.title,
         description: "",
         hoursPerDay: goalData.hoursPerDay,
         daysPerWeek: goalData.daysPerWeek,
         preferredTime: goalData.preferredTime,
         motivation: goalData.motivation,
-        startDate: new Date(),
-        targetDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-        status: "in_progress",
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
         roadmap: roadmapWithDates,
-        createdAt: new Date(),
-        updatedAt: new Date(),
       };
 
-      const saveRes = await fetch("/api/goals", {
+      const saveRes = await fetch("/api/v1/goals", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(fullGoal),
@@ -189,7 +187,8 @@ export default function GoalChatPage() {
         throw new Error(`Failed to save goal: ${saveRes.status}`);
       }
 
-      const { id }: { id: string } = await saveRes.json();
+      const saveJson = await saveRes.json();
+      const id: string = saveJson.data?.id ?? saveJson.id;
 
       if (!id) throw new Error("Missing goal ID");
 

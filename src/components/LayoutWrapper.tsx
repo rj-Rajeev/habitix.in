@@ -13,11 +13,15 @@ export default function LayoutWrapper({
     // Define all paths where layout should be hidden
   const hideLayoutPaths = [
     "/dashboard/goal-chat",
+    "/today",
+    "/goals",
   ];
 
   // Check for exact matches or dynamic segments
   const hideLayout =
-    hideLayoutPaths.includes(pathname) ||
+    hideLayoutPaths.some(
+      (p) => pathname === p || pathname.startsWith(`${p}/`)
+    ) ||
     pathname.startsWith("/personas/") ||
     pathname.startsWith("/people/");
 

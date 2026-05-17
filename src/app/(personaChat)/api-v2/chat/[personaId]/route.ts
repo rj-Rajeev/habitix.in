@@ -3,10 +3,14 @@ import dbConnect from "@/lib/db";
 import Persona from "@/models/PersonaChat/Persona";
 import OpenAI from "openai";
 
-const openai = new OpenAI({
-  apiKey: process.env.GEMINI_API_KEY!,
-  baseURL: "https://generativelanguage.googleapis.com/v1beta/openai/",
-});
+function getOpenAI() {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) throw new Error("GEMINI_API_KEY is not configured");
+  return new OpenAI({
+    apiKey,
+    baseURL: "https://generativelanguage.googleapis.com/v1beta/openai/",
+  });
+}
 
 export async function OPTIONS() {
   return new NextResponse(null, {
@@ -55,6 +59,7 @@ export async function POST(
   ];
 
 
+  const openai = getOpenAI();
   const response = await openai.chat.completions.create({
     model: "gemini-2.0-flash",
     messages: chatMessages,

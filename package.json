@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "migrate:tasks": "npx tsx scripts/migrate-sync-tasks.ts"
   },
   "dependencies": {
     "@emotion/cache": "^11.14.0",
@@ -35,7 +36,9 @@
     "react-dom": "^19.0.0",
     "socket.io": "^4.8.3",
     "socket.io-client": "^4.8.3",
-    "web-push": "^3.6.7"
+    "web-push": "^3.6.7",
+    "xlsx": "^0.18.5",
+    "zod": "^3.25.67"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
