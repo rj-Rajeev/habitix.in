@@ -71,6 +71,28 @@ export function useTodayQueue() {
     await fetchQueue();
   };
 
+  const moveTaskToEnd = (taskId: string) => {
+    setQueue((prev) => {
+      if (!prev) return prev;
+
+      const copy = { ...prev } as typeof prev;
+
+      const moveInList = (list: any[]) => {
+        const idx = list.findIndex((t) => t._id === taskId);
+        if (idx === -1) return false;
+        const [item] = list.splice(idx, 1);
+        list.push(item);
+        return true;
+      };
+
+      if (moveInList(copy.sections.overdue)) return copy;
+      if (moveInList(copy.sections.today)) return copy;
+      if (moveInList(copy.sections.revisions)) return copy;
+
+      return copy;
+    });
+  };
+
   return {
     queue,
     loading,
@@ -80,5 +102,6 @@ export function useTodayQueue() {
     skipTask,
     rescheduleTask,
     redistribute,
+    moveTaskToEnd,
   };
 }

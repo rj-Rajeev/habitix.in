@@ -11,10 +11,22 @@ import { taskCompletionService } from "@/modules/tasks/task-completion.service";
 import { Task } from "@/modules/tasks/task.model";
 import { Types } from "mongoose";
 
+type RevisionSchedule =
+  | "none"
+  | "1h"
+  | "3h"
+  | "tomorrow"
+  | "3d"
+  | "7d"
+  | "15d"
+  | "custom";
+
 interface ToggleTaskRequestBody {
   goalId: string;
   dayNumber: number;
   taskId: string;
+  scheduleRevision?: RevisionSchedule;
+  customRevisionDate?: string;
 }
 
 export async function PATCH(req: NextRequest) {
@@ -25,7 +37,7 @@ export async function PATCH(req: NextRequest) {
     }
 
     const body = (await req.json()) as ToggleTaskRequestBody;
-    const { goalId, dayNumber, taskId } = body;
+    const { goalId, dayNumber, taskId, scheduleRevision, customRevisionDate } = body;
 
     if (!goalId || !dayNumber || !taskId) {
       return NextResponse.json(
@@ -81,7 +93,8 @@ export async function PATCH(req: NextRequest) {
 
     if (syncedTask && newCompleted) {
       await taskCompletionService.complete(syncedTask._id.toString(), userId, {
-        scheduleRevision: "none",
+        scheduleRevision: scheduleRevision ?? "none",
+        customRevisionDate,
       });
     } else if (syncedTask && !newCompleted) {
       await Task.updateOne(

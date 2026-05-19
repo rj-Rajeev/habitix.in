@@ -61,11 +61,13 @@ function TaskSection({
   completeTask,
   skipTask,
   rescheduleTask,
+  onReveal,
 }: {
   section: SectionConfig;
   completeTask: (id: string, rev?: string) => Promise<void>;
   skipTask: (id: string) => Promise<void>;
   rescheduleTask: (id: string, date: string) => Promise<void>;
+  onReveal?: (id: string) => void;
 }) {
   return (
     <section className="space-y-3">
@@ -91,6 +93,7 @@ function TaskSection({
               onComplete={completeTask}
               onSkip={skipTask}
               onReschedule={rescheduleTask}
+              onReveal={onReveal}
             />
           ))}
         </div>
@@ -111,6 +114,7 @@ export default function TodayView() {
     rescheduleTask,
     redistribute,
     refresh,
+    moveTaskToEnd,
   } = useTodayQueue();
 
   const [summary, setSummary] = useState({ currentStreak: 0, activeGoals: 0 });
@@ -332,6 +336,7 @@ export default function TodayView() {
                 completeTask={completeTask}
                 skipTask={skipTask}
                 rescheduleTask={rescheduleTask}
+                onReveal={moveTaskToEnd}
               />
             ))}
             {queue?.summary.total === 0 && (

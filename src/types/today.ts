@@ -4,6 +4,7 @@ export type TodayTaskCard = {
   goalId: string;
   title: string;
   description?: string;
+  answer?: string;
   type: "execution" | "revision" | "recovery";
   status: string;
   scheduledDate: string;

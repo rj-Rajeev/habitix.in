@@ -7,6 +7,7 @@ export type TaskLean = {
   goalId: string;
   title: string;
   description?: string;
+  answer?: string;
   type: ITask["type"];
   status: TaskStatus;
   scheduledDate: string;
@@ -43,6 +44,7 @@ function toLean(doc: TaskDocLike, goalTitle?: string): TaskLean {
     goalId: doc.goalId.toString(),
     title: doc.title,
     description: doc.description,
+    answer: doc.description ?? doc.notes,
     type: doc.type,
     status: doc.status,
     scheduledDate: doc.scheduledDate,

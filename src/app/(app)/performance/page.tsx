@@ -66,20 +66,82 @@ export default function PerformancePage() {
           </section>
 
           <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-            <h2 className="font-semibold text-slate-950">Workload graph</h2>
-            <div className="mt-4 flex h-36 items-end gap-2">
-              {[total, focusLoad / 30, overdue, summary?.activeGoals ?? 0, summary?.currentStreak ?? 0].map((value, index) => (
-                <div key={index} className="flex flex-1 flex-col items-center gap-2">
-                  <div
-                    className="w-full rounded-t-xl bg-emerald-500"
-                    style={{ height: `${Math.max(10, Math.min(100, value * 12))}%` }}
-                  />
-                  <span className="text-[10px] font-medium text-slate-500">
-                    {["Tasks", "Load", "Late", "Goals", "Streak"][index]}
-                  </span>
-                </div>
-              ))}
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="font-semibold text-slate-950">
+                  Workload graph
+                </h2>
+
+                <p className="mt-1 text-xs text-slate-500">
+                  Daily performance overview
+                </p>
+              </div>
             </div>
+
+            {(() => {
+              const graphData = [
+                {
+                  label: "Tasks",
+                  value: total,
+                },
+                {
+                  label: "Load",
+                  value: Math.round(focusLoad / 30),
+                },
+                {
+                  label: "Late",
+                  value: overdue,
+                },
+                {
+                  label: "Goals",
+                  value: summary?.activeGoals ?? 0,
+                },
+                {
+                  label: "Streak",
+                  value: summary?.currentStreak ?? 0,
+                },
+              ];
+
+              const maxValue = Math.max(
+                ...graphData.map((item) => item.value),
+                1
+              );
+
+              return (
+                <div className="mt-6 flex h-44 items-end gap-3">
+                  {graphData.map((item) => {
+                    const height = Math.max(
+                      12,
+                      (item.value / maxValue) * 100
+                    );
+
+                    return (
+                      <div
+                        key={item.label}
+                        className="flex flex-1 flex-col items-center"
+                      >
+                        <div className="mb-2 text-[11px] font-semibold text-slate-700">
+                          {item.value}
+                        </div>
+
+                        <div className="relative flex h-32 w-full items-end overflow-hidden rounded-2xl bg-slate-100">
+                          <div
+                            className="w-full rounded-2xl bg-gradient-to-t from-emerald-500 to-emerald-400 transition-all duration-500"
+                            style={{
+                              height: `${height}%`,
+                            }}
+                          />
+                        </div>
+
+                        <span className="mt-2 text-[10px] font-medium text-slate-500 sm:text-xs">
+                          {item.label}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()}
           </section>
         </div>
       )}

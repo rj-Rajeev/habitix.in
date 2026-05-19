@@ -1,14 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import {
-  Calendar,
-  Check,
-  ChevronDown,
-  Clock3,
-  RotateCcw,
-  SkipForward,
-} from "lucide-react";
+import { Calendar, Check, ChevronDown, Clock3, RotateCcw } from "lucide-react";
 import type { TodayTaskCard } from "@/types/today";
 
 type Props = {
@@ -16,6 +9,7 @@ type Props = {
   onComplete: (taskId: string, revision?: string) => Promise<void>;
   onSkip: (taskId: string) => Promise<void>;
   onReschedule: (taskId: string, date: string) => Promise<void>;
+  onReveal?: (taskId: string) => void;
 };
 
 const REVISION_OPTIONS = [
@@ -38,9 +32,11 @@ export default function TaskCard({
   onComplete,
   onSkip,
   onReschedule,
+  onReveal,
 }: Props) {
   const [busy, setBusy] = useState(false);
   const [expanded, setExpanded] = useState(false);
+  const [showAnswer, setShowAnswer] = useState(false);
   const isDone = task.status === "completed";
   const scheduledLabel = useMemo(() => {
     const date = new Date(`${task.scheduledDate}T12:00:00`);
@@ -51,6 +47,9 @@ export default function TaskCard({
           day: "numeric",
         });
   }, [task.scheduledDate]);
+
+  const answer = task.answer ?? task.description ?? task.notes;
+  const hasAnswer = Boolean(answer);
 
   const run = async (fn: () => Promise<void>) => {
     setBusy(true);
@@ -65,28 +64,32 @@ export default function TaskCard({
   return (
     <article
       className={`rounded-2xl border bg-white p-4 shadow-sm transition ${
-        task.isOverdue
-          ? "border-amber-200 ring-1 ring-amber-100"
-          : "border-slate-200"
-      }`}
+        task.isOverdue ? "border-amber-200 ring-1 ring-amber-100" : "border-slate-200"
+      } ${showAnswer ? "card-sweep card-3d" : ""}`}
     >
       <div className="flex items-start gap-3">
         <button
           type="button"
           disabled={busy || isDone}
-          onClick={() =>
-            run(() =>
-              task.type === "execution"
-                ? onComplete(task._id)
-                : onComplete(task._id)
-            )
-          }
+          onClick={() => {
+            if (task.type === "execution" && !isDone) {
+              setExpanded(true);
+              return;
+            }
+            run(() => onComplete(task._id));
+          }}
           className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border transition ${
             isDone
               ? "border-emerald-600 bg-emerald-600 text-white"
               : "border-slate-300 bg-white text-slate-500 hover:border-emerald-600 hover:text-emerald-700"
           }`}
-          aria-label="Complete task"
+          aria-label={
+            isDone
+              ? "Task completed"
+              : task.type === "execution"
+              ? "Choose revision schedule"
+              : "Complete task"
+          }
         >
           <Check className="h-4 w-4" />
         </button>
@@ -109,7 +112,7 @@ export default function TaskCard({
               type="button"
               onClick={() => setExpanded((v) => !v)}
               className="rounded-full p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
-              aria-label="Task actions"
+              aria-label={expanded ? "Hide revision options" : "Show revision options"}
             >
               <ChevronDown
                 className={`h-4 w-4 transition ${expanded ? "rotate-180" : ""}`}
@@ -117,10 +120,21 @@ export default function TaskCard({
             </button>
           </div>
 
-          {task.description && (
+          {!showAnswer && task.description && (
             <p className="mt-2 line-clamp-2 text-sm leading-5 text-slate-600">
               {task.description}
             </p>
+          )}
+
+          {showAnswer && (
+            <div className={`mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700 ${showAnswer ? "answer-reveal" : ""}`}>
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                Answer / Details
+              </p>
+              <div className="mt-2 whitespace-pre-wrap text-sm leading-6">
+                {answer || "No answer or additional details available for this task."}
+              </div>
+            </div>
           )}
 
           <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
@@ -142,6 +156,24 @@ export default function TaskCard({
               <Calendar className="h-3.5 w-3.5" />
               {scheduledLabel}
             </span>
+            <button
+              type="button"
+              disabled={!hasAnswer}
+              onClick={() =>
+                setShowAnswer((value) => {
+                  const next = !value;
+                  if (next && onReveal) onReveal(task._id);
+                  return next;
+                })
+              }
+              className={`rounded-full border px-3 py-1 text-xs font-semibold transition ${
+                hasAnswer
+                  ? "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
+                  : "border-slate-200 bg-slate-100 text-slate-400 cursor-not-allowed"
+              }`}
+            >
+              {showAnswer ? "Hide answer" : "Show answer"}
+            </button>
           </div>
         </div>
       </div>
@@ -154,6 +186,14 @@ export default function TaskCard({
                 Revision
               </p>
               <div className="mt-2 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => run(() => onComplete(task._id))}
+                  className="rounded-full border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                >
+                  Complete without revision
+                </button>
                 {REVISION_OPTIONS.map((opt) => (
                   <button
                     key={opt.key}
@@ -166,29 +206,13 @@ export default function TaskCard({
                   </button>
                 ))}
               </div>
+              <p className="mt-3 text-xs text-slate-500">
+                Choose when you want to revisit this task, or complete without scheduling a revision.
+              </p>
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              type="button"
-              disabled={busy}
-              onClick={() => run(() => onReschedule(task._id, addDays(1)))}
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-100 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-200"
-            >
-              <RotateCcw className="h-4 w-4" />
-              Tomorrow
-            </button>
-            <button
-              type="button"
-              disabled={busy}
-              onClick={() => run(() => onSkip(task._id))}
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-100 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-200"
-            >
-              <SkipForward className="h-4 w-4" />
-              Skip
-            </button>
-          </div>
+          
         </div>
       )}
     </article>
