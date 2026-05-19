@@ -23,16 +23,18 @@ export default function AddTaskModal({
   const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState<CreateManualTaskInput>({
     goalId: "",
-    title: "",
+    task: "",
+    topic: "",
     description: "",
-    scheduledDate: scheduledDate || new Date().toISOString().split("T")[0],
+    date: scheduledDate || new Date().toISOString().split("T")[0],
     priority: "medium" as const,
-    estimatedMinutes: 30,
+    minutes: 30,
+    status: "pending",
   });
 
   useEffect(() => {
     if (scheduledDate) {
-      setFormData((prev) => ({ ...prev, scheduledDate }));
+      setFormData((prev) => ({ ...prev, date: scheduledDate }));
     }
   }, [scheduledDate]);
 
@@ -47,18 +49,23 @@ export default function AddTaskModal({
       if (!formData.goalId) {
         throw new Error("Please select a goal");
       }
-      if (!formData.title.trim()) {
-        throw new Error("Please enter a task title");
+      if (!formData.task.trim()) {
+        throw new Error("Please enter a task");
+      }
+      if (!formData.topic?.trim()) {
+        throw new Error("Please enter a topic");
       }
 
       await onSubmit(formData);
       setFormData({
         goalId: "",
-        title: "",
+        task: "",
+        topic: "",
         description: "",
-        scheduledDate: scheduledDate || new Date().toISOString().split("T")[0],
+        date: scheduledDate || new Date().toISOString().split("T")[0],
         priority: "medium",
-        estimatedMinutes: 30,
+        minutes: 30,
+        status: "pending",
       });
       onClose();
     } catch (err) {
@@ -111,16 +118,15 @@ export default function AddTaskModal({
             </select>
           </div>
 
-          {/* Task Title */}
           <div>
             <label className="block text-sm font-medium text-slate-700">
               Task <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
-              value={formData.title}
+              value={formData.task}
               onChange={(e) =>
-                setFormData((prev) => ({ ...prev, title: e.target.value }))
+                setFormData((prev) => ({ ...prev, task: e.target.value }))
               }
               placeholder="What do you need to do?"
               className="mt-1 h-12 w-full rounded-2xl border border-slate-300 px-4 text-sm focus:border-emerald-500 focus:outline-none focus:ring-4 focus:ring-emerald-100"
@@ -128,8 +134,25 @@ export default function AddTaskModal({
               disabled={loading}
             />
             <p className="mt-1 text-xs text-slate-500">
-              {formData.title.length}/200
+              {formData.task.length}/200
             </p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700">
+              Topic <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              value={formData.topic ?? ""}
+              onChange={(e) =>
+                setFormData((prev) => ({ ...prev, topic: e.target.value }))
+              }
+              placeholder="Topic or chapter"
+              className="mt-1 h-12 w-full rounded-2xl border border-slate-300 px-4 text-sm focus:border-emerald-500 focus:outline-none focus:ring-4 focus:ring-emerald-100"
+              maxLength={200}
+              disabled={loading}
+            />
           </div>
 
           {/* Description */}
@@ -157,11 +180,11 @@ export default function AddTaskModal({
             </label>
             <input
               type="date"
-              value={formData.scheduledDate}
+              value={formData.date}
               onChange={(e) =>
                 setFormData((prev) => ({
                   ...prev,
-                  scheduledDate: e.target.value,
+                  date: e.target.value,
                 }))
               }
               className="mt-1 h-12 w-full rounded-2xl border border-slate-300 px-4 text-sm focus:border-emerald-500 focus:outline-none focus:ring-4 focus:ring-emerald-100"
@@ -194,18 +217,18 @@ export default function AddTaskModal({
           {/* Estimated Time */}
           <div>
             <label className="block text-sm font-medium text-slate-700">
-              Estimated Time (minutes)
+              Minutes
             </label>
             <input
               type="number"
               min="5"
               max="480"
               step="5"
-              value={formData.estimatedMinutes}
+              value={formData.minutes}
               onChange={(e) =>
                 setFormData((prev) => ({
                   ...prev,
-                  estimatedMinutes: parseInt(e.target.value, 10),
+                  minutes: parseInt(e.target.value, 10),
                 }))
               }
               className="mt-1 h-12 w-full rounded-2xl border border-slate-300 px-4 text-sm focus:border-emerald-500 focus:outline-none focus:ring-4 focus:ring-emerald-100"

@@ -1,6 +1,8 @@
 import * as XLSX from "xlsx";
+import { Errors } from "@/lib/api";
 import { toDateKey } from "@/lib/dates";
 import { taskRepository } from "./task.repository";
+import { TASK_SPREADSHEET_REQUIRED_HEADERS } from "./task-spreadsheet";
 
 type Row = Record<string, unknown>;
 
@@ -8,51 +10,20 @@ type ImportParams = {
   userId: string;
   goalId: string;
   fallbackScheduledDate?: string;
+  replaceExisting?: boolean;
   file: Buffer;
 };
 
-const TITLE_KEYS = [
-  "task",
-  "task title",
-  "title",
-  "question",
-  "questions",
-  "subtopic / questions to revise",
-  "problem",
-  "topic",
-];
-const QUESTION_KEYS = [
-  "question",
-  "questions",
-  "interview question",
-  "subtopic / questions to revise",
-  "prompt",
-];
-const DESCRIPTION_KEYS = [
-  "description",
-  "details",
-  "notes",
-  "answer",
-  "solution",
-  "leetcode link",
-  "link",
-  "url",
-  "difficulty",
-  "topic",
-  "task type",
-  "focus area",
-];
-const DATE_KEYS = ["date", "scheduled date", "scheduleddate", "due date", "duedate"];
+const TASK_KEYS = ["task"];
+const TOPIC_KEYS = ["topic"];
+const DESCRIPTION_KEYS = ["description"];
+const DATE_KEYS = ["date"];
 const PRIORITY_KEYS = ["priority"];
-const MINUTES_KEYS = [
-  "minutes",
-  "estimated minutes",
-  "estimatedminutes",
-  "estimated time",
-  "estimatedtime",
-  "time",
-  "duration",
-];
+const STATUS_KEYS = ["status"];
+const MINUTES_KEYS = ["minutes"];
+const REQUIRED_HEADER_KEYS = TASK_SPREADSHEET_REQUIRED_HEADERS.map((header) =>
+  header.toLowerCase()
+);
 
 function normalizedEntries(row: Row) {
   return Object.entries(row).map(([key, value]) => [
@@ -84,6 +55,23 @@ function toPriority(value: string): "low" | "medium" | "high" {
   return "medium";
 }
 
+function toStatus(
+  value: string
+): "pending" | "in_progress" | "completed" | "skipped" | "cancelled" {
+  const normalized = value.toLowerCase().replace(/\s+/g, "_");
+  if (
+    normalized === "in_progress" ||
+    normalized === "completed" ||
+    normalized === "skipped" ||
+    normalized === "cancelled"
+  ) {
+    return normalized;
+  }
+  if (normalized === "done") return "completed";
+  if (normalized === "cancel") return "cancelled";
+  return "pending";
+}
+
 function toMinutes(value: string) {
   const match = value.match(/\d+/);
   const minutes = match ? Number(match[0]) : Number(value);
@@ -92,25 +80,53 @@ function toMinutes(value: string) {
 }
 
 function buildDescription(row: Row) {
-  const question = pick(row, QUESTION_KEYS);
-  const description = DESCRIPTION_KEYS.map((key) => {
-    const value = pick(row, [key]);
-    return value ? `${key}: ${value}` : "";
-  }).filter(Boolean);
+  return pick(row, DESCRIPTION_KEYS);
+}
 
-  if (question && !description.some((line) => line.includes(question))) {
-    description.unshift(`question: ${question}`);
-  }
+function assertRequiredHeaders(workbook: XLSX.WorkBook) {
+  const missingBySheet = workbook.SheetNames.map((sheetName) => {
+    const rows = XLSX.utils.sheet_to_json<unknown[]>(
+      workbook.Sheets[sheetName],
+      { header: 1, blankrows: false }
+    );
+    if (rows.length === 0) {
+      return { sheetName, missing: [] };
+    }
 
-  return description.join("\n");
+    const headerKeys = (rows[0] ?? []).map((value) =>
+      String(value ?? "")
+        .trim()
+        .toLowerCase()
+    );
+    const missing = REQUIRED_HEADER_KEYS.filter(
+      (header) => !headerKeys.includes(header)
+    );
+
+    return { sheetName, missing };
+  }).filter((sheet) => sheet.missing.length > 0);
+
+  if (missingBySheet.length === 0) return;
+
+  throw Errors.badRequest("Invalid task spreadsheet headers", {
+    requiredHeaders: TASK_SPREADSHEET_REQUIRED_HEADERS,
+    missingBySheet,
+  });
 }
 
 export const taskImportService = {
-  async importExcel({ userId, goalId, fallbackScheduledDate, file }: ImportParams) {
+  async importExcel({
+    userId,
+    goalId,
+    fallbackScheduledDate,
+    replaceExisting,
+    file,
+  }: ImportParams) {
     const workbook = XLSX.read(file, {
       type: "buffer",
       cellDates: true,
     });
+    assertRequiredHeaders(workbook);
+
     const fallbackDate = fallbackScheduledDate ?? toDateKey();
     const rows = workbook.SheetNames.flatMap((sheetName) => {
       const sheet = workbook.Sheets[sheetName];
@@ -119,20 +135,26 @@ export const taskImportService = {
 
     const tasks = rows
       .map((row, index) => {
-        const title = pick(row, TITLE_KEYS);
-        if (!title) return null;
+        const task = pick(row, TASK_KEYS);
+        const topic = pick(row, TOPIC_KEYS);
+        if (!task && !topic) return null;
 
+        const minutes = toMinutes(pick(row, MINUTES_KEYS));
         return {
           userId,
           goalId,
-          title: title.slice(0, 200),
+          date: toDateValue(pick(row, DATE_KEYS), fallbackDate),
+          task: task.slice(0, 200) || topic.slice(0, 200),
+          topic: topic.slice(0, 200) || task.slice(0, 200),
+          title: topic.slice(0, 200) || task.slice(0, 200),
           description: buildDescription(row).slice(0, 2000) || undefined,
           scheduledDate: toDateValue(pick(row, DATE_KEYS), fallbackDate),
           priority: toPriority(pick(row, PRIORITY_KEYS)),
-          estimatedMinutes: toMinutes(pick(row, MINUTES_KEYS)),
+          minutes,
+          estimatedMinutes: minutes,
           scheduledOrder: index,
           type: "execution" as const,
-          status: "pending" as const,
+          status: toStatus(pick(row, STATUS_KEYS)),
           source: { type: "import" as const },
         };
       })
@@ -140,6 +162,10 @@ export const taskImportService = {
 
     if (tasks.length === 0) {
       return { imported: 0, skipped: rows.length };
+    }
+
+    if (replaceExisting) {
+      await taskRepository.deleteByGoalId(goalId);
     }
 
     await taskRepository.createMany(tasks);

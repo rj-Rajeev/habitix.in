@@ -29,13 +29,17 @@ export async function POST(req: NextRequest) {
       {
         userId,
         goalId: parsed.data.goalId,
-        title: parsed.data.title,
+        task: parsed.data.task,
+        topic: parsed.data.topic,
+        title: parsed.data.topic,
         description: parsed.data.description,
-        scheduledDate: parsed.data.scheduledDate,
+        date: parsed.data.date,
+        scheduledDate: parsed.data.date,
         priority: parsed.data.priority,
-        estimatedMinutes: parsed.data.estimatedMinutes,
+        minutes: parsed.data.minutes,
+        estimatedMinutes: parsed.data.minutes,
         type: "execution",
-        status: "pending",
+        status: parsed.data.status,
         source: {
           type: "manual",
         },
@@ -45,8 +49,12 @@ export async function POST(req: NextRequest) {
     return jsonOk(
       {
         id: task._id.toString(),
+        date: task.date,
+        task: task.task,
+        topic: task.topic,
         title: task.title,
-        scheduledDate: task.scheduledDate,
+        minutes: task.minutes,
+        status: task.status,
       },
       { status: 201 }
     );

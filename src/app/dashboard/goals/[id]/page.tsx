@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import {
@@ -10,12 +10,19 @@ import {
   Check,
   ChevronLeft,
   Clock3,
+  Download,
   GripVertical,
   Loader2,
   Plus,
+  Save,
   Target,
+  Upload,
 } from "lucide-react";
 import AppShell from "@/components/app/AppShell";
+import {
+  TASK_SPREADSHEET_ACCEPT,
+  TASK_SPREADSHEET_HEADERS,
+} from "@/modules/tasks/task-spreadsheet";
 
 type RoadmapTask = {
   _id?: string;
@@ -47,10 +54,13 @@ type GoalDetail = {
 
 type GoalTask = {
   _id: string;
+  task?: string;
+  topic?: string;
   title: string;
   description?: string;
   status: "pending" | "in_progress" | "completed" | "skipped" | "cancelled";
   scheduledDate: string;
+  priority?: "low" | "medium" | "high";
   estimatedMinutes?: number;
   type?: "execution" | "revision" | "recovery";
 };
@@ -143,6 +153,8 @@ export default function GoalDetailPage() {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const importInputRef = useRef<HTMLInputElement | null>(null);
   const router = useRouter();
 
   const REVISION_OPTIONS = [
@@ -225,8 +237,23 @@ export default function GoalDetailPage() {
   }, []);
 
   const saveAllEdits = useCallback(async () => {
-    const updates = Object.entries(edits)
-      .map(([id, update]) => ({ id, ...update }))
+      const updates = Object.entries(edits)
+      .map(([id, update]) => ({
+        id,
+        ...(update.task !== undefined ? { task: update.task } : {}),
+        ...(update.topic !== undefined ? { topic: update.topic } : {}),
+        ...(update.description !== undefined
+          ? { description: update.description }
+          : {}),
+        ...(update.scheduledDate !== undefined
+          ? { date: update.scheduledDate }
+          : {}),
+        ...(update.estimatedMinutes !== undefined
+          ? { minutes: update.estimatedMinutes }
+          : {}),
+        ...(update.priority !== undefined ? { priority: update.priority } : {}),
+        ...(update.status !== undefined ? { status: update.status } : {}),
+      }))
       .filter((item) => Object.keys(item).length > 1);
 
     if (updates.length === 0) {
@@ -257,6 +284,53 @@ export default function GoalDetailPage() {
     }
   }, [edits, loadGoal]);
 
+  const importTasks = useCallback(
+    async (file?: File) => {
+      if (!file) return;
+
+      setSaveError(null);
+      setSaveSuccess(null);
+      setImporting(true);
+
+      try {
+        const form = new FormData();
+        form.set("goalId", goalId);
+        form.set("date", new Date().toISOString().split("T")[0]);
+        form.set("replace", "true");
+        form.set("file", file);
+
+        const res = await fetch("/api/v1/tasks/import-excel", {
+          method: "POST",
+          body: form,
+        });
+        const data = await res.json().catch(() => ({}));
+
+        if (!res.ok || !data.success) {
+          throw new Error(
+            data?.error?.message || data?.message || "Failed to import tasks"
+          );
+        }
+
+        await loadGoal();
+        const imported = data?.data?.imported ?? 0;
+        const skipped = data?.data?.skipped ?? 0;
+        setSaveSuccess(
+          `Replaced with ${imported} task${imported === 1 ? "" : "s"}${
+            skipped ? `, skipped ${skipped}` : ""
+          }.`
+        );
+      } catch (err) {
+        setSaveError(err instanceof Error ? err.message : String(err));
+      } finally {
+        setImporting(false);
+        if (importInputRef.current) {
+          importInputRef.current.value = "";
+        }
+      }
+    },
+    [goalId, loadGoal]
+  );
+
   const deleteTask = useCallback(
     async (taskId: string) => {
       setSaveError(null);
@@ -284,18 +358,43 @@ export default function GoalDetailPage() {
   );
 
   const exportCsv = useCallback(() => {
+    const exportItems =
+      tasks.length > 0
+        ? tasks.map((task) => {
+            const row = getEditedTask(task);
+            return {
+              task: row.task ?? "",
+              topic: row.topic ?? row.title,
+              description: row.description ?? "",
+              scheduledDate: row.scheduledDate || "",
+              priority: row.priority ?? "medium",
+              estimatedMinutes: String(row.estimatedMinutes ?? ""),
+              status: row.status,
+            };
+          })
+        : (goal?.roadmap ?? []).flatMap((day) =>
+            day.tasks.map((task) => ({
+              task: "",
+              topic: task.title,
+              description: "",
+              scheduledDate: day.dayDate ?? day.date ?? "",
+              priority: "medium",
+              estimatedMinutes: "30",
+              status: task.isCompleted ? "completed" : "pending",
+            }))
+          );
+
     const rows = [
-      ["Title", "Description", "Scheduled Date", "Estimated Minutes", "Status"],
-      ...tasks.map((task) => {
-        const row = getEditedTask(task);
-        return [
-          row.title,
-          row.description ?? "",
-          row.scheduledDate || "",
-          String(row.estimatedMinutes ?? ""),
-          row.status,
-        ];
-      }),
+      [...TASK_SPREADSHEET_HEADERS],
+      ...exportItems.map((item) => [
+        item.scheduledDate,
+        item.task,
+        item.topic,
+        item.description,
+        item.priority,
+        item.estimatedMinutes,
+        item.status,
+      ]),
     ];
 
     const csv = rows
@@ -315,7 +414,7 @@ export default function GoalDetailPage() {
     link.click();
     link.remove();
     URL.revokeObjectURL(url);
-  }, [goal?.title, getEditedTask, tasks]);
+  }, [goal?.roadmap, goal?.title, getEditedTask, tasks]);
 
   const updateLocalRoadmapTask = (taskId: string, completed: boolean) => {
     setGoal((prev) => {
@@ -393,7 +492,7 @@ export default function GoalDetailPage() {
       const res = await fetch(`/api/v1/tasks/${taskId}/reschedule`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ scheduledDate }),
+        body: JSON.stringify({ date: scheduledDate }),
       });
       if (!res.ok) throw new Error("Failed to reschedule task");
       updateLocalTaskSchedule(taskId, scheduledDate);
@@ -414,6 +513,7 @@ export default function GoalDetailPage() {
     0
   );
   const progress = totalTasks ? Math.round((completedTasks / totalTasks) * 100) : 0;
+  const pendingEditCount = Object.keys(edits).length;
 
   return (
     <AppShell
@@ -512,27 +612,19 @@ export default function GoalDetailPage() {
             </Link>
           </section>
 
-          <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-900">
-            Drag tasks between dated blocks to restructure the plan. On mobile,
-            use the date field inside a task for the same result.
-          </div>
-
           <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h3 className="text-lg font-semibold text-slate-950">
-                  Excel-style task editor
+                  Tasks
                 </h3>
-                <p className="mt-1 text-sm text-slate-500">
-                  Edit titles, dates, minutes, and status in a table. Save your
-                  changes in bulk or export the current list as CSV.
-                </p>
+                <p className="text-sm text-slate-500">{totalTasks} in this goal</p>
               </div>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <button
                   type="button"
                   onClick={() => setViewMode("plan")}
-                  className={`rounded-full px-3 py-2 text-sm font-semibold transition ${
+                  className={`h-10 rounded-full px-3 text-sm font-semibold transition ${
                     viewMode === "plan"
                       ? "bg-slate-950 text-white"
                       : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
@@ -543,7 +635,7 @@ export default function GoalDetailPage() {
                 <button
                   type="button"
                   onClick={() => setViewMode("excel")}
-                  className={`rounded-full px-3 py-2 text-sm font-semibold transition ${
+                  className={`h-10 rounded-full px-3 text-sm font-semibold transition ${
                     viewMode === "excel"
                       ? "bg-slate-950 text-white"
                       : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
@@ -551,52 +643,94 @@ export default function GoalDetailPage() {
                 >
                   Excel view
                 </button>
+                <input
+                  ref={importInputRef}
+                  type="file"
+                  accept={TASK_SPREADSHEET_ACCEPT}
+                  className="hidden"
+                  onChange={(event) => void importTasks(event.target.files?.[0])}
+                />
+                <button
+                  type="button"
+                  onClick={() => importInputRef.current?.click()}
+                  disabled={importing}
+                  className="inline-flex h-10 items-center gap-2 rounded-full border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+                >
+                  {importing ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Upload className="h-4 w-4" />
+                  )}
+                  Import
+                </button>
+                <button
+                  type="button"
+                  onClick={exportCsv}
+                  disabled={totalTasks === 0}
+                  className="inline-flex h-10 items-center gap-2 rounded-full border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                >
+                  <Download className="h-4 w-4" />
+                  Export
+                </button>
+                {viewMode === "excel" && pendingEditCount > 0 && (
+                  <button
+                    type="button"
+                    onClick={saveAllEdits}
+                    disabled={saving}
+                    className="inline-flex h-10 items-center gap-2 rounded-full bg-emerald-600 px-3 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-60"
+                  >
+                    {saving ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Save className="h-4 w-4" />
+                    )}
+                    Save
+                  </button>
+                )}
               </div>
             </div>
 
-            {viewMode === "excel" && (
-              <div className="overflow-hidden rounded-2xl border border-slate-300 bg-white shadow-sm">
+            {(saveError || saveSuccess) && (
+              <div
+                className={`mt-3 rounded-2xl px-3 py-2 text-sm ${
+                  saveError
+                    ? "bg-red-50 text-red-700"
+                    : "bg-emerald-50 text-emerald-700"
+                }`}
+              >
+                {saveError || saveSuccess}
+              </div>
+            )}
 
+            {viewMode === "excel" && (
+              <div className="mt-4 overflow-hidden rounded-2xl border border-slate-300 bg-white shadow-sm">
                 <div className="w-full overflow-x-auto overflow-y-hidden touch-pan-x">
                   <table className="min-w-max border-collapse text-[11px] sm:text-sm">
-
-                    {/* HEADER */}
                     <thead className="sticky top-0 z-20 bg-slate-100">
                       <tr>
-
-                        {/* TASK */}
-                        <th className="sticky left-0 z-30 min-w-[110px] w-[110px] border border-slate-300 bg-slate-100 px-2 py-2 text-left font-semibold text-slate-700 sm:px-3 sm:py-3">
+                        <th className="sticky left-0 z-30 min-w-[110px] w-[110px] border border-slate-300 bg-slate-100 px-2 py-2 text-center font-semibold text-slate-700 sm:px-3 sm:py-3">
+                          Date
+                        </th>
+                        <th className="min-w-[130px] w-[130px] border border-slate-300 px-2 py-2 text-left font-semibold text-slate-700 sm:px-3 sm:py-3">
                           Task
                         </th>
-
-                        {/* DESCRIPTION */}
+                        <th className="min-w-[130px] w-[130px] border border-slate-300 px-2 py-2 text-left font-semibold text-slate-700 sm:px-3 sm:py-3">
+                          Topic
+                        </th>
                         <th className="min-w-[160px] w-[160px] border border-slate-300 px-2 py-2 text-left font-semibold text-slate-700 sm:px-3 sm:py-3">
                           Description
                         </th>
-
-                        {/* STATUS */}
                         <th className="min-w-[90px] w-[90px] border border-slate-300 px-2 py-2 text-center font-semibold text-slate-700 sm:px-3 sm:py-3">
-                          Status
+                          Priority
                         </th>
-
-                        {/* MINUTES */}
                         <th className="min-w-[70px] w-[70px] border border-slate-300 px-2 py-2 text-center font-semibold text-slate-700 sm:px-3 sm:py-3">
-                          Min
+                          Minutes
                         </th>
-
-                        {/* DATE */}
-                        <th className="min-w-[110px] w-[110px] border border-slate-300 px-2 py-2 text-center font-semibold text-slate-700 sm:px-3 sm:py-3">
-                          Date
-                        </th>
-
-                        {/* TYPE */}
-                        <th className="min-w-[110px] w-[110px] border border-slate-300 px-2 py-2 text-center font-semibold text-slate-700 sm:px-3 sm:py-3">
-                          Type
+                        <th className="min-w-[95px] w-[95px] border border-slate-300 px-2 py-2 text-center font-semibold text-slate-700 sm:px-3 sm:py-3">
+                          Status
                         </th>
                       </tr>
                     </thead>
-
-                    {/* BODY */}
                     <tbody>
                       {tasks.map((task, index) => {
                         const edited = edits[task._id] ?? {};
@@ -608,16 +742,51 @@ export default function GoalDetailPage() {
                               index % 2 === 0 ? "bg-white" : "bg-slate-50"
                             } hover:bg-blue-50`}
                           >
-
-                            {/* TASK */}
                             <td className="sticky left-0 z-10 border border-slate-300 bg-white p-0">
                               <input
-                                value={edited.title ?? task.title}
+                                type="date"
+                                value={
+                                  (
+                                    edited.scheduledDate ??
+                                    task.scheduledDate
+                                  )?.split("T")[0]
+                                }
                                 onChange={(e) =>
                                   setEdits((prev) => ({
                                     ...prev,
                                     [task._id]: {
                                       ...prev[task._id],
+                                      scheduledDate: e.target.value,
+                                    },
+                                  }))
+                                }
+                                className="h-9 w-full border-0 bg-transparent px-1 text-center text-[11px] outline-none focus:bg-yellow-50 sm:h-11 sm:px-2 sm:text-sm"
+                              />
+                            </td>
+                            <td className="border border-slate-300 p-0">
+                              <input
+                                value={edited.task ?? task.task ?? ""}
+                                onChange={(e) =>
+                                  setEdits((prev) => ({
+                                    ...prev,
+                                    [task._id]: {
+                                      ...prev[task._id],
+                                      task: e.target.value,
+                                    },
+                                  }))
+                                }
+                                className="h-9 w-full border-0 bg-transparent px-2 text-[11px] outline-none focus:bg-yellow-50 sm:h-11 sm:px-3 sm:text-sm"
+                              />
+                            </td>
+                            <td className="border border-slate-300 p-0">
+                              <input
+                                value={edited.topic ?? task.topic ?? task.title}
+                                onChange={(e) =>
+                                  setEdits((prev) => ({
+                                    ...prev,
+                                    [task._id]: {
+                                      ...prev[task._id],
+                                      topic: e.target.value,
                                       title: e.target.value,
                                     },
                                   }))
@@ -625,8 +794,6 @@ export default function GoalDetailPage() {
                                 className="h-9 w-full border-0 bg-transparent px-2 text-[11px] outline-none focus:bg-yellow-50 sm:h-11 sm:px-3 sm:text-sm"
                               />
                             </td>
-
-                            {/* DESCRIPTION */}
                             <td className="border border-slate-300 p-0">
                               <input
                                 value={edited.description ?? task.description ?? ""}
@@ -642,8 +809,46 @@ export default function GoalDetailPage() {
                                 className="h-9 w-full border-0 bg-transparent px-2 text-[11px] outline-none focus:bg-yellow-50 sm:h-11 sm:px-3 sm:text-sm"
                               />
                             </td>
-
-                            {/* STATUS */}
+                            <td className="border border-slate-300 p-0">
+                              <select
+                                value={edited.priority ?? task.priority ?? "medium"}
+                                onChange={(e) =>
+                                  setEdits((prev) => ({
+                                    ...prev,
+                                    [task._id]: {
+                                      ...prev[task._id],
+                                      priority: e.target
+                                        .value as GoalTask["priority"],
+                                    },
+                                  }))
+                                }
+                                className="h-9 w-full border-0 bg-transparent px-1 text-center text-[11px] outline-none focus:bg-yellow-50 sm:h-11 sm:px-2 sm:text-sm"
+                              >
+                                <option value="low">Low</option>
+                                <option value="medium">Medium</option>
+                                <option value="high">High</option>
+                              </select>
+                            </td>
+                            <td className="border border-slate-300 p-0">
+                              <input
+                                type="number"
+                                value={
+                                  edited.estimatedMinutes ??
+                                  task.estimatedMinutes ??
+                                  30
+                                }
+                                onChange={(e) =>
+                                  setEdits((prev) => ({
+                                    ...prev,
+                                    [task._id]: {
+                                      ...prev[task._id],
+                                      estimatedMinutes: Number(e.target.value),
+                                    },
+                                  }))
+                                }
+                                className="h-9 w-full border-0 bg-transparent px-1 text-center text-[11px] outline-none focus:bg-yellow-50 sm:h-11 sm:px-2 sm:text-sm"
+                              />
+                            </td>
                             <td className="border border-slate-300 p-0">
                               <select
                                 value={edited.status ?? task.status}
@@ -665,73 +870,6 @@ export default function GoalDetailPage() {
                                 <option value="cancelled">Cancel</option>
                               </select>
                             </td>
-
-                            {/* MINUTES */}
-                            <td className="border border-slate-300 p-0">
-                              <input
-                                type="number"
-                                value={
-                                  edited.estimatedMinutes ??
-                                  task.estimatedMinutes ??
-                                  30
-                                }
-                                onChange={(e) =>
-                                  setEdits((prev) => ({
-                                    ...prev,
-                                    [task._id]: {
-                                      ...prev[task._id],
-                                      estimatedMinutes: Number(e.target.value),
-                                    },
-                                  }))
-                                }
-                                className="h-9 w-full border-0 bg-transparent px-1 text-center text-[11px] outline-none focus:bg-yellow-50 sm:h-11 sm:px-2 sm:text-sm"
-                              />
-                            </td>
-
-                            {/* DATE */}
-                            <td className="border border-slate-300 p-0">
-                              <input
-                                type="date"
-                                value={
-                                  (
-                                    edited.scheduledDate ??
-                                    task.scheduledDate
-                                  )?.split("T")[0]
-                                }
-                                onChange={(e) =>
-                                  setEdits((prev) => ({
-                                    ...prev,
-                                    [task._id]: {
-                                      ...prev[task._id],
-                                      scheduledDate: e.target.value,
-                                    },
-                                  }))
-                                }
-                                className="h-9 w-full border-0 bg-transparent px-1 text-center text-[11px] outline-none focus:bg-yellow-50 sm:h-11 sm:px-2 sm:text-sm"
-                              />
-                            </td>
-
-                            {/* TYPE */}
-                            <td className="border border-slate-300 p-0">
-                              <select
-                                value={edited.type ?? task.type ?? "execution"}
-                                onChange={(e) =>
-                                  setEdits((prev) => ({
-                                    ...prev,
-                                    [task._id]: {
-                                      ...prev[task._id],
-                                      type: e.target.value as GoalTask["type"],
-                                    },
-                                  }))
-                                }
-                                className="h-9 w-full border-0 bg-transparent px-1 text-center text-[11px] outline-none focus:bg-yellow-50 sm:h-11 sm:px-2 sm:text-sm"
-                              >
-                                <option value="execution">Exec</option>
-                                <option value="revision">Rev</option>
-                                <option value="recovery">Recover</option>
-                              </select>
-                            </td>
-
                           </tr>
                         );
                       })}
@@ -909,7 +1047,6 @@ export default function GoalDetailPage() {
             )
           )}
 
-          {/* Danger zone: delete goal */}
           <section className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-900">
             <h3 className="font-semibold text-red-800">Danger zone</h3>
             <p className="mt-2 text-xs text-red-700">
@@ -950,10 +1087,7 @@ export default function GoalDetailPage() {
                           const data = await res.json().catch(() => ({}));
                           throw new Error(data?.error?.message || "Failed to delete goal");
                         }
-                        // eslint-disable-next-line @typescript-eslint/no-floating-promises
-                        (async () => {
-                          // redirect
-                        })();
+                        router.push("/goals");
                       } catch (err) {
                         setDeleteError(err instanceof Error ? err.message : String(err));
                       } finally {

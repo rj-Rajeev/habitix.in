@@ -2,6 +2,10 @@
 
 import { useMemo, useState } from "react";
 import { Upload, X } from "lucide-react";
+import {
+  TASK_SPREADSHEET_ACCEPT,
+  TASK_SPREADSHEET_HELP_TEXT,
+} from "@/modules/tasks/task-spreadsheet";
 
 type Props = {
   isOpen: boolean;
@@ -44,7 +48,7 @@ export default function ExcelUploadModal({
     try {
       const form = new FormData();
       form.set("goalId", goalId);
-      form.set("scheduledDate", scheduledDate);
+      form.set("date", scheduledDate);
       form.set("file", file);
 
       const res = await fetch("/api/v1/tasks/import-excel", {
@@ -54,7 +58,9 @@ export default function ExcelUploadModal({
       const json = await res.json().catch(() => ({}));
 
       if (!res.ok) {
-        throw new Error(json?.message || json?.error || "Failed to import Excel");
+        throw new Error(
+          json?.error?.message || json?.message || "Failed to import Excel"
+        );
       }
 
       const imported = json?.data?.imported ?? 0;
@@ -135,14 +141,13 @@ export default function ExcelUploadModal({
             </label>
             <input
               type="file"
-              accept=".xlsx,.xls,.csv"
+              accept={TASK_SPREADSHEET_ACCEPT}
               onChange={(e) => setFile(e.target.files?.[0] ?? null)}
               className="mt-1 w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm file:mr-3 file:rounded-xl file:border-0 file:bg-slate-100 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-slate-700"
               disabled={loading}
             />
             <p className="mt-1 text-xs text-slate-500">
-              Reads columns named task, title, question, description, date,
-              priority, or minutes.
+              {TASK_SPREADSHEET_HELP_TEXT}
             </p>
           </div>
 

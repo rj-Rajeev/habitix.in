@@ -9,10 +9,12 @@ import { taskRepository } from "@/modules/tasks/task.repository";
 
 const itemSchema = z.object({
   id: z.string().min(1),
-  title: z.string().min(1).max(200).optional(),
+  task: z.string().max(200).optional(),
+  topic: z.string().max(200).optional(),
   description: z.string().max(2000).optional(),
-  scheduledDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
-  estimatedMinutes: z.number().min(1).max(1440).optional(),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  minutes: z.number().min(1).max(1440).optional(),
+  priority: z.enum(["low", "medium", "high"]).optional(),
   status: z.enum(["pending","in_progress","completed","skipped","cancelled"]).optional(),
 });
 
@@ -35,10 +37,12 @@ export async function PATCH(req: NextRequest) {
       }
       try {
         await taskRepository.updateById(item.id, {
-          ...(item.title ? { title: item.title } : {}),
+          ...(item.task ? { task: item.task } : {}),
+          ...(item.topic ? { topic: item.topic } : {}),
           ...(item.description ? { description: item.description } : {}),
-          ...(item.scheduledDate ? { scheduledDate: item.scheduledDate } : {}),
-          ...(item.estimatedMinutes ? { estimatedMinutes: item.estimatedMinutes } : {}),
+          ...(item.date ? { date: item.date } : {}),
+          ...(item.minutes ? { minutes: item.minutes } : {}),
+          ...(item.priority ? { priority: item.priority } : {}),
           ...(item.status ? { status: item.status } : {}),
         } as any);
         results.push({ id: item.id, ok: true });

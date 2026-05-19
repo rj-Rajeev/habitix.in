@@ -21,6 +21,9 @@ export type TaskSourceType =
 export interface ITask extends Document {
   userId: Types.ObjectId;
   goalId: Types.ObjectId;
+  date: string;
+  task: string;
+  topic: string;
   title: string;
   description?: string;
   type: TaskType;
@@ -28,6 +31,7 @@ export interface ITask extends Document {
   scheduledDate: string;
   scheduledOrder: number;
   priority: "low" | "medium" | "high";
+  minutes: number;
   estimatedMinutes: number;
   source: {
     type: TaskSourceType;
@@ -51,7 +55,9 @@ const TaskSchema = new Schema<ITask>(
   {
     userId: { type: Schema.Types.ObjectId, ref: "User", required: true },
     goalId: { type: Schema.Types.ObjectId, ref: "Goal", required: true },
-    title: { type: String, required: true, trim: true },
+    date: { type: String, required: true, alias: "scheduledDate" },
+    task: { type: String, required: true, trim: true },
+    topic: { type: String, required: true, trim: true, alias: "title" },
     description: String,
     type: {
       type: String,
@@ -63,14 +69,13 @@ const TaskSchema = new Schema<ITask>(
       enum: ["pending", "in_progress", "completed", "skipped", "cancelled"],
       default: "pending",
     },
-    scheduledDate: { type: String, required: true },
     scheduledOrder: { type: Number, default: 0 },
     priority: {
       type: String,
       enum: ["low", "medium", "high"],
       default: "medium",
     },
-    estimatedMinutes: { type: Number, default: 30 },
+    minutes: { type: Number, default: 30, alias: "estimatedMinutes" },
     source: {
       type: { type: String, default: "manual" },
       templateId: Schema.Types.ObjectId,
@@ -89,9 +94,19 @@ const TaskSchema = new Schema<ITask>(
   { timestamps: true }
 );
 
-TaskSchema.index({ userId: 1, scheduledDate: 1, status: 1 });
-TaskSchema.index({ userId: 1, status: 1, scheduledDate: 1 });
-TaskSchema.index({ goalId: 1, scheduledDate: 1 });
+TaskSchema.pre("validate", function fillTaskSpreadsheetFields(next) {
+  if (!this.task) {
+    this.task = this.topic || this.title;
+  }
+  if (!this.topic) {
+    this.topic = this.title || this.task;
+  }
+  next();
+});
+
+TaskSchema.index({ userId: 1, date: 1, status: 1 });
+TaskSchema.index({ userId: 1, status: 1, date: 1 });
+TaskSchema.index({ goalId: 1, date: 1 });
 TaskSchema.index(
   { goalId: 1, "source.roadmapDayNumber": 1, "source.legacyTaskId": 1 },
   { sparse: true }

@@ -24,7 +24,10 @@ export const schedulingService = {
     const pending = await Task.find({
       userId: new Types.ObjectId(userId),
       status: { $in: ["pending", "in_progress"] },
-      scheduledDate: { $lt: startDateKey },
+      $or: [
+        { date: { $lt: startDateKey } },
+        { scheduledDate: { $lt: startDateKey } },
+      ],
     }).sort({ priority: -1, createdAt: 1 });
 
     if (pending.length === 0) return { updated: 0 };
@@ -39,20 +42,21 @@ export const schedulingService = {
       let placed = false;
       while (!placed) {
         const bucket = buckets.get(cursor) ?? { minutes: 0, count: 0 };
+        const taskMinutes = task.minutes ?? task.estimatedMinutes ?? 30;
         const fits =
-          bucket.minutes + task.estimatedMinutes <= dailyCapMinutes &&
+          bucket.minutes + taskMinutes <= dailyCapMinutes &&
           bucket.count < MAX_TASKS_PER_DAY;
 
         if (fits) {
           await Task.updateOne(
             { _id: task._id },
             {
-              scheduledDate: cursor,
+              date: cursor,
               rescheduleCount: (task.rescheduleCount ?? 0) + 1,
               lastRescheduledAt: new Date(),
             }
           );
-          bucket.minutes += task.estimatedMinutes;
+          bucket.minutes += taskMinutes;
           bucket.count += 1;
           buckets.set(cursor, bucket);
           placed = true;

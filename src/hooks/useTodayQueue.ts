@@ -57,7 +57,7 @@ export function useTodayQueue() {
     const res = await fetch(`/api/v1/tasks/${taskId}/reschedule`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ scheduledDate }),
+      body: JSON.stringify({ date: scheduledDate }),
     });
     if (!res.ok) throw new Error("Failed to reschedule task");
     await fetchQueue();

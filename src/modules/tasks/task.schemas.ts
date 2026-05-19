@@ -17,7 +17,7 @@ export const skipTaskSchema = z.object({
 });
 
 export const rescheduleTaskSchema = z.object({
-  scheduledDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
 });
 
 export const createGoalSchema = z.object({
@@ -58,19 +58,20 @@ export const generateRoadmapSchema = z.object({
 
 export const createManualTaskSchema = z.object({
   goalId: z.string().min(1),
-  title: z.string().min(1).max(200),
+  task: z.string().min(1).max(200),
+  topic: z.string().min(1).max(200),
   description: z.string().max(2000).optional(),
-  scheduledDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   priority: z.enum(["low", "medium", "high"]).default("medium"),
-  estimatedMinutes: z.coerce.number().min(5).max(480).default(30),
+  minutes: z.coerce.number().min(5).max(480).default(30),
+  status: z
+    .enum(["pending", "in_progress", "completed", "skipped", "cancelled"])
+    .default("pending"),
 });
 
 export const importTasksSchema = z.object({
   goalId: z.string().min(1),
-  scheduledDate: z
-    .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/)
-    .optional(),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
 });
 
 export type CompleteTaskInput = z.infer<typeof completeTaskSchema>;

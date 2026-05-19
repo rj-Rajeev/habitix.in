@@ -22,7 +22,7 @@ export async function PATCH(
     const result = await taskCompletionService.reschedule(
       id,
       userId,
-      parsed.data.scheduledDate
+      parsed.data.date
     );
     return jsonOk(result);
   } catch (err) {

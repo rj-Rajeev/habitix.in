@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
     const file = form.get("file");
     const parsed = importTasksSchema.safeParse({
       goalId: form.get("goalId"),
-      scheduledDate: form.get("scheduledDate") || undefined,
+      date: form.get("date") || undefined,
     });
 
     if (!parsed.success) {
@@ -49,7 +49,8 @@ export async function POST(req: NextRequest) {
     const result = await taskImportService.importExcel({
       userId,
       goalId: parsed.data.goalId,
-      fallbackScheduledDate: parsed.data.scheduledDate,
+      fallbackScheduledDate: parsed.data.date,
+      replaceExisting: form.get("replace") === "true",
       file: buffer,
     });
 

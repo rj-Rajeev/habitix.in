@@ -8,10 +8,12 @@ import { z } from "zod";
 import { taskRepository } from "@/modules/tasks/task.repository";
 
 const updateSchema = z.object({
-  title: z.string().min(1).max(200).optional(),
+  task: z.string().max(200).optional(),
+  topic: z.string().max(200).optional(),
   description: z.string().max(2000).optional(),
-  scheduledDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
-  estimatedMinutes: z.number().min(1).max(1440).optional(),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  minutes: z.number().min(1).max(1440).optional(),
+  priority: z.enum(["low", "medium", "high"]).optional(),
   status: z.enum(["pending", "in_progress", "completed", "skipped", "cancelled"]).optional(),
 });
 
@@ -34,7 +36,16 @@ export async function PATCH(
     const update = parsed.data;
     const updated = await taskRepository.updateById(id, update as any);
 
-    return jsonOk({ id: updated?._id?.toString(), title: updated?.title, scheduledDate: updated?.scheduledDate, estimatedMinutes: updated?.estimatedMinutes, status: updated?.status, description: updated?.description });
+    return jsonOk({
+      id: updated?._id?.toString(),
+      task: updated?.task,
+      topic: updated?.topic,
+      title: updated?.title,
+      date: updated?.date,
+      minutes: updated?.minutes,
+      status: updated?.status,
+      description: updated?.description,
+    });
   } catch (err) {
     return handleRouteError(err);
   }

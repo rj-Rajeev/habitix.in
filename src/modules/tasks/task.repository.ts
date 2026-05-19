@@ -5,6 +5,9 @@ export type TaskLean = {
   _id: string;
   userId: string;
   goalId: string;
+  date: string;
+  task: string;
+  topic: string;
   title: string;
   description?: string;
   answer?: string;
@@ -24,33 +27,44 @@ type TaskDocLike = {
   _id: Types.ObjectId;
   userId: Types.ObjectId;
   goalId: Types.ObjectId;
-  title: string;
+  date?: string;
+  scheduledDate?: string;
+  task?: string;
+  topic?: string;
+  title?: string;
   description?: string;
   type: ITask["type"];
   status: TaskStatus;
-  scheduledDate: string;
   scheduledOrder: number;
   priority: ITask["priority"];
-  estimatedMinutes: number;
+  minutes?: number;
+  estimatedMinutes?: number;
   revisionOfTaskId?: Types.ObjectId;
   completedAt?: Date;
   notes?: string;
 };
 
 function toLean(doc: TaskDocLike, goalTitle?: string): TaskLean {
+  const date = doc.date ?? doc.scheduledDate ?? "";
+  const minutes = doc.minutes ?? doc.estimatedMinutes ?? 30;
+  const topic = doc.topic ?? doc.title ?? doc.task ?? "";
+
   return {
     _id: doc._id.toString(),
     userId: doc.userId.toString(),
     goalId: doc.goalId.toString(),
-    title: doc.title,
+    date,
+    task: doc.task ?? topic,
+    topic,
+    title: topic,
     description: doc.description,
     answer: doc.description ?? doc.notes,
     type: doc.type,
     status: doc.status,
-    scheduledDate: doc.scheduledDate,
+    scheduledDate: date,
     scheduledOrder: doc.scheduledOrder,
     priority: doc.priority,
-    estimatedMinutes: doc.estimatedMinutes,
+    estimatedMinutes: minutes,
     revisionOfTaskId: doc.revisionOfTaskId?.toString(),
     completedAt: doc.completedAt,
     notes: doc.notes,
@@ -75,13 +89,17 @@ function mapPopulatedTask(doc: any): TaskLean {
       _id: doc._id as Types.ObjectId,
       userId: doc.userId as Types.ObjectId,
       goalId,
+      task: doc.task,
+      topic: doc.topic,
       title: doc.title,
       description: doc.description,
       type: doc.type,
       status: doc.status,
+      date: doc.date,
       scheduledDate: doc.scheduledDate,
       scheduledOrder: doc.scheduledOrder,
       priority: doc.priority,
+      minutes: doc.minutes,
       estimatedMinutes: doc.estimatedMinutes,
       revisionOfTaskId: doc.revisionOfTaskId,
       completedAt: doc.completedAt,
@@ -102,7 +120,7 @@ export const taskRepository = {
   async findScheduledForDate(userId: string, dateKey: string) {
     const docs = await Task.find({
       userId: new Types.ObjectId(userId),
-      scheduledDate: dateKey,
+      $or: [{ date: dateKey }, { scheduledDate: dateKey }],
       status: { $in: ["pending", "in_progress"] },
     })
       .sort({ scheduledOrder: 1, priority: -1, createdAt: 1 })
@@ -115,10 +133,13 @@ export const taskRepository = {
   async findOverdue(userId: string, beforeDateKey: string) {
     const docs = await Task.find({
       userId: new Types.ObjectId(userId),
-      scheduledDate: { $lt: beforeDateKey },
+      $or: [
+        { date: { $lt: beforeDateKey } },
+        { scheduledDate: { $lt: beforeDateKey } },
+      ],
       status: { $in: ["pending", "in_progress"] },
     })
-      .sort({ scheduledDate: 1, scheduledOrder: 1 })
+      .sort({ date: 1, scheduledDate: 1, scheduledOrder: 1 })
       .populate("goalId", "title")
       .lean();
 
@@ -128,7 +149,7 @@ export const taskRepository = {
   async findRevisionsForDate(userId: string, dateKey: string) {
     const docs = await Task.find({
       userId: new Types.ObjectId(userId),
-      scheduledDate: dateKey,
+      $or: [{ date: dateKey }, { scheduledDate: dateKey }],
       type: "revision",
       status: { $in: ["pending", "in_progress"] },
     })
@@ -145,7 +166,7 @@ export const taskRepository = {
       goalId: new Types.ObjectId(goalId),
       status: { $in: ["pending", "in_progress", "completed"] },
     })
-      .sort({ scheduledDate: 1, scheduledOrder: 1, createdAt: 1 })
+      .sort({ date: 1, scheduledDate: 1, scheduledOrder: 1, createdAt: 1 })
       .populate("goalId", "title")
       .lean();
 
@@ -163,7 +184,10 @@ export const taskRepository = {
     tasks: Array<{
       userId: string;
       goalId: string;
-      title: string;
+      date?: string;
+      task?: string;
+      topic?: string;
+      title?: string;
       description?: string;
       scheduledDate: string;
       scheduledOrder?: number;
@@ -171,6 +195,7 @@ export const taskRepository = {
       type?: ITask["type"];
       source?: ITask["source"];
       priority?: ITask["priority"];
+      minutes?: number;
       estimatedMinutes?: number;
       revisionOfTaskId?: string;
     }>
@@ -179,6 +204,10 @@ export const taskRepository = {
     const docs = await Task.insertMany(
       tasks.map((t) => ({
         ...t,
+        date: t.date ?? t.scheduledDate,
+        task: t.task ?? t.topic ?? t.title,
+        topic: t.topic ?? t.title ?? t.task,
+        minutes: t.minutes ?? t.estimatedMinutes,
         userId: new Types.ObjectId(t.userId),
         goalId: new Types.ObjectId(t.goalId),
         revisionOfTaskId: t.revisionOfTaskId
@@ -190,7 +219,20 @@ export const taskRepository = {
   },
 
   async updateById(taskId: string, update: Partial<ITask>) {
-    return Task.findByIdAndUpdate(taskId, update, { new: true });
+    const normalized: Partial<ITask> = {
+      ...update,
+    };
+    if (update.date || update.scheduledDate) {
+      normalized.date = update.date ?? update.scheduledDate;
+    }
+    if (update.minutes || update.estimatedMinutes) {
+      normalized.minutes = update.minutes ?? update.estimatedMinutes;
+    }
+    if (update.topic || update.title) {
+      normalized.topic = update.topic ?? update.title;
+      normalized.title = update.topic ?? update.title;
+    }
+    return Task.findByIdAndUpdate(taskId, normalized, { new: true });
   },
 
   async deleteByGoalId(goalId: string) {
