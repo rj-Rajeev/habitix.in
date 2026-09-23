@@ -10,31 +10,42 @@ export default function SignInPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
-  const [rememberMe, setRememberMe] = useState(false)
   const [focusedField, setFocusedField] = useState<string | null>(null)
   const router = useRouter()
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
+
     const form = new FormData(e.currentTarget)
-    const email = form.get("email") as string
-    const password = form.get("password") as string
+    const email = String(form.get("email") ?? "").trim()
+    const password = String(form.get("password") ?? "")
+
+    if (!email || !password) {
+      setError("Please enter your email and password.")
+      return
+    }
 
     setIsLoading(true)
     setError("")
 
-    const res = await nextAuthSignIn("credentials", {
-      email,
-      password,
-      redirect: false,
-    })
+    try {
+      const res = await nextAuthSignIn("credentials", {
+        email,
+        password,
+        redirect: false,
+      })
 
-    if (res?.ok) {
-      router.push("/dashboard")
-    } else {
+      if (res?.ok) {
+        router.push("/dashboard")
+        return
+      }
+
       setError("Invalid email or password")
+    } catch {
+      setError("Invalid email or password")
+    } finally {
+      setIsLoading(false)
     }
-    setIsLoading(false)
   }
 
   const handleOAuthSignIn = async (provider: string) => {
@@ -42,8 +53,8 @@ export default function SignInPage() {
     setError("")
     try {
       await nextAuthSignIn(provider, { callbackUrl: "/dashboard" })
-    } catch (err) {
-      setError(`Failed to sign in with ${provider}`)
+    } catch {
+      setError("Unable to sign in with this provider right now.")
     } finally {
       setIsLoading(false)
     }
@@ -97,6 +108,7 @@ export default function SignInPage() {
           {/* OAuth Buttons */}
           <div className="space-y-3 mb-6">
             <button
+              type="button"
               onClick={() => handleOAuthSignIn("google")}
               disabled={isLoading}
               className="w-full flex items-center justify-center px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-xl text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-700 hover:bg-slate-50 dark:hover:bg-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-slate-800 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
@@ -123,6 +135,7 @@ export default function SignInPage() {
             </button>
 
             <button
+              type="button"
               onClick={() => handleOAuthSignIn("github")}
               disabled={isLoading}
               className="w-full flex items-center justify-center px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-xl text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-700 hover:bg-slate-50 dark:hover:bg-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-slate-800 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
@@ -252,25 +265,7 @@ export default function SignInPage() {
               </div>
             </div>
 
-            {/* Remember me and Forgot password */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <input
-                  id="remember-me"
-                  name="remember-me"
-                  type="checkbox"
-                  checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
-                  disabled={isLoading}
-                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-slate-300 dark:border-slate-600 rounded transition-colors duration-200"
-                />
-                <label
-                  htmlFor="remember-me"
-                  className="ml-2 block text-sm text-slate-700 dark:text-slate-300 font-medium"
-                >
-                  Remember me
-                </label>
-              </div>
+            <div className="flex justify-end">
               <Link
                 href="/forgot-password"
                 className="text-sm font-semibold text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300 transition-colors duration-200"

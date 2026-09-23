@@ -5,28 +5,13 @@ import {
   Button,
   Paper,
   Stack,
-  TextField,
   Typography,
   Link as MuiLink,
+  Alert,
 } from '@mui/material';
 import Link from 'next/link';
-import { useState } from 'react';
 
 export default function ForgotPassword() {
-  const [email, setEmail] = useState('');
-  const [isSending, setIsSending] = useState(false);
-
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setIsSending(true);
-
-    // Simulate sending email
-    setTimeout(() => {
-      setIsSending(false);
-      alert(`Reset link sent to ${email}`);
-    }, 1500);
-  };
-
   return (
     <Box
       sx={{
@@ -38,47 +23,24 @@ export default function ForgotPassword() {
         px: 2,
       }}
     >
-      <Paper elevation={3} sx={{ maxWidth: 400, width: '100%', p: 4 }}>
+      <Paper elevation={3} sx={{ maxWidth: 420, width: '100%', p: 4 }}>
         <Typography variant="h5" fontWeight={700} align="center" gutterBottom>
-          Reset your password
-        </Typography>
-        <Typography
-          variant="body2"
-          color="text.secondary"
-          align="center"
-          sx={{ mb: 3 }}
-        >
-          Enter your email address and we'll send you a link to reset your password.
+          Password reset is coming soon
         </Typography>
 
-        <Box component="form" onSubmit={handleSubmit}>
-          <Stack spacing={2}>
-            <TextField
-              label="Email address"
-              type="email"
-              name="email"
-              fullWidth
-              required
-              placeholder="Enter your email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-            <Button
-              type="submit"
-              variant="contained"
-              fullWidth
-              disabled={isSending}
-              size="large"
-            >
-              {isSending ? 'Sending...' : 'Send reset link'}
-            </Button>
-            <Typography variant="body2" align="center">
-              <MuiLink component={Link} href="/signin" underline="hover">
-                Back to sign in
-              </MuiLink>
-            </Typography>
-          </Stack>
-        </Box>
+        <Alert severity="info" sx={{ mb: 2 }}>
+          This feature is not available in V1 yet.
+        </Alert>
+
+        <Typography variant="body2" color="text.secondary" align="center" sx={{ mb: 3 }}>
+          Password reset will be available in a future update.
+        </Typography>
+
+        <Stack spacing={2}>
+          <Button component={Link} href="/signin" variant="contained" size="large">
+            Back to sign in
+          </Button>
+        </Stack>
       </Paper>
     </Box>
   );
