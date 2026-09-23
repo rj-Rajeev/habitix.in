@@ -4,7 +4,7 @@ import User, { IUser } from "@/models/User";
 export interface UserDetails {
   fullname: string;
   email: string;
-  password?: string; // Not needed for OAuth users
+  password?: string;
   provider?: "local" | "google" | "github";
   providerId?: string;
 }
@@ -16,17 +16,42 @@ const registerUser = async ({
   provider = "local",
   providerId,
 }: UserDetails): Promise<IUser> => {
-  // Check whether a user already exists with the given email.
-  const existingUser = await User.findOne({ email });
-  if (existingUser) {
-    // Optionally update fields here if needed.
-    return existingUser;
+  const normalizedFullname = fullname.trim();
+  const normalizedEmail = email.trim().toLowerCase();
+
+  if (!normalizedFullname) {
+    const error = new Error("Fullname is required");
+    error.cause = "VALIDATION";
+    throw error;
   }
 
-  // Create a new user document.
-  const newUser = new User({ fullname, email, password, provider, providerId });
+  if (!normalizedEmail) {
+    const error = new Error("Email is required");
+    error.cause = "VALIDATION";
+    throw error;
+  }
 
-  // Save the user record in your database.
+  if (provider === "local" && !password) {
+    const error = new Error("Password is required");
+    error.cause = "VALIDATION";
+    throw error;
+  }
+
+  const existingUser = await User.findOne({ email: normalizedEmail });
+  if (existingUser) {
+    const error = new Error("User already exists");
+    error.cause = "CONFLICT";
+    throw error;
+  }
+
+  const newUser = new User({
+    fullname: normalizedFullname,
+    email: normalizedEmail,
+    password,
+    provider,
+    providerId,
+  });
+
   await newUser.save();
   return newUser;
 };

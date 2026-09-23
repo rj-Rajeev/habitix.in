@@ -19,7 +19,7 @@ export const taskCompletionService = {
     }
 
     const now = new Date();
-    await taskRepository.updateById(taskId, {
+    await taskRepository.updateById(taskId, userId, {
       status: "completed",
       completedAt: now,
       notes: input.note ?? task.notes,
@@ -61,7 +61,7 @@ export const taskCompletionService = {
     const task = await taskRepository.findByIdForUser(taskId, userId);
     if (!task) throw Errors.notFound("Task");
 
-    await taskRepository.updateById(taskId, {
+    await taskRepository.updateById(taskId, userId, {
       status: "skipped",
       skippedAt: new Date(),
     });
@@ -81,7 +81,7 @@ export const taskCompletionService = {
     const task = await taskRepository.findByIdForUser(taskId, userId);
     if (!task) throw Errors.notFound("Task");
 
-    await taskRepository.updateById(taskId, {
+    await taskRepository.updateById(taskId, userId, {
       status: "pending",
       completedAt: undefined,
       skippedAt: undefined,
@@ -106,7 +106,7 @@ export const taskCompletionService = {
     const task = await taskRepository.findByIdForUser(taskId, userId);
     if (!task) throw Errors.notFound("Task");
 
-    await taskRepository.updateById(taskId, {
+    await taskRepository.updateById(taskId, userId, {
       scheduledDate,
       status: "pending",
       rescheduleCount: (task.rescheduleCount ?? 0) + 1,

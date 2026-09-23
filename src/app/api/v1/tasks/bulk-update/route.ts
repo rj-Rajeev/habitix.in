@@ -36,7 +36,7 @@ export async function PATCH(req: NextRequest) {
         continue;
       }
       try {
-        await taskRepository.updateById(item.id, {
+        await taskRepository.updateById(item.id, userId, {
           ...(item.task ? { task: item.task } : {}),
           ...(item.topic ? { topic: item.topic } : {}),
           ...(item.description ? { description: item.description } : {}),

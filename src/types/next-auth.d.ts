@@ -11,12 +11,13 @@ declare module "next-auth" {
   }
 
   interface User {
-    id: string; // from authorize() or db
+    id: string;
   }
 }
 
 declare module "next-auth/jwt" {
   interface JWT {
-    id: string;
+    id?: string;
+    sub?: string;
   }
 }

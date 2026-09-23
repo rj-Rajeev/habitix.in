@@ -218,7 +218,7 @@ export const taskRepository = {
     return docs;
   },
 
-  async updateById(taskId: string, update: Partial<ITask>) {
+  async updateById(taskId: string, userId: string, update: Partial<ITask>) {
     const normalized: Partial<ITask> = {
       ...update,
     };
@@ -232,16 +232,27 @@ export const taskRepository = {
       normalized.topic = update.topic ?? update.title;
       normalized.title = update.topic ?? update.title;
     }
-    return Task.findByIdAndUpdate(taskId, normalized, { new: true });
+    return Task.findOneAndUpdate(
+      {
+        _id: new Types.ObjectId(taskId),
+        userId: new Types.ObjectId(userId),
+      },
+      normalized,
+      { new: true }
+    );
   },
 
-  async deleteByGoalId(goalId: string) {
-    return Task.deleteMany({ goalId: new Types.ObjectId(goalId) });
+  async deleteByGoalId(goalId: string, userId: string) {
+    return Task.deleteMany({
+      goalId: new Types.ObjectId(goalId),
+      userId: new Types.ObjectId(userId),
+    });
   },
 
-  async existsForGoal(goalId: string) {
+  async existsForGoal(goalId: string, userId: string) {
     const count = await Task.countDocuments({
       goalId: new Types.ObjectId(goalId),
+      userId: new Types.ObjectId(userId),
     });
     return count > 0;
   },

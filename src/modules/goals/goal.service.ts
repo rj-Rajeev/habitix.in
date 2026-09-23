@@ -66,11 +66,13 @@ export const goalService = {
     return { id: goalId, goal };
   },
 
-  async getById(id: string, userId?: string) {
-    const goal = userId
-      ? await goalRepository.findByIdForUser(id, userId)
-      : await goalRepository.findById(id);
-    if (!goal) throw Errors.notFound("Goal");
+  async getById(id: string, userId: string) {
+    const goal = await goalRepository.findByIdForUser(id, userId);
+
+    if (!goal) {
+      throw Errors.notFound("Goal");
+    }
+
     return goal;
   },
 

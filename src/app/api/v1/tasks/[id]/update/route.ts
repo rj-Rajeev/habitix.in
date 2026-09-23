@@ -34,7 +34,7 @@ export async function PATCH(
     if (!existing) throw Errors.notFound("Task");
 
     const update = parsed.data;
-    const updated = await taskRepository.updateById(id, update as any);
+    const updated = await taskRepository.updateById(id, userId, update as any);
 
     return jsonOk({
       id: updated?._id?.toString(),

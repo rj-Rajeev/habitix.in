@@ -3,11 +3,12 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 const PROTECTED_PREFIXES = ["/dashboard", "/today", "/goals"];
+const nextAuthSecret = process.env.NEXTAUTH_SECRET ?? process.env.AUTH_SECRET;
 
 export async function middleware(request: NextRequest) {
   const token = await getToken({
     req: request,
-    secret: process.env.NEXTAUTH_SECRET,
+    secret: nextAuthSecret,
   });
   const { pathname } = request.nextUrl;
 

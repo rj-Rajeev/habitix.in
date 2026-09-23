@@ -1,17 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/authOptions";
 import { connectDb } from "@/lib/db";
+import { requireUserId } from "@/lib/auth/session";
 import { createGoalSchema } from "@/modules/tasks/task.schemas";
 import { goalService } from "@/modules/goals/goal.service";
 
 export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
   try {
+    const userId = await requireUserId();
     await connectDb();
     const body = await req.json();
     const parsed = createGoalSchema.safeParse({
@@ -28,7 +23,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { id } = await goalService.create(session.user.id, parsed.data);
+    const { id } = await goalService.create(userId, parsed.data);
     return NextResponse.json({ id });
   } catch (error) {
     console.error(error);

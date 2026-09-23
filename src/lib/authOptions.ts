@@ -7,6 +7,8 @@ import connectDb from "@/lib/db";
 import registerUser from "@/lib/registerUser";
 import User from "@/models/User";
 
+const nextAuthSecret = process.env.NEXTAUTH_SECRET ?? process.env.AUTH_SECRET;
+
 export const authOptions: NextAuthOptions = {
   providers: [
     CredentialsProvider({
@@ -16,7 +18,8 @@ export const authOptions: NextAuthOptions = {
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        const { email, password } = credentials ?? {};
+        const email = credentials?.email?.trim().toLowerCase();
+        const password = credentials?.password;
         if (!email || !password) return null;
 
         await connectDb();
@@ -45,29 +48,35 @@ export const authOptions: NextAuthOptions = {
     strategy: "jwt",
   },
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, account }) {
       await connectDb();
 
-      // For OAuth login
       if (user && user.email) {
-        let dbUser = await User.findOne({ email: user.email });
+        const normalizedEmail = user.email.trim().toLowerCase();
+        let dbUser = await User.findOne({ email: normalizedEmail });
 
-        // create user if not exists
         if (!dbUser) {
+          const provider = account?.provider === "github" ? "github" : account?.provider === "google" ? "google" : "local";
           dbUser = await registerUser({
-            email: user.email,
-            fullname: user.name || "User",
+            email: normalizedEmail,
+            fullname: user.name?.trim() || "User",
+            provider,
+            providerId: account?.provider ? String(account.providerAccountId ?? user.id ?? "") : undefined,
           });
         }
 
-        token.sub = dbUser._id.toString(); // ✅ ALWAYS Mongo _id
+        token.sub = dbUser._id.toString();
+      }
+
+      if (!token.sub && token.id) {
+        token.sub = String(token.id);
       }
 
       return token;
     },
     async session({ session, token }) {
-      if (session.user && token.sub) {
-        session.user.id = token.sub as string;
+      if (session.user) {
+        session.user.id = (token.sub ?? token.id ?? session.user.id) as string;
       }
       return session;
     },
@@ -75,5 +84,5 @@ export const authOptions: NextAuthOptions = {
   pages: {
     signIn: "/signin",
   },
-  secret: process.env.NEXTAUTH_SECRET ?? process.env.AUTH_SECRET,
+  secret: nextAuthSecret,
 };

@@ -165,7 +165,7 @@ export const taskImportService = {
     }
 
     if (replaceExisting) {
-      await taskRepository.deleteByGoalId(goalId);
+      await taskRepository.deleteByGoalId(goalId, userId);
     }
 
     await taskRepository.createMany(tasks);

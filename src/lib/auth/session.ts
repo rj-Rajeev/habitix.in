@@ -1,6 +1,6 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/authOptions";
-import { AppError, Errors } from "@/lib/api";
+import { Errors } from "@/lib/api";
 
 export async function requireUserId(): Promise<string> {
   const session = await getServerSession(authOptions);

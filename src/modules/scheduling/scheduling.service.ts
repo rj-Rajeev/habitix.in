@@ -49,7 +49,7 @@ export const schedulingService = {
 
         if (fits) {
           await Task.updateOne(
-            { _id: task._id },
+            { _id: task._id, userId: new Types.ObjectId(userId)},
             {
               date: cursor,
               rescheduleCount: (task.rescheduleCount ?? 0) + 1,

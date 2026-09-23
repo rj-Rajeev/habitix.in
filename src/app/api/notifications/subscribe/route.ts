@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import connectDb from "@/lib/db";
 import PushSubscription from "@/models/PushSubscription";
+import { requireUserId } from "@/lib/auth/session";
 
 export async function POST(req: NextRequest) {
   try {
     await connectDb();
+    const userId = await requireUserId();
     const body = await req.json();
-    const { subscription, categories = [], userId } = body;
+    const { subscription, categories = [] } = body;
 
     if (!subscription?.endpoint) {
       return NextResponse.json(
@@ -16,7 +18,7 @@ export async function POST(req: NextRequest) {
     }
 
     const result = await PushSubscription.findOneAndUpdate(
-      { "subscription.endpoint": subscription.endpoint },
+      { "subscription.endpoint": subscription.endpoint, userId },
       { subscription, categories, userId },
       { upsert: true, new: true }
     );
@@ -25,8 +27,8 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     console.error("Subscription API error:", err);
     return NextResponse.json(
-      { error: "Internal Server Error" },
-      { status: 500 }
+      { error: "Unauthorized" },
+      { status: 401 }
     );
   }
 }

@@ -15,9 +15,9 @@ function normalizeDayDate(dayDate: string | Date): string {
 export const goalSyncService = {
   /** Sync nested roadmap tasks into Task collection (idempotent per goal). */
   async syncGoalTasks(userId: string, goalId: string): Promise<number> {
-    const exists = await taskRepository.existsForGoal(goalId);
+    const exists = await taskRepository.existsForGoal(goalId, userId);
     if (exists) {
-      await goalRepository.markTasksSynced(goalId);
+      await goalRepository.markTasksSynced(goalId, userId);
       return 0;
     }
 
@@ -26,7 +26,7 @@ export const goalSyncService = {
 
     const tasks = flattenRoadmapToTasks(userId, goalId, goal.roadmap);
     await taskRepository.createMany(tasks);
-    await goalRepository.markTasksSynced(goalId);
+    await goalRepository.markTasksSynced(goalId, userId);
     return tasks.length;
   },
 
@@ -73,6 +73,7 @@ function flattenRoadmapToTasks(
 }
 
 export async function syncRoadmapTaskCompletion(
+  userId: string,
   goalId: string,
   dayNumber: number,
   legacyTaskId: string,
@@ -81,6 +82,7 @@ export async function syncRoadmapTaskCompletion(
   const { Task } = await import("@/modules/tasks/task.model");
   await Task.updateOne(
     {
+      userId: new Types.ObjectId(userId),
       goalId: new Types.ObjectId(goalId),
       "source.roadmapDayNumber": dayNumber,
       "source.legacyTaskId": legacyTaskId,

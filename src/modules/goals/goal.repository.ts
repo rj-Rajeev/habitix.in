@@ -1,9 +1,6 @@
 import { Goal, IGoal, IRoadmapDay } from "./goal.model";
 
 export const goalRepository = {
-  async findById(id: string) {
-    return Goal.findById(id);
-  },
 
   async findByIdForUser(id: string, userId: string) {
     return Goal.findOne({ _id: id, userId });
@@ -23,17 +20,17 @@ export const goalRepository = {
     return Goal.create(data);
   },
 
-  async updateRoadmap(goalId: string, roadmap: IRoadmapDay[]) {
-    return Goal.findByIdAndUpdate(
-      goalId,
+  async updateRoadmap(goalId: string, userId: string, roadmap: IRoadmapDay[]) {
+    return Goal.findOneAndUpdate(
+      { _id: goalId, userId },
       { roadmap, tasksSyncedAt: undefined },
       { new: true }
     );
   },
 
-  async markTasksSynced(goalId: string) {
-    return Goal.findByIdAndUpdate(
-      goalId,
+  async markTasksSynced(goalId: string, userId: string) {
+    return Goal.findOneAndUpdate(
+      { _id: goalId, userId },
       { tasksSyncedAt: new Date() },
       { new: true }
     );

@@ -38,7 +38,7 @@ export async function DELETE(
 
     // Remove tasks associated with the goal
     if (taskRepository.deleteByGoalId) {
-      await taskRepository.deleteByGoalId(id);
+      await taskRepository.deleteByGoalId(id, userId);
     } else {
       await Goal.deleteOne({ _id: id, userId });
       return jsonOk({ success: true });

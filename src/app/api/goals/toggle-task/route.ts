@@ -84,9 +84,10 @@ export async function PATCH(req: NextRequest) {
     await goal.save();
 
     await goalSyncService.syncGoalTasks(userId, goalId);
-    await syncRoadmapTaskCompletion(goalId, dayNumber, taskId, newCompleted);
+    await syncRoadmapTaskCompletion(userId, goalId, dayNumber, taskId, newCompleted);
 
     const syncedTask = await Task.findOne({
+      userId: new Types.ObjectId(userId),
       goalId: new Types.ObjectId(goalId),
       "source.legacyTaskId": taskId,
     });
@@ -98,7 +99,7 @@ export async function PATCH(req: NextRequest) {
       });
     } else if (syncedTask && !newCompleted) {
       await Task.updateOne(
-        { _id: syncedTask._id },
+        { _id: syncedTask._id, userId: new Types.ObjectId(userId) },
         { status: "pending", completedAt: undefined }
       );
     }

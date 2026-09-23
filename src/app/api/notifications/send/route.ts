@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import connectDb from "@/lib/db";
 import PushSubscription from "@/models/PushSubscription";
 import webpush from "web-push";
+import { requireUserId } from "@/lib/auth/session";
 
 function ensureVapid() {
   const subject = process.env.VAPID_SUBJECT;
@@ -23,26 +24,30 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  await connectDb();
-  const body = await req.json();
-  const { message, title = "Habitix", userId, category } = body;
+  try {
+    await connectDb();
+    const userId = await requireUserId();
+    const body = await req.json();
+    const { message, title = "Habitix", category } = body;
 
-  const query: any = {};
-  if (userId) query.userId = userId;
-  else if (category) query.categories = category;
+    const query: any = { userId };
+    if (category) query.categories = category;
 
-  const subs = await PushSubscription.find(query);
-  const payload = JSON.stringify({ title, body: message });
+    const subs = await PushSubscription.find(query);
+    const payload = JSON.stringify({ title, body: message });
 
-  const results = await Promise.allSettled(
-    subs.map((sub) =>
-      webpush.sendNotification(sub.subscription, payload).catch((err) => {
-        if (err.statusCode === 410 || err.statusCode === 404) {
-          return PushSubscription.deleteOne({ _id: sub._id });
-        }
-      })
-    )
-  );
+    const results = await Promise.allSettled(
+      subs.map((sub) =>
+        webpush.sendNotification(sub.subscription, payload).catch((err) => {
+          if (err.statusCode === 410 || err.statusCode === 404) {
+            return PushSubscription.deleteOne({ _id: sub._id });
+          }
+        })
+      )
+    );
 
-  return NextResponse.json({ success: true, sent: results.length });
+    return NextResponse.json({ success: true, sent: results.length });
+  } catch (error) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
 }
