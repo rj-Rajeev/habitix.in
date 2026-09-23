@@ -6,7 +6,8 @@ export interface IUser extends Document {
   email: string;
   password?: string;
   provider: "local" | "google" | "github";
-  providerId: string;
+  providerId?: string;
+  role: "user" | "admin";
   comparePassword(candidatePassword: string): Promise<boolean>;
 }
 
@@ -38,6 +39,12 @@ const UserSchema: Schema<IUser> = new Schema(
     },
     providerId: {
       type: String,
+    },
+    role: {
+      type: String,
+      enum: ["user", "admin"],
+      required: true,
+      default: "user",
     },
   },
   { timestamps: true }

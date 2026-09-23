@@ -1,8 +1,9 @@
 import Link from "next/link";
-import { BarChart3, BookOpen, Bot, ChevronRight, Lightbulb, Plus } from "lucide-react";
+import { BarChart3, BookOpen, Bot, ChevronRight, CircleUserRound, Lightbulb, Plus } from "lucide-react";
 import AppShell from "@/components/app/AppShell";
 
 const links = [
+  { href: "/profile", label: "Profile", icon: CircleUserRound },
   { href: "/goals/new", label: "Create goal", icon: Plus },
   { href: "/performance", label: "Performance", icon: BarChart3 },
   { href: "/recommendations", label: "Recommendations", icon: Lightbulb },

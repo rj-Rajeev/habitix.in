@@ -50,6 +50,7 @@ const registerUser = async ({
     password,
     provider,
     providerId,
+    role: "user",
   });
 
   await newUser.save();
