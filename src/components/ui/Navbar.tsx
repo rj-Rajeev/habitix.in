@@ -51,6 +51,7 @@ export default function Navbar() {
 
   const navItems = [
     { label: "Today", href: "/today" },
+    { label: "Courses", href: "/courses" },
     { label: "Features", href: "/features" },
     { label: "People & Chats", href: "/people" },
     { label: "Pricing", href: "/pricing" },
