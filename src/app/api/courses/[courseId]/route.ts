@@ -46,6 +46,7 @@ export async function GET(
                 title: lesson.title,
                 description: lesson.description,
                 order: lesson.order,
+                markdownContent: lesson.markdownContent,
               }),
       })),
     });
