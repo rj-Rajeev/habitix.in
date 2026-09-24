@@ -7,12 +7,12 @@ import { handleRouteError } from "@/lib/api/handle-route";
 
 export async function PATCH(
   req: Request,
-  { params }: { params: { userId: string } }
+  { params }: { params: Promise<{ userId: string }> }
 ) {
   try {
     await dbConnect();
     const userId = await requireUserId();
-    const targetUserId = String(params.userId);
+    const { userId: targetUserId } = await params;
 
     if (targetUserId !== userId) {
       throw Errors.forbidden();
