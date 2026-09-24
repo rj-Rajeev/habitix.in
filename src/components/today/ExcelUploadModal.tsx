@@ -6,6 +6,7 @@ import {
   TASK_SPREADSHEET_ACCEPT,
   TASK_SPREADSHEET_HELP_TEXT,
 } from "@/modules/tasks/task-spreadsheet";
+import { Alert } from "@/components/ui";
 
 type Props = {
   isOpen: boolean;
@@ -76,15 +77,15 @@ export default function ExcelUploadModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-end bg-black/50 px-0 sm:items-center sm:px-4">
-      <div className="max-h-[92dvh] w-full overflow-y-auto rounded-t-3xl bg-white pb-[max(env(safe-area-inset-bottom),1rem)] shadow-2xl sm:mx-auto sm:max-w-lg sm:rounded-3xl sm:pb-0">
-        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-200 bg-white px-4 py-4">
-          <h2 className="text-lg font-semibold text-slate-900">
+      <div className="max-h-[92dvh] w-full overflow-y-auto rounded-t-container bg-surface pb-[max(env(safe-area-inset-bottom),1rem)] shadow-[var(--shadow-md)] sm:mx-auto sm:max-w-lg sm:rounded-container sm:pb-0">
+        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-border bg-surface px-4 py-4">
+          <h2 className="text-lg font-semibold text-text-primary">
             Upload Excel
           </h2>
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg p-1 hover:bg-slate-100"
+            className="rounded-control p-2 text-text-muted hover:bg-surface-subtle hover:text-text-primary"
             aria-label="Close"
           >
             <X className="h-5 w-5" />
@@ -92,16 +93,8 @@ export default function ExcelUploadModal({
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4 p-4">
-          {error && (
-            <div className="rounded-lg bg-red-50 p-3 text-sm text-red-800">
-              {error}
-            </div>
-          )}
-          {result && (
-            <div className="rounded-lg bg-emerald-50 p-3 text-sm text-emerald-800">
-              {result}
-            </div>
-          )}
+          {error && <Alert tone="error">{error}</Alert>}
+          {result && <Alert tone="success">{result}</Alert>}
 
           <div>
             <label className="block text-sm font-medium text-slate-700">
@@ -156,14 +149,16 @@ export default function ExcelUploadModal({
               type="button"
               onClick={onClose}
               disabled={loading}
-              className="h-12 flex-1 rounded-2xl border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+              className="ui-button h-11 flex-1"
+              data-variant="secondary"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="flex h-12 flex-1 items-center justify-center gap-2 rounded-2xl bg-slate-950 px-4 text-sm font-semibold text-white hover:bg-slate-800 disabled:opacity-60"
+              className="ui-button h-11 flex-1"
+              data-variant="primary"
             >
               <Upload className="h-4 w-4" />
               {loading ? "Importing..." : "Import"}

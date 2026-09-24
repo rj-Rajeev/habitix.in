@@ -1,7 +1,14 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Calendar, Check, ChevronDown, Clock3, RotateCcw } from "lucide-react";
+import {
+  Calendar,
+  Check,
+  ChevronDown,
+  Clock3,
+  RotateCcw,
+  SkipForward,
+} from "lucide-react";
 import type { TodayTaskCard } from "@/types/today";
 
 type Props = {
@@ -63,9 +70,7 @@ export default function TaskCard({
 
   return (
     <article
-      className={`rounded-2xl border bg-white p-4 shadow-sm transition ${
-        task.isOverdue ? "border-amber-200 ring-1 ring-amber-100" : "border-slate-200"
-      } ${showAnswer ? "card-sweep card-3d" : ""}`}
+      className={`rounded-card border bg-surface p-4 shadow-[var(--shadow-sm)] transition-colors ${task.isOverdue ? "border-amber-200" : "border-border"}`}
     >
       <div className="flex items-start gap-3">
         <button
@@ -80,8 +85,8 @@ export default function TaskCard({
           }}
           className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border transition ${
             isDone
-              ? "border-emerald-600 bg-emerald-600 text-white"
-              : "border-slate-300 bg-white text-slate-500 hover:border-emerald-600 hover:text-emerald-700"
+              ? "border-brand-primary bg-brand-primary text-white"
+              : "border-border-strong bg-surface text-text-muted hover:border-brand-primary hover:text-brand-primary"
           }`}
           aria-label={
             isDone
@@ -98,20 +103,20 @@ export default function TaskCard({
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <h3
-                className={`text-sm font-semibold leading-5 ${
-                  isDone ? "text-slate-400 line-through" : "text-slate-950"
+                className={`text-[15px] font-semibold leading-5 ${
+                  isDone ? "text-text-muted line-through" : "text-text-primary"
                 }`}
               >
                 {task.title}
               </h3>
-              <p className="mt-1 truncate text-xs text-slate-500">
+              <p className="mt-1 truncate text-xs text-text-secondary">
                 {task.goalTitle}
               </p>
             </div>
             <button
               type="button"
               onClick={() => setExpanded((v) => !v)}
-              className="rounded-full p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+              className="rounded-control p-1 text-text-muted hover:bg-surface-subtle hover:text-text-primary"
               aria-label={expanded ? "Hide revision options" : "Show revision options"}
             >
               <ChevronDown
@@ -121,14 +126,14 @@ export default function TaskCard({
           </div>
 
           {!showAnswer && task.description && (
-            <p className="mt-2 line-clamp-2 text-sm leading-5 text-slate-600">
+              <p className="mt-2 line-clamp-2 text-sm leading-5 text-text-secondary">
               {task.description}
             </p>
           )}
 
           {showAnswer && (
-            <div className={`mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700 ${showAnswer ? "answer-reveal" : ""}`}>
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+            <div className="mt-4 rounded-control border border-border bg-surface-subtle p-4 text-sm text-text-secondary">
+              <p className="text-xs font-semibold uppercase tracking-wide text-text-muted">
                 Answer / Details
               </p>
               <div className="mt-2 whitespace-pre-wrap text-sm leading-6">
@@ -139,20 +144,20 @@ export default function TaskCard({
 
           <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
             {task.type === "revision" && (
-              <span className="rounded-full bg-violet-50 px-2.5 py-1 font-medium text-violet-700 ring-1 ring-violet-100">
+                <span className="ui-badge" data-tone="ai">
                 Revision
               </span>
             )}
             {task.isOverdue && (
-              <span className="rounded-full bg-amber-50 px-2.5 py-1 font-medium text-amber-700 ring-1 ring-amber-100">
+                <span className="ui-badge" data-tone="warning">
                 Overdue
               </span>
             )}
-            <span className="inline-flex items-center gap-1 text-slate-500">
+            <span className="inline-flex items-center gap-1 text-text-muted">
               <Clock3 className="h-3.5 w-3.5" />
               {task.estimatedMinutes}m
             </span>
-            <span className="inline-flex items-center gap-1 text-slate-500">
+            <span className="inline-flex items-center gap-1 text-text-muted">
               <Calendar className="h-3.5 w-3.5" />
               {scheduledLabel}
             </span>
@@ -168,8 +173,8 @@ export default function TaskCard({
               }
               className={`rounded-full border px-3 py-1 text-xs font-semibold transition ${
                 hasAnswer
-                  ? "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
-                  : "border-slate-200 bg-slate-100 text-slate-400 cursor-not-allowed"
+                  ? "border-border-strong bg-surface text-text-secondary hover:bg-surface-subtle"
+                  : "border-border bg-surface-subtle text-text-muted cursor-not-allowed"
               }`}
             >
               {showAnswer ? "Hide answer" : "Show answer"}
@@ -179,10 +184,10 @@ export default function TaskCard({
       </div>
 
       {expanded && (
-        <div className="mt-4 space-y-3 border-t border-slate-100 pt-4">
+        <div className="mt-4 space-y-3 border-t border-border pt-4">
           {task.type === "execution" && !isDone && (
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              <p className="text-xs font-semibold uppercase tracking-wide text-text-muted">
                 Revision
               </p>
               <div className="mt-2 flex flex-wrap gap-2">
@@ -190,7 +195,8 @@ export default function TaskCard({
                   type="button"
                   disabled={busy}
                   onClick={() => run(() => onComplete(task._id))}
-                  className="rounded-full border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                  className="ui-button min-h-9 px-3 text-xs"
+                  data-variant="secondary"
                 >
                   Complete without revision
                 </button>
@@ -200,19 +206,40 @@ export default function TaskCard({
                     type="button"
                     disabled={busy}
                     onClick={() => run(() => onComplete(task._id, opt.key))}
-                    className="rounded-full border border-violet-200 bg-violet-50 px-3 py-1.5 text-xs font-semibold text-violet-800 hover:bg-violet-100"
+                    className="ui-button min-h-9 px-3 text-xs"
+                    data-variant="ghost"
                   >
                     {opt.label}
                   </button>
                 ))}
               </div>
-              <p className="mt-3 text-xs text-slate-500">
+              <p className="mt-3 text-xs text-text-muted">
                 Choose when you want to revisit this task, or complete without scheduling a revision.
               </p>
             </div>
           )}
-
-          
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => run(() => onReschedule(task._id, addDays(1)))}
+              className="ui-button min-h-10 px-3 text-xs"
+              data-variant="secondary"
+            >
+              <RotateCcw className="h-4 w-4" aria-hidden="true" />
+              Tomorrow
+            </button>
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => run(() => onSkip(task._id))}
+              className="ui-button min-h-10 px-3 text-xs"
+              data-variant="ghost"
+            >
+              <SkipForward className="h-4 w-4" aria-hidden="true" />
+              Skip
+            </button>
+          </div>
         </div>
       )}
     </article>
