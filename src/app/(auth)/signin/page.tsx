@@ -1,7 +1,5 @@
-import SignInForm from "@/components/auth/signin-form"
+import SignInForm from "@/components/auth/signin-form";
 
-export default function Home() {
-  return (
-      <SignInForm />
-  )
+export default function SignInPage() {
+  return <SignInForm />;
 }

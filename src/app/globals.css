@@ -1,8 +1,58 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f8faf9;
+  --foreground: #17201e;
+  --brand-primary: #0f766e;
+  --brand-primary-hover: #115e59;
+  --brand-primary-soft: #ecfdf5;
+  --brand-primary-foreground: #ffffff;
+  --surface: #ffffff;
+  --surface-subtle: #f3f6f5;
+  --text-primary: #17201e;
+  --text-secondary: #52605c;
+  --text-muted: #7a8783;
+  --border: #e3e9e6;
+  --border-strong: #cbd5d1;
+  --ai-primary: #4f46e5;
+  --ai-soft: #eef2ff;
+  --ai-foreground: #3730a3;
+  --success: #15803d;
+  --success-soft: #f0fdf4;
+  --warning: #b45309;
+  --warning-soft: #fffbeb;
+  --error: #b91c1c;
+  --error-soft: #fef2f2;
+  --info: #0369a1;
+  --info-soft: #f0f9ff;
+  --radius-control: 10px;
+  --radius-card: 16px;
+  --radius-container: 20px;
+  --radius-modal: 22px;
+  --shadow-sm: 0 1px 2px rgb(23 32 30 / 0.04);
+  --shadow-md: 0 8px 24px rgb(23 32 30 / 0.08);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-brand-primary: var(--brand-primary);
+  --color-brand-primary-hover: var(--brand-primary-hover);
+  --color-brand-primary-soft: var(--brand-primary-soft);
+  --color-surface: var(--surface);
+  --color-surface-subtle: var(--surface-subtle);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-muted: var(--text-muted);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-ai-primary: var(--ai-primary);
+  --color-ai-soft: var(--ai-soft);
+  --color-ai-foreground: var(--ai-foreground);
+  --radius-control: 10px;
+  --radius-card: 16px;
+  --radius-container: 20px;
+  --radius-modal: 22px;
 }
 
 * {
@@ -10,13 +60,16 @@
 }
 
 html {
-  background: #f6f7f9;
+  background: var(--background);
 }
 
 body {
   min-height: 100dvh;
-  background: #f6f7f9;
-  color: #0f172a;
+  background: var(--background);
+  color: var(--text-primary);
+  font-family: var(--font-sans), sans-serif;
+  font-size: 1rem;
+  line-height: 1.5;
 }
 
 button,
@@ -34,10 +87,86 @@ button:disabled {
   cursor: not-allowed;
 }
 
-::selection {
-  background: #bbf7d0;
-  color: #052e16;
+:where(button, a, input, select, textarea):focus-visible {
+  outline: 3px solid rgb(15 118 110 / 0.28);
+  outline-offset: 2px;
 }
+
+::selection {
+  background: var(--brand-primary-soft);
+  color: var(--brand-primary-hover);
+}
+
+.ui-button,
+.ui-input,
+.ui-textarea,
+.ui-card,
+.ui-badge,
+.ui-alert {
+  transition: border-color 180ms ease, background-color 180ms ease,
+    color 180ms ease, box-shadow 180ms ease, opacity 180ms ease;
+}
+
+.ui-button {
+  display: inline-flex;
+  min-height: 40px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-control);
+  padding: 0 16px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.ui-button[data-variant="primary"] { background: var(--brand-primary); color: var(--brand-primary-foreground); }
+.ui-button[data-variant="primary"]:hover { background: var(--brand-primary-hover); }
+.ui-button[data-variant="secondary"] { border-color: var(--border-strong); background: var(--surface); color: var(--text-primary); }
+.ui-button[data-variant="secondary"]:hover { background: var(--surface-subtle); }
+.ui-button[data-variant="ghost"] { color: var(--text-secondary); }
+.ui-button[data-variant="ghost"]:hover { background: var(--surface-subtle); color: var(--text-primary); }
+.ui-button[data-variant="destructive"] { background: var(--error); color: white; }
+.ui-button[data-variant="destructive"]:hover { background: #991b1b; }
+.ui-button:disabled { opacity: 0.55; }
+
+.ui-input,
+.ui-textarea {
+  width: 100%;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  color: var(--text-primary);
+  font-size: 14px;
+}
+
+.ui-input { min-height: 42px; padding: 0 12px; }
+.ui-textarea { min-height: 104px; resize: vertical; padding: 10px 12px; }
+.ui-input::placeholder, .ui-textarea::placeholder { color: var(--text-muted); }
+.ui-input:hover, .ui-textarea:hover { border-color: var(--text-muted); }
+.ui-input:focus, .ui-textarea:focus { border-color: var(--brand-primary); box-shadow: 0 0 0 3px rgb(15 118 110 / 0.12); outline: none; }
+.ui-input:disabled, .ui-textarea:disabled { background: var(--surface-subtle); opacity: 0.7; }
+
+.ui-card { border: 1px solid var(--border); border-radius: var(--radius-card); background: var(--surface); box-shadow: var(--shadow-sm); }
+.ui-card[data-variant="subtle"] { background: var(--surface-subtle); box-shadow: none; }
+.ui-card[data-variant="outlined"] { box-shadow: none; }
+.ui-badge { display: inline-flex; align-items: center; border-radius: 9999px; padding: 4px 9px; font-size: 12px; font-weight: 600; line-height: 1; }
+.ui-badge[data-tone="neutral"] { background: var(--surface-subtle); color: var(--text-secondary); }
+.ui-badge[data-tone="success"] { background: var(--success-soft); color: var(--success); }
+.ui-badge[data-tone="warning"] { background: var(--warning-soft); color: var(--warning); }
+.ui-badge[data-tone="error"] { background: var(--error-soft); color: var(--error); }
+.ui-badge[data-tone="info"] { background: var(--info-soft); color: var(--info); }
+.ui-badge[data-tone="ai"] { background: var(--ai-soft); color: var(--ai-foreground); }
+.ui-alert { display: flex; gap: 10px; border: 1px solid; border-radius: var(--radius-control); padding: 12px 14px; font-size: 14px; }
+.ui-alert[data-tone="success"] { border-color: #bbf7d0; background: var(--success-soft); color: var(--success); }
+.ui-alert[data-tone="warning"] { border-color: #fde68a; background: var(--warning-soft); color: var(--warning); }
+.ui-alert[data-tone="error"] { border-color: #fecaca; background: var(--error-soft); color: var(--error); }
+.ui-alert[data-tone="info"] { border-color: #bae6fd; background: var(--info-soft); color: var(--info); }
+.ui-progress { height: 8px; overflow: hidden; border-radius: 9999px; background: var(--surface-subtle); }
+.ui-progress > span { display: block; height: 100%; border-radius: inherit; background: var(--brand-primary); transition: width 180ms ease; }
+.ui-skeleton { display: block; border-radius: 8px; background: var(--surface-subtle); animation: skeleton-pulse 1.5s ease-in-out infinite; }
+@keyframes skeleton-pulse { 50% { opacity: 0.55; } }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; } }
 
 /* Card reveal and sweep animations for Today task cards */
 @keyframes revealFlip {

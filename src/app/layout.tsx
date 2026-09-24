@@ -1,12 +1,12 @@
 // app/layout.tsx
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Inter, Geist_Mono } from "next/font/google";
 import { AuthSessionProvider } from "@/components/SessionProvider";
 import "./globals.css";
 import LayoutWrapper from "@/components/LayoutWrapper"; // New wrapper
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const inter = Inter({
+  variable: "--font-sans",
   subsets: ["latin"],
 });
 
@@ -28,7 +28,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${inter.variable} ${geistMono.variable} antialiased`}
       >
         <AuthSessionProvider>
           <LayoutWrapper>{children}</LayoutWrapper>

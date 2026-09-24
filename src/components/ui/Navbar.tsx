@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
   AppBar,
   Toolbar,
@@ -28,7 +28,6 @@ import { useSession, signOut } from "next-auth/react";
 export default function Navbar() {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
-  const [scrollY, setScrollY] = useState(0);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const { data: session } = useSession();
@@ -43,18 +42,10 @@ export default function Navbar() {
 
   const handleClose = () => setAnchorEl(null);
 
-  useEffect(() => {
-    const handleScroll = () => setScrollY(window.scrollY);
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
-
   const navItems = [
-    { label: "Today", href: "/today" },
+    { label: "Product", href: "/features" },
     { label: "Courses", href: "/courses" },
-    { label: "Features", href: "/features" },
-    { label: "People & Chats", href: "/people" },
-    { label: "Pricing", href: "/pricing" },
+    { label: "How it works", href: "/roadmap" },
   ];
 
   return (
@@ -62,10 +53,8 @@ export default function Navbar() {
       <AppBar
         position="fixed"
         sx={{
-          bgcolor: scrollY > 20 ? "rgba(255,255,255,0.9)" : "transparent",
-          backdropFilter: scrollY > 20 ? "blur(12px)" : "none",
-          boxShadow: scrollY > 20 ? "0 2px 10px rgba(0,0,0,0.05)" : "none",
-          transition: "all 0.3s ease",
+          bgcolor: "var(--background)",
+          boxShadow: "0 1px 0 var(--border)",
         }}
       >
         <Container maxWidth="lg">
@@ -78,7 +67,7 @@ export default function Navbar() {
                   sx={{
                     width: 36,
                     height: 36,
-                    bgcolor: "#10b981",
+                    bgcolor: "var(--brand-primary)",
                     borderRadius: 2,
                     display: "flex",
                     alignItems: "center",
@@ -88,7 +77,7 @@ export default function Navbar() {
                   <Check sx={{ color: "white" }} />
                 </Box>
                 <Typography
-                  sx={{ fontWeight: 700, fontSize: "1.4rem", color: "#111" }}
+                  sx={{ fontWeight: 700, fontSize: "1.4rem", color: "var(--text-primary)", letterSpacing: "0.04em" }}
                 >
                   HABITIX
                 </Typography>
@@ -107,10 +96,10 @@ export default function Navbar() {
                     href={item.href}
                     sx={{
                       textTransform: "none",
-                      color: "#333",
+                      color: "var(--text-secondary)",
                       fontWeight: 500,
                       "&:hover": {
-                        color: "#10b981",
+                        color: "var(--brand-primary)",
                       },
                     }}
                   >
@@ -156,21 +145,29 @@ export default function Navbar() {
                     </Menu>
                   </>
                 ) : (
-                  <Button
-                    component={Link}
-                    href="/login"
-                    sx={{
-                      bgcolor: "#10b981",
-                      color: "white",
-                      borderRadius: "20px",
-                      px: 3,
-                      "&:hover": {
-                        bgcolor: "#059669",
-                      },
-                    }}
-                  >
-                    Login
-                  </Button>
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                    <Button
+                      component={Link}
+                      href="/signin"
+                      sx={{ textTransform: "none", color: "var(--text-secondary)" }}
+                    >
+                      Sign in
+                    </Button>
+                    <Button
+                      component={Link}
+                      href="/signup"
+                      sx={{
+                        bgcolor: "var(--brand-primary)",
+                        color: "white",
+                        borderRadius: "10px",
+                        px: 2.5,
+                        textTransform: "none",
+                        "&:hover": { bgcolor: "var(--brand-primary-hover)" },
+                      }}
+                    >
+                      Get Started
+                    </Button>
+                  </Box>
                 )}
               </Box>
             )}
@@ -275,20 +272,6 @@ export default function Navbar() {
           <Box sx={{ mt: "auto" }}>
 
             <Divider sx={{ my: 2 }} />
-
-            {/* 🔷 User ID */}
-            {session?.user && (
-              <Typography
-                fontSize={12}
-                color="gray"
-                sx={{
-                  mb: 1,
-                  wordBreak: "break-all",
-                }}
-              >
-                ID: {session.user.id}
-              </Typography>
-            )}
 
             {/* 🔷 Auth Button */}
             {session?.user ? (
