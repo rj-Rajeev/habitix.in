@@ -33,6 +33,7 @@ export const lessonSchema = z.object({
   markdownContent: z.string().optional(),
   videoUrl: z.string().url().optional().or(z.literal("")),
   pdfUrl: z.string().url().optional().or(z.literal("")),
+  isFree: z.boolean().default(false),
 }).strict();
 
 export const lessonUpdateSchema = lessonSchema.partial().refine(

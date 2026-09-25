@@ -8,6 +8,7 @@ export interface ICourseLesson extends Document {
   markdownContent?: string;
   videoUrl?: string;
   pdfUrl?: string;
+  isFree: boolean;
 }
 
 const CourseLessonSchema: Schema<ICourseLesson> = new Schema(
@@ -19,6 +20,7 @@ const CourseLessonSchema: Schema<ICourseLesson> = new Schema(
     markdownContent: { type: String },
     videoUrl: { type: String, trim: true },
     pdfUrl: { type: String, trim: true },
+    isFree: { type: Boolean, default: false },
   },
   { timestamps: true }
 );

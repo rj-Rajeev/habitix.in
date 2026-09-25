@@ -38,7 +38,7 @@ export async function GET(
         ...module.toObject(),
         lessons: lessons
           .filter((lesson) => lesson.moduleId.toString() === module._id.toString())
-          .map((lesson) => hasPaidAccess
+          .map((lesson) => hasPaidAccess || lesson.isFree
             ? lesson
             : {
                 _id: lesson._id,
@@ -46,7 +46,7 @@ export async function GET(
                 title: lesson.title,
                 description: lesson.description,
                 order: lesson.order,
-                markdownContent: lesson.markdownContent,
+                isFree: lesson.isFree,
               }),
       })),
     });

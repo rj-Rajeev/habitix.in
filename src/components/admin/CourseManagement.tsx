@@ -173,10 +173,13 @@ export default function CourseManagement() {
       eyebrow="Admin"
       title="Courses"
       action={
-        <button type="button" onClick={openCreate} className="inline-flex h-10 items-center gap-2 rounded-full bg-slate-950 px-4 text-sm font-semibold text-white disabled:opacity-50">
-          <Plus className="h-4 w-4" />
-          Create Course
-        </button>
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          <Link href="/admin/courses/import" className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700">Import CSV</Link>
+          <button type="button" onClick={openCreate} className="inline-flex h-10 items-center gap-2 rounded-full bg-slate-950 px-4 text-sm font-semibold text-white disabled:opacity-50">
+            <Plus className="h-4 w-4" />
+            Create Course
+          </button>
+        </div>
       }
     >
       <div className="space-y-5">
