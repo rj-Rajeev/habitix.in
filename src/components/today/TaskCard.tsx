@@ -1,7 +1,9 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
+  BookOpen,
   Calendar,
   Check,
   ChevronDown,
@@ -41,7 +43,10 @@ export default function TaskCard({
   onReschedule,
   onReveal,
 }: Props) {
+  const router = useRouter();
   const [busy, setBusy] = useState(false);
+  const [openingLesson, setOpeningLesson] = useState(false);
+  const [lessonNavigationError, setLessonNavigationError] = useState("");
   const [expanded, setExpanded] = useState(false);
   const [showAnswer, setShowAnswer] = useState(false);
   const isDone = task.status === "completed";
@@ -57,6 +62,28 @@ export default function TaskCard({
 
   const answer = task.answer ?? task.description ?? task.notes;
   const hasAnswer = Boolean(answer);
+  const learning = task.metadata?.learning;
+
+  const openLesson = async () => {
+    if (!learning) return;
+    setOpeningLesson(true);
+    setLessonNavigationError("");
+    try {
+      const response = await fetch("/api/courses");
+      const payload = await response.json().catch(() => null);
+      if (!response.ok || payload?.success === false) throw new Error();
+      const courses = payload?.data ?? payload;
+      const course = Array.isArray(courses)
+        ? courses.find((item: { _id?: string }) => item._id === learning.courseId)
+        : undefined;
+      if (!course?.slug) throw new Error();
+      router.push(`/courses/${encodeURIComponent(course.slug)}?lessonId=${encodeURIComponent(learning.lessonId)}`);
+    } catch {
+      setLessonNavigationError("This course lesson is unavailable right now.");
+    } finally {
+      setOpeningLesson(false);
+    }
+  };
 
   const run = async (fn: () => Promise<void>) => {
     setBusy(true);
@@ -157,6 +184,17 @@ export default function TaskCard({
               <Clock3 className="h-3.5 w-3.5" />
               {task.estimatedMinutes}m
             </span>
+            {task.type === "execution" && learning?.courseId && learning.lessonId && (
+              <button
+                type="button"
+                disabled={openingLesson}
+                onClick={() => void openLesson()}
+                className="inline-flex min-h-8 items-center gap-1 rounded-full border border-border-strong bg-surface px-3 text-xs font-semibold text-brand-primary hover:bg-surface-subtle disabled:opacity-60"
+              >
+                <BookOpen className="h-3.5 w-3.5" aria-hidden="true" />
+                {openingLesson ? "Opening…" : "Open lesson"}
+              </button>
+            )}
             <span className="inline-flex items-center gap-1 text-text-muted">
               <Calendar className="h-3.5 w-3.5" />
               {scheduledLabel}
@@ -180,6 +218,7 @@ export default function TaskCard({
               {showAnswer ? "Hide answer" : "Show answer"}
             </button>
           </div>
+          {lessonNavigationError && <p className="mt-2 text-xs text-text-muted" role="status">{lessonNavigationError}</p>}
         </div>
       </div>
 

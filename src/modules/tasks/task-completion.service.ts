@@ -8,6 +8,9 @@ import { revisionRepository } from "@/modules/revisions/revision.repository";
 import { TaskHistory } from "./task-history.model";
 import { analyticsService } from "@/modules/analytics/analytics.service";
 import type { RevisionPreset } from "@/lib/dates";
+import { courseProgressService } from "@/modules/courses/course-progress.service";
+
+const OBJECT_ID_PATTERN = /^[a-f\d]{24}$/i;
 
 export const taskCompletionService = {
   async complete(taskId: string, userId: string, input: CompleteTaskInput) {
@@ -16,6 +19,29 @@ export const taskCompletionService = {
 
     if (task.status === "completed") {
       return { taskId, alreadyCompleted: true };
+    }
+
+    const metadata = task.metadata as unknown;
+    if (task.type === "execution" && metadata && typeof metadata === "object" && "learning" in metadata) {
+      const learning = metadata.learning as unknown;
+      if (
+        !learning ||
+        typeof learning !== "object" ||
+        !("courseId" in learning) ||
+        !("moduleId" in learning) ||
+        !("lessonId" in learning) ||
+        typeof learning.courseId !== "string" ||
+        !OBJECT_ID_PATTERN.test(learning.courseId) ||
+        typeof learning.moduleId !== "string" ||
+        !OBJECT_ID_PATTERN.test(learning.moduleId) ||
+        typeof learning.lessonId !== "string" ||
+        !OBJECT_ID_PATTERN.test(learning.lessonId) ||
+        ("lessonTitle" in learning && learning.lessonTitle !== undefined && typeof learning.lessonTitle !== "string")
+      ) {
+        throw Errors.badRequest("Invalid course learning metadata");
+      }
+
+      await courseProgressService.completeLesson(userId, learning.courseId, learning.lessonId);
     }
 
     const now = new Date();

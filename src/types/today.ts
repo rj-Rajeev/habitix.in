@@ -12,6 +12,14 @@ export type TodayTaskCard = {
   priority: string;
   estimatedMinutes: number;
   revisionOfTaskId?: string;
+  metadata?: {
+    learning?: {
+      courseId: string;
+      moduleId: string;
+      lessonId: string;
+      lessonTitle?: string;
+    };
+  };
   completedAt?: string;
   notes?: string;
   goalTitle: string;

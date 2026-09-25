@@ -18,6 +18,7 @@ export type TaskLean = {
   priority: ITask["priority"];
   estimatedMinutes: number;
   revisionOfTaskId?: string;
+  metadata?: ITask["metadata"];
   completedAt?: Date;
   notes?: string;
   goalTitle?: string;
@@ -40,6 +41,7 @@ type TaskDocLike = {
   minutes?: number;
   estimatedMinutes?: number;
   revisionOfTaskId?: Types.ObjectId;
+  metadata?: ITask["metadata"];
   completedAt?: Date;
   notes?: string;
 };
@@ -66,6 +68,7 @@ function toLean(doc: TaskDocLike, goalTitle?: string): TaskLean {
     priority: doc.priority,
     estimatedMinutes: minutes,
     revisionOfTaskId: doc.revisionOfTaskId?.toString(),
+    metadata: doc.metadata,
     completedAt: doc.completedAt,
     notes: doc.notes,
     goalTitle,
@@ -102,6 +105,7 @@ function mapPopulatedTask(doc: any): TaskLean {
       minutes: doc.minutes,
       estimatedMinutes: doc.estimatedMinutes,
       revisionOfTaskId: doc.revisionOfTaskId,
+      metadata: doc.metadata,
       completedAt: doc.completedAt,
       notes: doc.notes,
     },

@@ -78,11 +78,18 @@ export default function CourseDetail({ slug }: { slug: string }) {
     void loadCourse(slug).then((result) => {
       if (!active) return;
       setData(result);
+      const requestedLessonId = new URLSearchParams(window.location.search).get("lessonId");
+      const requestedModule = requestedLessonId
+        ? result.modules.find((module) => module.lessons.some((lesson) => lesson._id === requestedLessonId))
+        : undefined;
+      const requestedLesson = requestedModule?.lessons.find((lesson) => lesson._id === requestedLessonId);
       const firstModule = result.modules[0];
       const firstLesson = firstModule?.lessons[0];
-      if (firstLesson) {
-        setActiveLessonId(firstLesson._id);
-        setExpandedModules({ [firstModule._id]: true });
+      const startingLesson = requestedLesson ?? firstLesson;
+      const startingModule = requestedModule ?? firstModule;
+      if (startingLesson && startingModule) {
+        setActiveLessonId(startingLesson._id);
+        setExpandedModules({ [startingModule._id]: true });
       }
     }).catch((loadError) => {
       if (active) setError(loadError instanceof Error ? loadError.message : "Unable to load this course.");
