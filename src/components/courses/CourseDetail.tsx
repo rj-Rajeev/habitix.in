@@ -4,6 +4,7 @@ import Link from "next/link";
 import type { Dispatch, ReactNode, SetStateAction } from "react";
 import { useEffect, useState } from "react";
 import { signIn, useSession } from "next-auth/react";
+import { enrollInCourse } from "@/lib/courses/enroll-client";
 import {
   ArrowLeft,
   BookOpen,
@@ -47,9 +48,6 @@ type Module = { _id: string; title: string; description?: string; order: number;
 type CourseResponse = { course: Course; modules: Module[] };
 type CourseProgress = { completedLessonIds: string[]; completedCount: number; totalCount: number; percentage: number };
 type EnrollmentState = { enrolled: boolean; status?: "active" | "pending" | "cancelled"; paymentStatus?: string };
-type PaymentDetails = { keyId: string; orderId: string; amount: number; currency: string };
-type RazorpayConstructor = new (options: { key: string; amount: number; currency: string; name: string; description: string; order_id: string; handler: (response: { razorpay_payment_id: string; razorpay_order_id: string; razorpay_signature: string }) => void }) => { open: () => void };
-
 type FlatLesson = Lesson & { moduleTitle: string; moduleOrder: number };
 
 async function loadCourse(slug: string): Promise<CourseResponse> {
@@ -146,44 +144,9 @@ export default function CourseDetail({ slug }: { slug: string }) {
     setEnrolling(true);
     setEnrollmentMessage("");
     try {
-      const response = await fetch(`/api/courses/${data.course._id}/enroll`, { method: "POST" });
-      const payload = await response.json().catch(() => null);
-      if (!response.ok || payload?.success === false) throw new Error(payload?.error?.message || "Unable to start enrollment.");
-      const result = payload.data;
-      if (!result.requiresPayment) {
-        setEnrollment({ enrolled: true, status: "active", paymentStatus: "paid" });
-        setEnrollmentMessage("You are enrolled. Course content is ready.");
-        return;
-      }
-      const payment = result.payment as PaymentDetails | null;
-      if (!payment?.keyId || !payment.orderId) throw new Error("Payment checkout is not available right now.");
-      await loadRazorpay();
-      const Razorpay = (window as unknown as { Razorpay?: RazorpayConstructor }).Razorpay;
-      if (!Razorpay) throw new Error("Payment checkout is not available right now.");
-      const checkout = new Razorpay({
-        key: payment.keyId,
-        amount: payment.amount,
-        currency: payment.currency,
-        name: "Habitix",
-        description: data.course.title,
-        order_id: payment.orderId,
-        handler: async (paymentResponse) => {
-          const confirmation = await fetch(`/api/courses/${data.course._id}/enroll/confirm`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ paymentId: paymentResponse.razorpay_payment_id, orderId: paymentResponse.razorpay_order_id, signature: paymentResponse.razorpay_signature }),
-          });
-          const confirmationPayload = await confirmation.json().catch(() => null);
-          if (!confirmation.ok || confirmationPayload?.success === false) {
-            setEnrollmentMessage(confirmationPayload?.error?.message || "Payment could not be verified.");
-            return;
-          }
-          setEnrollment({ enrolled: true, status: "active", paymentStatus: "paid" });
-          setEnrollmentMessage("Payment verified. You are enrolled.");
-        },
-      });
-      checkout.open();
-      setEnrollment({ enrolled: true, status: "pending", paymentStatus: "pending" });
+      await enrollInCourse(data.course._id, data.course.title);
+      setEnrollment({ enrolled: true, status: "active", paymentStatus: "paid" });
+      setEnrollmentMessage("You are enrolled. Course content is ready.");
     } catch (enrollmentError) {
       setEnrollmentMessage(enrollmentError instanceof Error ? enrollmentError.message : "Unable to enroll.");
     } finally {
@@ -296,4 +259,3 @@ function renderInline(text: string) {
 
 function EmptyCourseState() { return <div className="py-16 text-center"><BookOpen className="mx-auto h-8 w-8 text-brand-primary" aria-hidden="true" /><h2 className="mt-4 text-lg font-semibold text-text-primary">Course content is being prepared.</h2><p className="mt-2 text-sm text-text-secondary">Check back soon for the learning path.</p></div>; }
 function PageState({ children }: { children: ReactNode }) { return <main className="flex min-h-[calc(100vh-80px)] items-center justify-center bg-background px-4 py-12 text-center"><div className="rounded-container border border-border bg-surface p-8 shadow-[var(--shadow-sm)]">{children}</div></main>; }
-function loadRazorpay() { if ((window as unknown as { Razorpay?: RazorpayConstructor }).Razorpay) return Promise.resolve(); return new Promise<void>((resolve, reject) => { const script = document.createElement("script"); script.src = "https://checkout.razorpay.com/v1/checkout.js"; script.onload = () => resolve(); script.onerror = () => reject(new Error("Unable to load payment checkout.")); document.body.appendChild(script); }); }

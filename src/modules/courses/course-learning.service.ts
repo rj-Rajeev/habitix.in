@@ -23,6 +23,7 @@ export const courseLearningService = {
 
     return {
       course: { courseId: course._id.toString(), title: course.title, description: course.description },
+      modules: modules.map((module) => ({ moduleId: module._id.toString(), moduleTitle: module.title })),
       lessons: lessons.map((lesson) => {
         const module = modules.find((item) => item._id.toString() === lesson.moduleId.toString());
         return {

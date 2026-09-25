@@ -57,6 +57,12 @@ export const generateRoadmapSchema = z.object({
   daysPerWeek: z.coerce.number().min(1).max(7),
   preferredTime: z.string(),
   motivation: z.string().optional(),
+  currentLevel: z.enum(["beginner", "some_knowledge", "comfortable"]).optional(),
+  objective: z.string().max(2000).optional(),
+  existingKnowledge: z.string().max(2000).optional(),
+  focusAreas: z.array(z.string().max(200)).max(100).optional(),
+  learningPreference: z.enum(["finish_course", "understand_deeply", "interview_prep", "learn_practice", "build_something"]).optional(),
+  additionalRequirements: z.string().max(2000).optional(),
 });
 
 export const createManualTaskSchema = z.object({

@@ -79,14 +79,25 @@ Example:
 
   async generateCourseRoadmap(input: GenerateRoadmapInput, userId: string, courseId: string) {
     await requireCourseAccess(userId, courseId);
-    const { course, lessons } = await courseLearningService.loadPublishedCourseContent(courseId);
+    const { course, modules, lessons } = await courseLearningService.loadPublishedCourseContent(courseId);
     if (lessons.length === 0) throw Errors.badRequest("This course does not have any lessons yet");
     const allowedLessonIds = new Set(lessons.map((lesson) => lesson.lessonId));
-    const prompt = `You're a learning coach. Create a personalized ${input.duration} study plan (maximum 14 days) for this published course.
+    const allowedModules = new Map(modules.map((module) => [module.moduleId, module.moduleTitle]));
+    if (input.focusAreas?.some((moduleId) => !allowedModules.has(moduleId))) {
+      throw Errors.badRequest("A selected focus area does not belong to this course");
+    }
+    const selectedFocusAreas = input.focusAreas?.map((moduleId) => allowedModules.get(moduleId) as string);
+    const prompt = `You're a learning coach. Create a personalized ${input.duration} study plan (maximum 30 days) for this published course.
 
 Course: ${course.title}
 Course description: ${course.description}
 Goal: ${input.title}
+Objective: ${input.objective ?? input.title}
+Current level: ${input.currentLevel ?? "not specified"}
+Existing knowledge: ${input.existingKnowledge ?? "not specified"}
+Focus areas: ${selectedFocusAreas?.join(", ") || "not specified"}
+Learning preference: ${input.learningPreference ?? "not specified"}
+Additional requirements: ${input.additionalRequirements ?? "not specified"}
 Preferred time: ${input.preferredTime}
 Days per week: ${input.daysPerWeek}
 Hours per day: ${input.hoursPerDay}
