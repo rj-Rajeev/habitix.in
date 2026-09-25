@@ -21,6 +21,7 @@ export const rescheduleTaskSchema = z.object({
 });
 
 export const createGoalSchema = z.object({
+  courseId: z.string().regex(/^[a-f\d]{24}$/i).optional(),
   title: z.string().min(1).max(200),
   description: z.string().max(2000).optional(),
   targetDate: z.string().optional(),
@@ -40,6 +41,7 @@ export const createGoalSchema = z.object({
           z.object({
             title: z.string(),
             isCompleted: z.boolean().optional(),
+            courseLessonId: z.string().regex(/^[a-f\d]{24}$/i).optional(),
           })
         ),
       })
@@ -48,6 +50,7 @@ export const createGoalSchema = z.object({
 });
 
 export const generateRoadmapSchema = z.object({
+  courseId: z.string().regex(/^[a-f\d]{24}$/i).optional(),
   title: z.string().min(1),
   duration: z.string().min(1),
   hoursPerDay: z.coerce.number().min(0.5).max(24),

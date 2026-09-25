@@ -8,14 +8,16 @@ import { aiService } from "@/services/ai/ai.service";
 export async function POST(req: NextRequest) {
   try {
     await connectDb();
-    await requireUserId();
+    const userId = await requireUserId();
     const body = await req.json();
     const parsed = generateRoadmapSchema.safeParse(body);
     if (!parsed.success) {
       throw Errors.badRequest("Invalid input", parsed.error.flatten());
     }
 
-    const roadmap = await aiService.generateRoadmap(parsed.data);
+    const roadmap = parsed.data.courseId
+      ? await aiService.generateCourseRoadmap(parsed.data, userId, parsed.data.courseId)
+      : await aiService.generateRoadmap(parsed.data);
     return jsonOk({ roadmap });
   } catch (err) {
     return handleRouteError(err);

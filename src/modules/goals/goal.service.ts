@@ -1,10 +1,13 @@
 import { addDays, format, startOfDay } from "date-fns";
+import { Types } from "mongoose";
 import { toDateKey } from "@/lib/dates";
 import { Errors } from "@/lib/api";
+import { requireCourseAccess } from "@/lib/enrollments/access";
 import type { CreateGoalInput } from "@/modules/tasks/task.schemas";
 import { goalRepository } from "./goal.repository";
 import { goalSyncService } from "./goal-sync.service";
 import type { IRoadmapDay } from "./goal.model";
+import { courseLearningService } from "@/modules/courses/course-learning.service";
 
 function normalizeRoadmap(roadmap: CreateGoalInput["roadmap"]): IRoadmapDay[] {
   if (!roadmap?.length) return [];
@@ -35,6 +38,7 @@ function normalizeRoadmap(roadmap: CreateGoalInput["roadmap"]): IRoadmapDay[] {
         title: t.title,
         isCompleted: t.isCompleted ?? false,
         createdAt: new Date(),
+        courseLessonId: t.courseLessonId ? new Types.ObjectId(t.courseLessonId) : undefined,
       })),
       proof: { uploaded: false },
     };
@@ -43,6 +47,22 @@ function normalizeRoadmap(roadmap: CreateGoalInput["roadmap"]): IRoadmapDay[] {
 
 export const goalService = {
   async create(userId: string, input: CreateGoalInput) {
+    if (!input.courseId && input.roadmap?.some((day) => day.tasks.some((task) => task.courseLessonId))) {
+      throw Errors.badRequest("Course lesson references require a courseId");
+    }
+
+    if (input.courseId) {
+      const content = await courseLearningService.loadPublishedCourseContent(input.courseId);
+      await requireCourseAccess(userId, input.courseId);
+      const validLessonIds = new Set(content.lessons.map((lesson) => lesson.lessonId));
+      const requestedLessonIds = input.roadmap?.flatMap((day) => day.tasks
+        .map((task) => task.courseLessonId)
+        .filter((lessonId): lessonId is string => Boolean(lessonId))) ?? [];
+      if (requestedLessonIds.some((lessonId) => !validLessonIds.has(lessonId))) {
+        throw Errors.badRequest("Roadmap contains a lesson that does not belong to this course");
+      }
+    }
+
     const roadmap = normalizeRoadmap(input.roadmap);
 
     const goal = await goalRepository.create({
@@ -55,6 +75,7 @@ export const goalService = {
       daysPerWeek: input.daysPerWeek,
       motivation: input.motivation,
       timezone: input.timezone,
+      courseId: input.courseId ? new Types.ObjectId(input.courseId) : undefined,
       roadmap,
       status: "active",
       completed: false,

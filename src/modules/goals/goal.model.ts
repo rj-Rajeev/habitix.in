@@ -1,10 +1,11 @@
-import mongoose, { Schema, Document, models, model } from "mongoose";
+import mongoose, { Schema, Document, models, model, Types } from "mongoose";
 
 export interface IRoadmapTask {
   _id?: mongoose.Types.ObjectId;
   title: string;
   isCompleted: boolean;
   createdAt: Date;
+  courseLessonId?: Types.ObjectId;
 }
 
 export interface IRoadmapDay {
@@ -32,6 +33,7 @@ export interface IGoal extends Document {
   completed: boolean;
   status: "active" | "completed" | "archived";
   timezone: string;
+  courseId?: Types.ObjectId;
   roadmap?: IRoadmapDay[];
   tasksSyncedAt?: Date;
   createdAt: Date;
@@ -55,6 +57,7 @@ const GoalSchema = new Schema<IGoal>(
       default: "active",
     },
     timezone: { type: String, default: "UTC" },
+    courseId: { type: Schema.Types.ObjectId, ref: "Course", required: false, index: true },
     roadmap: [
       {
         dayNumber: { type: Number, required: true },
@@ -66,6 +69,7 @@ const GoalSchema = new Schema<IGoal>(
             title: { type: String, required: true },
             isCompleted: { type: Boolean, default: false },
             createdAt: { type: Date, default: Date.now },
+            courseLessonId: { type: Schema.Types.ObjectId, ref: "CourseLesson", required: false },
           },
         ],
         proof: {

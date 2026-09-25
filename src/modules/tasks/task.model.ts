@@ -18,6 +18,17 @@ export type TaskSourceType =
   | "recovery"
   | "roadmap_sync";
 
+export interface TaskLearningMetadata {
+  courseId: string;
+  moduleId: string;
+  lessonId: string;
+  lessonTitle?: string;
+}
+
+export type TaskMetadata = Record<string, unknown> & {
+  learning?: TaskLearningMetadata;
+};
+
 export interface ITask extends Document {
   userId: Types.ObjectId;
   goalId: Types.ObjectId;
@@ -46,7 +57,7 @@ export interface ITask extends Document {
   notes?: string;
   rescheduleCount: number;
   lastRescheduledAt?: Date;
-  metadata?: Record<string, unknown>;
+  metadata?: TaskMetadata;
   createdAt: Date;
   updatedAt: Date;
 }

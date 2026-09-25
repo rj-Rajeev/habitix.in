@@ -198,6 +198,7 @@ export const taskRepository = {
       minutes?: number;
       estimatedMinutes?: number;
       revisionOfTaskId?: string;
+      metadata?: ITask["metadata"];
     }>
   ) {
     if (tasks.length === 0) return [];

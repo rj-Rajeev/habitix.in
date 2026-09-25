@@ -1,7 +1,9 @@
 import { GoogleGenAI } from "@google/genai";
 import { z } from "zod";
 import { Errors } from "@/lib/api";
+import { requireCourseAccess } from "@/lib/enrollments/access";
 import type { GenerateRoadmapInput } from "@/modules/tasks/task.schemas";
+import { courseLearningService } from "@/modules/courses/course-learning.service";
 
 const roadmapDaySchema = z.object({
   dayNumber: z.number(),
@@ -9,6 +11,10 @@ const roadmapDaySchema = z.object({
 });
 
 const roadmapSchema = z.array(roadmapDaySchema);
+const courseRoadmapSchema = z.array(z.object({
+  dayNumber: z.number(),
+  tasks: z.array(z.object({ title: z.string(), lessonId: z.string() })),
+}));
 
 function getClient() {
   const apiKey = process.env.GEMINI_API_KEY;
@@ -68,6 +74,63 @@ Example:
     } catch (err) {
       console.error("[AI] roadmap generation failed:", err);
       throw Errors.internal("Failed to generate roadmap");
+    }
+  },
+
+  async generateCourseRoadmap(input: GenerateRoadmapInput, userId: string, courseId: string) {
+    await requireCourseAccess(userId, courseId);
+    const { course, lessons } = await courseLearningService.loadPublishedCourseContent(courseId);
+    if (lessons.length === 0) throw Errors.badRequest("This course does not have any lessons yet");
+    const allowedLessonIds = new Set(lessons.map((lesson) => lesson.lessonId));
+    const prompt = `You're a learning coach. Create a personalized ${input.duration} study plan (maximum 14 days) for this published course.
+
+Course: ${course.title}
+Course description: ${course.description}
+Goal: ${input.title}
+Preferred time: ${input.preferredTime}
+Days per week: ${input.daysPerWeek}
+Hours per day: ${input.hoursPerDay}
+Motivation: ${input.motivation ?? "N/A"}
+
+Available real lessons (lessonId is an authoritative database ID):
+${JSON.stringify(lessons)}
+
+Return ONLY a JSON array. Each item has "dayNumber" (1-based) and "tasks" (3-5 objects). Each task must have an actionable "title" and a "lessonId" copied exactly from the available lessons. Never create or alter lesson IDs.
+Example: [{"dayNumber":1,"tasks":[{"title":"Understand the fundamentals","lessonId":"${lessons[0].lessonId}"}]}]`;
+
+    try {
+      const ai = getClient();
+      const response = await ai.models.generateContent({
+        model: "gemini-1.5-flash",
+        contents: [{ role: "user", parts: [{ text: prompt }] }],
+      });
+      const text = response.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (!text) throw new Error("Empty AI response");
+      const jsonStart = text.indexOf("[");
+      const jsonEnd = text.lastIndexOf("]") + 1;
+      if (jsonStart < 0 || jsonEnd <= jsonStart) throw new Error("No JSON array in response");
+      const parsed = courseRoadmapSchema.parse(JSON.parse(text.slice(jsonStart, jsonEnd)));
+      if (parsed.some((day) => day.tasks.some((task) => !allowedLessonIds.has(task.lessonId)))) {
+        throw new Error("AI returned a lesson ID outside the supplied course");
+      }
+
+      const lessonTitles = new Map(lessons.map((lesson) => [lesson.lessonId, lesson.lessonTitle]));
+      return parsed.map((day, index) => ({
+        dayNumber: day.dayNumber,
+        unlocked: index === 0,
+        completed: false,
+        tasks: day.tasks.map((task) => ({
+          title: task.title,
+          isCompleted: false,
+          createdAt: new Date(),
+          courseLessonId: task.lessonId,
+          lessonTitle: lessonTitles.get(task.lessonId),
+        })),
+        proof: { uploaded: false },
+      }));
+    } catch (err) {
+      console.error("[AI] course roadmap generation failed:", err);
+      throw Errors.internal("Failed to generate course roadmap");
     }
   },
 };

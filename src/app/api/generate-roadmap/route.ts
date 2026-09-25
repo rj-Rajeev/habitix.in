@@ -22,7 +22,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const roadmap = await aiService.generateRoadmap(parsed.data);
+    const roadmap = parsed.data.courseId
+      ? await aiService.generateCourseRoadmap(parsed.data, session.user.id, parsed.data.courseId)
+      : await aiService.generateRoadmap(parsed.data);
     return NextResponse.json({ roadmap });
   } catch (err) {
     console.error("Gemini Error:", err);
