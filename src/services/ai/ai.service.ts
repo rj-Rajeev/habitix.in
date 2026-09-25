@@ -1,9 +1,9 @@
-import { GoogleGenAI } from "@google/genai";
 import { z } from "zod";
 import { Errors } from "@/lib/api";
 import { requireCourseAccess } from "@/lib/enrollments/access";
 import type { GenerateRoadmapInput } from "@/modules/tasks/task.schemas";
 import { courseLearningService } from "@/modules/courses/course-learning.service";
+import OpenAI from "openai";
 
 const roadmapDaySchema = z.object({
   dayNumber: z.number(),
@@ -11,17 +11,46 @@ const roadmapDaySchema = z.object({
 });
 
 const roadmapSchema = z.array(roadmapDaySchema);
-const courseRoadmapSchema = z.array(z.object({
-  dayNumber: z.number(),
-  tasks: z.array(z.object({ title: z.string(), lessonId: z.string() })),
-}));
+
+const courseRoadmapSchema = z.array(
+  z.object({
+    dayNumber: z.number(),
+    tasks: z.array(
+      z.object({
+        title: z.string(),
+        lessonId: z.string(),
+      })
+    ),
+  })
+);
 
 function getClient() {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    throw Errors.internal("GEMINI_API_KEY is not configured");
+  return new OpenAI({
+    apiKey: process.env.GEMINI_API_KEY,
+    baseURL: "https://generativelanguage.googleapis.com/v1beta/openai/",
+  });
+}
+
+async function generateText(prompt: string) {
+  const ai = getClient();
+
+  const response = await ai.chat.completions.create({
+    model: "gemini-2.5-flash",
+    messages: [
+      {
+        role: "user",
+        content: prompt,
+      },
+    ],
+  });
+
+  const text = response.choices[0]?.message?.content;
+
+  if (!text) {
+    throw new Error("Empty AI response");
   }
-  return new GoogleGenAI({ apiKey });
+
+  return text;
 }
 
 export const aiService = {
@@ -42,17 +71,11 @@ Example:
 [{"dayNumber":1,"tasks":[{"title":"Read chapter 1"}]}]`;
 
     try {
-      const ai = getClient();
-      const response = await ai.models.generateContent({
-        model: "gemini-1.5-flash",
-        contents: [{ role: "user", parts: [{ text: prompt }] }],
-      });
-
-      const text = response.candidates?.[0]?.content?.parts?.[0]?.text;
-      if (!text) throw new Error("Empty AI response");
+      const text = await generateText(prompt);
 
       const jsonStart = text.indexOf("[");
       const jsonEnd = text.lastIndexOf("]") + 1;
+
       if (jsonStart < 0 || jsonEnd <= jsonStart) {
         throw new Error("No JSON array in response");
       }
@@ -77,16 +100,42 @@ Example:
     }
   },
 
-  async generateCourseRoadmap(input: GenerateRoadmapInput, userId: string, courseId: string) {
+  async generateCourseRoadmap(
+    input: GenerateRoadmapInput,
+    userId: string,
+    courseId: string
+  ) {
     await requireCourseAccess(userId, courseId);
-    const { course, modules, lessons } = await courseLearningService.loadPublishedCourseContent(courseId);
-    if (lessons.length === 0) throw Errors.badRequest("This course does not have any lessons yet");
-    const allowedLessonIds = new Set(lessons.map((lesson) => lesson.lessonId));
-    const allowedModules = new Map(modules.map((module) => [module.moduleId, module.moduleTitle]));
-    if (input.focusAreas?.some((moduleId) => !allowedModules.has(moduleId))) {
-      throw Errors.badRequest("A selected focus area does not belong to this course");
+
+    const { course, modules, lessons } =
+      await courseLearningService.loadPublishedCourseContent(courseId);
+
+    if (lessons.length === 0) {
+      throw Errors.badRequest("This course does not have any lessons yet");
     }
-    const selectedFocusAreas = input.focusAreas?.map((moduleId) => allowedModules.get(moduleId) as string);
+
+    const allowedLessonIds = new Set(
+      lessons.map((lesson) => lesson.lessonId)
+    );
+
+    const allowedModules = new Map(
+      modules.map((module) => [module.moduleId, module.moduleTitle])
+    );
+
+    if (
+      input.focusAreas?.some(
+        (moduleId) => !allowedModules.has(moduleId)
+      )
+    ) {
+      throw Errors.badRequest(
+        "A selected focus area does not belong to this course"
+      );
+    }
+
+    const selectedFocusAreas = input.focusAreas?.map(
+      (moduleId) => allowedModules.get(moduleId) as string
+    );
+
     const prompt = `You're a learning coach. Create a personalized ${input.duration} study plan (maximum 30 days) for this published course.
 
 Course: ${course.title}
@@ -107,25 +156,40 @@ Available real lessons (lessonId is an authoritative database ID):
 ${JSON.stringify(lessons)}
 
 Return ONLY a JSON array. Each item has "dayNumber" (1-based) and "tasks" (3-5 objects). Each task must have an actionable "title" and a "lessonId" copied exactly from the available lessons. Never create or alter lesson IDs.
-Example: [{"dayNumber":1,"tasks":[{"title":"Understand the fundamentals","lessonId":"${lessons[0].lessonId}"}]}]`;
+
+Example:
+[{"dayNumber":1,"tasks":[{"title":"Understand the fundamentals","lessonId":"${lessons[0].lessonId}"}]}]`;
 
     try {
-      const ai = getClient();
-      const response = await ai.models.generateContent({
-        model: "gemini-1.5-flash",
-        contents: [{ role: "user", parts: [{ text: prompt }] }],
-      });
-      const text = response.candidates?.[0]?.content?.parts?.[0]?.text;
-      if (!text) throw new Error("Empty AI response");
+      const text = await generateText(prompt);
+
       const jsonStart = text.indexOf("[");
       const jsonEnd = text.lastIndexOf("]") + 1;
-      if (jsonStart < 0 || jsonEnd <= jsonStart) throw new Error("No JSON array in response");
-      const parsed = courseRoadmapSchema.parse(JSON.parse(text.slice(jsonStart, jsonEnd)));
-      if (parsed.some((day) => day.tasks.some((task) => !allowedLessonIds.has(task.lessonId)))) {
-        throw new Error("AI returned a lesson ID outside the supplied course");
+
+      if (jsonStart < 0 || jsonEnd <= jsonStart) {
+        throw new Error("No JSON array in response");
       }
 
-      const lessonTitles = new Map(lessons.map((lesson) => [lesson.lessonId, lesson.lessonTitle]));
+      const parsed = courseRoadmapSchema.parse(
+        JSON.parse(text.slice(jsonStart, jsonEnd))
+      );
+
+      if (
+        parsed.some((day) =>
+          day.tasks.some(
+            (task) => !allowedLessonIds.has(task.lessonId)
+          )
+        )
+      ) {
+        throw new Error(
+          "AI returned a lesson ID outside the supplied course"
+        );
+      }
+
+      const lessonTitles = new Map(
+        lessons.map((lesson) => [lesson.lessonId, lesson.lessonTitle])
+      );
+
       return parsed.map((day, index) => ({
         dayNumber: day.dayNumber,
         unlocked: index === 0,
