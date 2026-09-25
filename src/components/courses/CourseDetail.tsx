@@ -45,6 +45,7 @@ type Lesson = {
 
 type Module = { _id: string; title: string; description?: string; order: number; lessons: Lesson[] };
 type CourseResponse = { course: Course; modules: Module[] };
+type CourseProgress = { completedLessonIds: string[]; completedCount: number; totalCount: number; percentage: number };
 type EnrollmentState = { enrolled: boolean; status?: "active" | "pending" | "cancelled"; paymentStatus?: string };
 type PaymentDetails = { keyId: string; orderId: string; amount: number; currency: string };
 type RazorpayConstructor = new (options: { key: string; amount: number; currency: string; name: string; description: string; order_id: string; handler: (response: { razorpay_payment_id: string; razorpay_order_id: string; razorpay_signature: string }) => void }) => { open: () => void };
@@ -67,7 +68,10 @@ export default function CourseDetail({ slug }: { slug: string }) {
   const [enrollmentMessage, setEnrollmentMessage] = useState("");
   const [activeLessonId, setActiveLessonId] = useState("");
   const [expandedModules, setExpandedModules] = useState<Record<string, boolean>>({});
-  const [completedLessons, setCompletedLessons] = useState<string[]>([]);
+  const [courseProgress, setCourseProgress] = useState<CourseProgress | null>(null);
+  const [progressLoading, setProgressLoading] = useState(true);
+  const [progressError, setProgressError] = useState("");
+  const [completingLessonId, setCompletingLessonId] = useState("");
   const [contentsOpen, setContentsOpen] = useState(false);
   const { status: authStatus } = useSession();
 
@@ -96,6 +100,28 @@ export default function CourseDetail({ slug }: { slug: string }) {
       if (payload?.success) setEnrollment(payload.data);
     }).catch(() => undefined);
   }, [authStatus, data?.course._id]);
+
+  useEffect(() => {
+    if (!data?.course._id || authStatus === "loading") return;
+    let active = true;
+    setProgressLoading(true);
+    setProgressError("");
+    if (authStatus !== "authenticated") {
+      setProgressError("Sign in to load and save your course progress.");
+      setProgressLoading(false);
+      return;
+    }
+    void fetch(`/api/courses/${encodeURIComponent(slug)}/progress`)
+      .then(async (response) => {
+        const payload = await response.json().catch(() => null);
+        if (!response.ok || payload?.success === false) throw new Error(payload?.error?.message || "Unable to load course progress.");
+        return (payload?.data ?? payload) as CourseProgress;
+      })
+      .then((result) => { if (active) setCourseProgress(result); })
+      .catch((loadError) => { if (active) setProgressError(loadError instanceof Error ? loadError.message : "Unable to load course progress."); })
+      .finally(() => { if (active) setProgressLoading(false); });
+    return () => { active = false; };
+  }, [authStatus, data?.course._id, slug]);
 
   useEffect(() => {
     if (!contentsOpen) return;
@@ -174,7 +200,8 @@ export default function CourseDetail({ slug }: { slug: string }) {
   const activeIndex = activeLesson ? allLessons.findIndex((lesson) => lesson._id === activeLesson._id) : -1;
   const hasAccess = course.price === 0 || (enrollment?.status === "active" && enrollment.paymentStatus === "paid");
   const canAccessActiveLesson = hasAccess || Boolean(activeLesson?.isFree);
-  const progress = allLessons.length ? Math.round((completedLessons.length / allLessons.length) * 100) : 0;
+  const completedLessons = courseProgress?.completedLessonIds ?? [];
+  const progress = courseProgress?.percentage ?? 0;
 
   const selectLesson = (lesson: FlatLesson) => {
     setActiveLessonId(lesson._id);
@@ -182,9 +209,24 @@ export default function CourseDetail({ slug }: { slug: string }) {
     setContentsOpen(false);
   };
 
-  const markComplete = () => {
-    if (!hasAccess || !activeLesson || completedLessons.includes(activeLesson._id)) return;
-    setCompletedLessons((current) => [...current, activeLesson._id]);
+  const markComplete = async () => {
+    if (!hasAccess || !activeLesson || progressLoading || progressError || completingLessonId || completedLessons.includes(activeLesson._id)) return;
+    setCompletingLessonId(activeLesson._id);
+    setProgressError("");
+    try {
+      const response = await fetch(`/api/courses/${encodeURIComponent(slug)}/progress`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ lessonId: activeLesson._id }),
+      });
+      const payload = await response.json().catch(() => null);
+      if (!response.ok || payload?.success === false) throw new Error(payload?.error?.message || "Unable to save lesson progress.");
+      setCourseProgress((payload?.data ?? payload) as CourseProgress);
+    } catch (completionError) {
+      setProgressError(completionError instanceof Error ? completionError.message : "Unable to save lesson progress.");
+    } finally {
+      setCompletingLessonId("");
+    }
   };
 
   return (
@@ -203,7 +245,9 @@ export default function CourseDetail({ slug }: { slug: string }) {
         <aside className="hidden border-r border-border bg-surface lg:block"><CourseSidebar modules={modules} activeLessonId={activeLesson?._id} expandedModules={expandedModules} setExpandedModules={setExpandedModules} completedLessons={completedLessons} onSelect={selectLesson} progress={progress} hasPaidAccess={hasAccess} /></aside>
         <section className="min-w-0 px-4 py-8 sm:px-6 lg:px-12 lg:py-10">
           <div className="mx-auto max-w-3xl">
-            {activeLesson ? <><div className="mb-8 flex items-start justify-between gap-4"><div><p className="text-xs font-semibold uppercase tracking-[0.12em] text-brand-primary">Module {activeLesson.moduleOrder} · {activeLesson.moduleTitle}</p><h2 className="mt-3 text-3xl font-semibold tracking-tight text-text-primary sm:text-4xl">{activeLesson.title}</h2><p className="mt-3 max-w-2xl text-base leading-7 text-text-secondary">{activeLesson.description || "Work through this lesson at your own pace."}</p></div><span className="hidden rounded-full bg-surface-subtle px-3 py-1 text-xs font-semibold text-text-secondary sm:inline-flex">Lesson {activeIndex + 1} of {allLessons.length}</span></div><LessonContent lesson={activeLesson} hasAccess={canAccessActiveLesson} onEnroll={() => void enroll()} enrolling={enrolling} /><LessonNavigation previous={allLessons[activeIndex - 1]} next={allLessons[activeIndex + 1]} canComplete={hasAccess} currentComplete={Boolean(activeLesson && completedLessons.includes(activeLesson._id))} onPrevious={() => allLessons[activeIndex - 1] && selectLesson(allLessons[activeIndex - 1])} onNext={() => allLessons[activeIndex + 1] && selectLesson(allLessons[activeIndex + 1])} onComplete={markComplete} /></> : <EmptyCourseState />}
+            {progressError && <p className="mb-5 rounded-control border border-border bg-surface-subtle px-4 py-3 text-sm text-text-secondary" role="alert">{progressError}</p>}
+            {progressLoading && <p className="mb-5 text-sm text-text-muted" role="status">Loading course progress…</p>}
+            {activeLesson ? <><div className="mb-8 flex items-start justify-between gap-4"><div><p className="text-xs font-semibold uppercase tracking-[0.12em] text-brand-primary">Module {activeLesson.moduleOrder} · {activeLesson.moduleTitle}</p><h2 className="mt-3 text-3xl font-semibold tracking-tight text-text-primary sm:text-4xl">{activeLesson.title}</h2><p className="mt-3 max-w-2xl text-base leading-7 text-text-secondary">{activeLesson.description || "Work through this lesson at your own pace."}</p></div><span className="hidden rounded-full bg-surface-subtle px-3 py-1 text-xs font-semibold text-text-secondary sm:inline-flex">Lesson {activeIndex + 1} of {allLessons.length}</span></div><LessonContent lesson={activeLesson} hasAccess={canAccessActiveLesson} onEnroll={() => void enroll()} enrolling={enrolling} /><LessonNavigation previous={allLessons[activeIndex - 1]} next={allLessons[activeIndex + 1]} canComplete={hasAccess} currentComplete={Boolean(activeLesson && completedLessons.includes(activeLesson._id))} completionPending={Boolean(completingLessonId) || progressLoading || Boolean(progressError)} onPrevious={() => allLessons[activeIndex - 1] && selectLesson(allLessons[activeIndex - 1])} onNext={() => allLessons[activeIndex + 1] && selectLesson(allLessons[activeIndex + 1])} onComplete={() => void markComplete()} /></> : <EmptyCourseState />}
             {enrollmentMessage && <p className="mt-5 text-sm text-text-secondary" role="status">{enrollmentMessage}</p>}
           </div>
         </section>
@@ -231,8 +275,8 @@ function LessonContent({ lesson, hasAccess, onEnroll, enrolling }: { lesson: Les
   return <article className="lesson-prose">{hasAccess ? <>{lesson.markdownContent ? <MarkdownContent content={lesson.markdownContent} /> : <p className="text-base leading-8 text-text-secondary">{previewContent}</p>}</> : <div className="relative max-h-[420px] overflow-hidden"><div>{lesson.markdownContent ? <MarkdownContent content={previewContent} /> : <p className="text-base leading-8 text-text-secondary">{previewContent}</p>}</div><div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-background via-background/90 to-transparent px-4 pb-1 pt-24"><div className="rounded-container border border-border bg-surface p-5 shadow-[var(--shadow-sm)]"><LockKeyhole className="h-5 w-5 text-text-muted" aria-hidden="true" /><h3 className="mt-3 text-base font-semibold text-text-primary">Continue with enrollment</h3><p className="mt-1 text-sm leading-6 text-text-secondary">Enroll to access the full lesson and learning materials.</p><button type="button" onClick={onEnroll} disabled={enrolling} className="ui-button mt-4" data-variant="primary">{enrolling ? "Preparing enrollment..." : "Enroll now"}</button></div></div></div>}{lesson.videoUrl && (hasAccess ? <div className="mt-8 overflow-hidden rounded-container bg-text-primary"><div className="flex items-center gap-2 px-4 py-3 text-sm font-semibold text-white"><Play className="h-4 w-4" aria-hidden="true" /> Video lesson</div><div className="aspect-video"><iframe src={lesson.videoUrl} title={`${lesson.title} video`} loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen className="h-full w-full border-0" /></div></div> : <div className="mt-8 flex items-center gap-2 rounded-control border border-border bg-surface-subtle px-4 py-3 text-sm text-text-secondary"><LockKeyhole className="h-4 w-4" aria-hidden="true" /> Video lesson · Available after enrollment</div>)}{lesson.pdfUrl && (hasAccess ? <a href={lesson.pdfUrl} target="_blank" rel="noopener noreferrer" className="mt-8 inline-flex items-center gap-2 text-sm font-semibold text-brand-primary hover:text-brand-primary-hover"><FileText className="h-4 w-4" aria-hidden="true" /> Open resource <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" /></a> : <div className="mt-8 flex items-center gap-2 rounded-control border border-border bg-surface-subtle px-4 py-3 text-sm text-text-secondary"><LockKeyhole className="h-4 w-4" aria-hidden="true" /> PDF resource available after enrollment</div>)}</article>;
 }
 
-function LessonNavigation({ previous, next, canComplete, currentComplete, onPrevious, onNext, onComplete }: { previous?: FlatLesson; next?: FlatLesson; canComplete: boolean; currentComplete: boolean; onPrevious: () => void; onNext: () => void; onComplete: () => void }) {
-  return <nav className="mt-12 border-t border-border pt-5" aria-label="Lesson navigation"><div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><button type="button" onClick={onPrevious} disabled={!previous} className="ui-button justify-start sm:min-w-36" data-variant="ghost"><ChevronLeft className="h-4 w-4" aria-hidden="true" /> Previous</button><button type="button" onClick={onComplete} disabled={!canComplete || currentComplete} className="ui-button order-first sm:order-none" data-variant={currentComplete ? "secondary" : "primary"}>{currentComplete ? <Check className="h-4 w-4" aria-hidden="true" /> : canComplete ? <CheckCircle2 className="h-4 w-4" aria-hidden="true" /> : <LockKeyhole className="h-4 w-4" aria-hidden="true" />}{currentComplete ? "Completed" : canComplete ? "Mark complete" : "Locked"}</button>{next ? <button type="button" onClick={onNext} className="ui-button justify-end sm:min-w-36" data-variant="ghost">Next <ChevronRight className="h-4 w-4" aria-hidden="true" /></button> : <span className="text-right text-xs text-text-muted sm:min-w-36">Course complete</span>}</div></nav>;
+function LessonNavigation({ previous, next, canComplete, currentComplete, completionPending, onPrevious, onNext, onComplete }: { previous?: FlatLesson; next?: FlatLesson; canComplete: boolean; currentComplete: boolean; completionPending: boolean; onPrevious: () => void; onNext: () => void; onComplete: () => void }) {
+  return <nav className="mt-12 border-t border-border pt-5" aria-label="Lesson navigation"><div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><button type="button" onClick={onPrevious} disabled={!previous} className="ui-button justify-start sm:min-w-36" data-variant="ghost"><ChevronLeft className="h-4 w-4" aria-hidden="true" /> Previous</button><button type="button" onClick={onComplete} disabled={!canComplete || currentComplete || completionPending} className="ui-button order-first sm:order-none" data-variant={currentComplete ? "secondary" : "primary"}>{currentComplete ? <Check className="h-4 w-4" aria-hidden="true" /> : canComplete ? <CheckCircle2 className="h-4 w-4" aria-hidden="true" /> : <LockKeyhole className="h-4 w-4" aria-hidden="true" />}{currentComplete ? "Completed" : completionPending ? "Saving…" : canComplete ? "Mark complete" : "Locked"}</button>{next ? <button type="button" onClick={onNext} className="ui-button justify-end sm:min-w-36" data-variant="ghost">Next <ChevronRight className="h-4 w-4" aria-hidden="true" /></button> : <span className="text-right text-xs text-text-muted sm:min-w-36">Course complete</span>}</div></nav>;
 }
 
 function MarkdownContent({ content }: { content: string }) {
