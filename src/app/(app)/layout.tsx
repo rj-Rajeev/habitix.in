@@ -9,7 +9,7 @@ export default async function AppLayout({
 }) {
   const session = await getServerSession(authOptions);
   if (!session?.user) {
-    redirect("/signin?callbackUrl=/today");
+    redirect("/signin?callbackUrl=/dashboard");
   }
 
   return <>{children}</>;
