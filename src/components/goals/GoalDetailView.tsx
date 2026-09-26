@@ -171,8 +171,7 @@ export function GoalDetailView({ goalId, initialTab }: { goalId: string; initial
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"plan" | "excel">("plan");
-  const [overviewTab, setOverviewTab] = useState<"overview" | "progress">("overview");
-  const activeTab = initialTab === "roadmap" ? "roadmap" : overviewTab;
+  const activeTab = initialTab;
   const [courseSummary, setCourseSummary] = useState<CourseSummary | null>(null);
   const [courseSlug, setCourseSlug] = useState<string | null>(null);
   const [confirmDeleteTaskId, setConfirmDeleteTaskId] = useState<string | null>(null);
@@ -557,9 +556,6 @@ export function GoalDetailView({ goalId, initialTab }: { goalId: string; initial
   }, [goal?.roadmap, tasks]);
 
   const taskListCount = sections.reduce((sum, section) => sum + section.tasks.length, 0);
-  const totalTasks = goal?.progress.total ?? 0;
-  const completedTasks = goal?.progress.completed ?? 0;
-  const remainingTasks = goal?.progress.remaining ?? 0;
   const progress = goal?.progress.percentage ?? 0;
   const courseProgress = courseSummary?.totalCount
     ? Math.round((courseSummary.completedCount / courseSummary.totalCount) * 100)
@@ -647,7 +643,7 @@ export function GoalDetailView({ goalId, initialTab }: { goalId: string; initial
                 <div className="absolute right-0 z-20 mt-2 w-52 rounded-xl border border-border bg-white p-2 shadow-md">
                   <button type="button" onClick={() => importInputRef.current?.click()} className="block min-h-10 w-full rounded-lg px-3 text-left text-sm text-text-secondary hover:bg-surface-subtle">Import tasks (Excel)</button>
                   <button type="button" onClick={exportCsv} className="block min-h-10 w-full rounded-lg px-3 text-left text-sm text-text-secondary hover:bg-surface-subtle">Export tasks (CSV)</button>
-                  <button type="button" onClick={() => { setOverviewTab("progress"); setShowDeleteConfirm(true); }} className="block min-h-10 w-full rounded-lg px-3 text-left text-sm text-error hover:bg-error/5">Delete goal</button>
+                  <button type="button" onClick={() => setShowDeleteConfirm(true)} className="block min-h-10 w-full rounded-lg px-3 text-left text-sm text-error hover:bg-error/5">Delete goal</button>
                 </div>
               </details>
             </div>
@@ -657,9 +653,9 @@ export function GoalDetailView({ goalId, initialTab }: { goalId: string; initial
             </div>
           </section>}
           {initialTab === "overview" && <nav aria-label="Goal sections" className="flex gap-1 overflow-x-auto border-b border-border">
-            <button type="button" onClick={() => setOverviewTab("overview")} className={`min-h-11 shrink-0 border-b-2 px-4 text-sm font-semibold ${activeTab === "overview" ? "border-brand-primary text-brand-primary" : "border-transparent text-text-muted hover:text-text-primary"}`}>Overview</button>
+            <Link href={`/goals/${goalId}`} className={`inline-flex min-h-11 shrink-0 items-center border-b-2 px-4 text-sm font-semibold ${activeTab === "overview" ? "border-brand-primary text-brand-primary" : "border-transparent text-text-muted hover:text-text-primary"}`}>Overview</Link>
             <Link href={`/goals/${goalId}/roadmap`} className="inline-flex min-h-11 shrink-0 items-center gap-1 border-b-2 border-transparent px-4 text-sm font-semibold text-text-muted hover:text-text-primary">Roadmap <ArrowRight className="h-4 w-4" /></Link>
-            <button type="button" onClick={() => setOverviewTab("progress")} className={`min-h-11 shrink-0 border-b-2 px-4 text-sm font-semibold ${activeTab === "progress" ? "border-brand-primary text-brand-primary" : "border-transparent text-text-muted hover:text-text-primary"}`}>Progress</button>
+            <Link href={`/goals/${goalId}/progress`} className="inline-flex min-h-11 shrink-0 items-center border-b-2 border-transparent px-4 text-sm font-semibold text-text-muted hover:text-text-primary">Progress</Link>
           </nav>}
           {activeTab === "overview" && <div className="space-y-5">
             <section className="rounded-2xl border border-border bg-white p-5">
@@ -673,8 +669,6 @@ export function GoalDetailView({ goalId, initialTab }: { goalId: string; initial
             </section>
             {courseSummary && <section className="rounded-2xl border border-border bg-white p-5"><div className="flex flex-wrap items-start justify-between gap-3"><div><h3 className="text-lg font-semibold text-text-primary">Course Progress</h3><p className="mt-3 text-sm font-medium text-text-primary">{courseSummary.title}</p><p className="mt-1 text-sm text-text-secondary">{courseSummary.completedCount} of {courseSummary.totalCount} lessons complete <span className="font-semibold text-text-primary">· {courseProgress}%</span></p></div><Link href={`/courses/${encodeURIComponent(courseSummary.slug)}`} className="inline-flex min-h-10 items-center gap-1 text-sm font-semibold text-brand-primary">Continue learning <ArrowRight className="h-4 w-4"/></Link></div><div className="ui-progress mt-3"><span style={{width:`${courseProgress}%`}}/></div></section>}
           </div>}
-
-          {activeTab === "progress" && <div className="space-y-5"><section className="rounded-2xl border border-border bg-white p-5 sm:p-6"><h3 className="text-lg font-semibold text-text-primary">Goal Progress</h3><p className="mt-1 text-sm text-text-secondary">Your executable tasks toward this goal.</p><div className="mt-4 flex items-center justify-between text-sm"><span className="text-text-secondary">{completedTasks} of {totalTasks} tasks complete</span><span className="font-semibold text-text-primary">{progress}%</span></div><div className="ui-progress mt-2"><span style={{width:`${progress}%`}}/></div><p className="mt-4 text-sm text-text-secondary">{remainingTasks} remaining</p></section>{courseSummary && <section className="rounded-2xl border border-border bg-white p-5 sm:p-6"><h3 className="font-semibold text-text-primary">Course Progress</h3><p className="mt-1 text-sm text-text-secondary">Your progress through the linked course.</p><p className="mt-3 text-sm font-medium text-text-primary">{courseSummary.title}</p><div className="mt-1 flex items-center justify-between text-sm"><span className="text-text-secondary">{courseSummary.completedCount} of {courseSummary.totalCount} lessons complete</span><span className="font-semibold text-text-primary">{courseProgress}%</span></div><div className="ui-progress mt-3"><span style={{width:`${courseProgress}%`}}/></div></section>}</div>}
 
           <section className={`rounded-2xl border border-border bg-white p-4 shadow-sm ${activeTab === "roadmap" ? "" : "hidden"}`}>
             <div className="mb-4 border-b border-border pb-4">
@@ -1128,7 +1122,7 @@ export function GoalDetailView({ goalId, initialTab }: { goalId: string; initial
             )
           )}
 
-          <section className={`rounded-2xl border border-error/20 bg-error/5 p-4 text-sm text-error ${activeTab === "progress" ? "" : "hidden"}`}>
+          {initialTab === "overview" && <section className="rounded-2xl border border-error/20 bg-error/5 p-4 text-sm text-error">
             <h3 className="font-semibold text-red-800">Danger zone</h3>
             <p className="mt-2 text-xs text-red-700">
               Permanently delete this goal and its tasks. This action cannot be undone.
@@ -1197,7 +1191,7 @@ export function GoalDetailView({ goalId, initialTab }: { goalId: string; initial
                 )}
               </div>
             )}
-          </section>
+          </section>}
         </div>
       ) : null}
     </AppShell>
