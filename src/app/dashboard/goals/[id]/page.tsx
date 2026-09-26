@@ -575,9 +575,6 @@ export default function GoalDetailPage() {
     : goal?.completed || goal?.status === "completed"
       ? "Completed"
       : "In progress";
-  const today = new Date();
-  const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
-  const todaysTasks = tasks.filter((task) => task.scheduledDate?.slice(0, 10) === todayKey);
   const learningTasks = tasks.filter((task) => task.metadata?.learning);
   const pendingEditCount = Object.keys(edits).length;
 
@@ -647,15 +644,13 @@ export default function GoalDetailPage() {
           </nav>
           {activeTab === "overview" && <div className="space-y-5">
             <section className="rounded-2xl border border-border bg-white p-5">
-              <div className="flex items-start justify-between gap-3"><div><h3 className="text-lg font-semibold text-text-primary">Today’s focus</h3><p className="mt-1 text-sm text-text-secondary">A clear next step for your goal.</p></div><Link href="/today" className="inline-flex min-h-10 items-center gap-1 text-sm font-semibold text-brand-primary">Today <ArrowRight className="h-4 w-4"/></Link></div>
-              {todaysTasks.length ? <div className="mt-4 divide-y divide-border">{todaysTasks.map(task => {
-                const focusTask: TaskSection["tasks"][number] = { id: task._id, title: task.title, completed: task.status === "completed", minutes: task.estimatedMinutes ?? 30, source: "task", type: task.type, learning: task.metadata?.learning };
-                return <div key={task._id} className="py-3">
-                  <div className="flex flex-wrap items-center justify-between gap-3"><div className="min-w-0"><p className={`font-medium ${focusTask.completed ? "text-text-muted line-through" : "text-text-primary"}`}>{task.title}</p><p className="mt-1 text-xs text-text-muted">{task.metadata?.learning ? "Course lesson" : task.type === "revision" ? "Revision" : "Task"} · {focusTask.minutes} min</p></div><div className="flex flex-wrap items-center gap-2">{task.metadata?.learning && courseSlug && <Link href={`/courses/${encodeURIComponent(courseSlug)}?lessonId=${task.metadata.learning.lessonId}`} className="inline-flex min-h-10 items-center gap-1 px-2 text-sm font-semibold text-brand-primary">Open lesson <ArrowRight className="h-4 w-4"/></Link>}<button type="button" disabled={busyTaskId === task._id} onClick={() => void toggleTaskDone(focusTask)} className="min-h-10 rounded-control border border-border-strong px-3 text-sm font-semibold text-text-secondary">{busyTaskId === task._id ? "Saving…" : focusTask.completed ? "Reopen" : "Complete"}</button></div></div>
-                  {expandedTaskId === task._id && !focusTask.completed && <div className="mt-3 flex flex-wrap gap-2 rounded-xl bg-surface-subtle p-3"><span className="w-full text-xs font-medium text-text-secondary">Complete and schedule revision</span>{REVISION_OPTIONS.map(option => <button key={option.key} type="button" disabled={busyTaskId === task._id} onClick={() => void toggleTaskDone(focusTask, option.key)} className="min-h-9 rounded-control border border-border-strong bg-white px-3 text-xs font-semibold text-text-secondary">{option.label}</button>)}</div>}
-                  <div className="mt-2 flex flex-wrap items-center gap-2"><label className="text-xs text-text-muted" htmlFor={`focus-date-${task._id}`}>Reschedule</label><input id={`focus-date-${task._id}`} type="date" value={task.scheduledDate?.slice(0, 10) ?? ""} onChange={event => void rescheduleTask(task._id, event.target.value)} className="min-h-9 max-w-full rounded-control border border-border-strong bg-white px-2 text-xs text-text-secondary"/><button type="button" onClick={() => setExpandedTaskId(current => current === task._id ? null : task._id)} className="min-h-9 rounded-control px-3 text-xs font-semibold text-text-secondary hover:bg-surface-subtle">{expandedTaskId === task._id ? "Hide revisions" : "Revision"}</button></div>
-                </div>;
-              })}</div> : <div className="mt-4 rounded-xl bg-surface-subtle p-4"><p className="font-medium text-text-primary">Nothing scheduled for today</p><p className="mt-1 text-sm text-text-secondary">Your next planned work will appear here.</p></div>}
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <div>
+                  <h3 className="text-lg font-semibold text-text-primary">Today</h3>
+                  <p className="mt-1 text-sm text-text-secondary">See the tasks scheduled for today and continue your daily execution.</p>
+                </div>
+                <Link href="/today" className="inline-flex min-h-10 items-center gap-1 rounded-control border border-border-strong px-3 text-sm font-semibold text-text-secondary hover:bg-surface-subtle">Open Today <ArrowRight className="h-4 w-4"/></Link>
+              </div>
             </section>
             {courseSummary && <section className="rounded-2xl border border-border bg-white p-5"><div className="flex flex-wrap items-start justify-between gap-3"><div><h3 className="text-lg font-semibold text-text-primary">Course Progress</h3><p className="mt-3 text-sm font-medium text-text-primary">{courseSummary.title}</p><p className="mt-1 text-sm text-text-secondary">{courseSummary.completedCount} of {courseSummary.totalCount} lessons complete <span className="font-semibold text-text-primary">· {courseProgress}%</span></p></div><Link href={`/courses/${encodeURIComponent(courseSummary.slug)}`} className="inline-flex min-h-10 items-center gap-1 text-sm font-semibold text-brand-primary">Continue learning <ArrowRight className="h-4 w-4"/></Link></div><div className="ui-progress mt-3"><span style={{width:`${courseProgress}%`}}/></div></section>}
           </div>}
