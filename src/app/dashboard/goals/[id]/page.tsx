@@ -18,6 +18,7 @@ import {
   MoreHorizontal,
 } from "lucide-react";
 import AppShell from "@/components/app/AppShell";
+import { Badge } from "@/components/ui";
 import {
   TASK_SPREADSHEET_ACCEPT,
   TASK_SPREADSHEET_HEADERS,
@@ -96,6 +97,17 @@ function formatDate(value?: string) {
   const parsed = new Date(`${value}T12:00:00`);
   if (Number.isNaN(parsed.getTime())) return value;
   return parsed.toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+  });
+}
+
+function formatTargetDate(value?: string) {
+  if (!value) return "Unscheduled";
+  const parsed = new Date(`${value}T12:00:00`);
+  if (Number.isNaN(parsed.getTime())) return value;
+  return parsed.toLocaleDateString(undefined, {
+    year: "numeric",
     month: "short",
     day: "numeric",
   });
@@ -550,6 +562,16 @@ export default function GoalDetailPage() {
   const completedTasks = goal?.progress.completed ?? 0;
   const remainingTasks = goal?.progress.remaining ?? 0;
   const progress = goal?.progress.percentage ?? 0;
+  const planSourceLabel = goal?.planSource === "course"
+    ? "Course Plan"
+    : goal?.planSource === "ai"
+      ? "AI Plan"
+      : "Manual Plan";
+  const goalStatusLabel = goal?.status === "archived"
+    ? "Archived"
+    : goal?.completed || goal?.status === "completed"
+      ? "Completed"
+      : "In progress";
   const today = new Date();
   const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
   const todaysTasks = tasks.filter((task) => task.scheduledDate?.slice(0, 10) === todayKey);
@@ -587,15 +609,21 @@ export default function GoalDetailPage() {
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div className="min-w-0 flex-1">
                 <Link href="/goals" className="mb-3 inline-flex min-h-10 items-center gap-2 text-sm font-semibold text-text-secondary"><ChevronLeft className="h-4 w-4" />Goals</Link>
-                <h2 className="text-2xl font-semibold tracking-tight text-text-primary sm:text-3xl">{goal.title}</h2>
+                <div className="flex flex-wrap items-center gap-2">
+                  <h2 className="text-2xl font-semibold tracking-tight text-text-primary sm:text-3xl">{goal.title}</h2>
+                  <Badge tone="neutral">{planSourceLabel}</Badge>
+                  <Badge tone={goalStatusLabel === "Completed" ? "success" : "neutral"}>{goalStatusLabel}</Badge>
+                </div>
                 {goal.description && <p className="mt-2 max-w-3xl text-sm leading-6 text-text-secondary">{goal.description}</p>}
                 {goal.motivation && <p className="mt-3 max-w-3xl text-sm italic text-text-muted">{goal.motivation}</p>}
-                <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-sm text-text-secondary">
-                  <span className="inline-flex items-center gap-1.5"><Calendar className="h-4 w-4 text-brand-primary" />Target {formatDate(goal.targetDate)}</span>
-                  {goal.hoursPerDay && <span>{goal.hoursPerDay} {goal.hoursPerDay === 1 ? "hour" : "hours"} / day</span>}
-                  {goal.daysPerWeek && <span>{goal.daysPerWeek} days / week</span>}
-                  {goal.preferredTime && <span className="capitalize">{goal.preferredTime}</span>}
-                </div>
+                {goal.planSource === "course" && courseSummary && <p className="mt-1 text-sm text-text-secondary">{courseSummary.title}</p>}
+                {goal.planSource === "ai" && <p className="mt-1 text-sm text-text-secondary">Your plan was created with AI and can be adjusted as you execute.</p>}
+                <dl className="mt-5 grid grid-cols-2 gap-x-5 gap-y-3 text-sm sm:grid-cols-4">
+                  <div className="min-w-0"><dt className="text-xs font-medium text-text-muted">Target</dt><dd className="mt-1 inline-flex items-center gap-1.5 text-text-secondary"><Calendar className="h-4 w-4 shrink-0 text-brand-primary" />{formatTargetDate(goal.targetDate)}</dd></div>
+                  {goal.hoursPerDay !== undefined && <div className="min-w-0"><dt className="text-xs font-medium text-text-muted">Daily</dt><dd className="mt-1 text-text-secondary">{goal.hoursPerDay} {goal.hoursPerDay === 1 ? "hour" : "hours"}/day</dd></div>}
+                  {goal.preferredTime && <div className="min-w-0"><dt className="text-xs font-medium text-text-muted">Preferred time</dt><dd className="mt-1 capitalize text-text-secondary">{goal.preferredTime}</dd></div>}
+                  {goal.daysPerWeek !== undefined && <div className="min-w-0"><dt className="text-xs font-medium text-text-muted">Days</dt><dd className="mt-1 text-text-secondary">{goal.daysPerWeek} {goal.daysPerWeek === 1 ? "day" : "days"}/week</dd></div>}
+                </dl>
               </div>
               <details className="relative">
                 <summary className="flex h-10 cursor-pointer list-none items-center gap-2 rounded-control border border-border-strong bg-white px-3 text-sm font-semibold text-text-secondary"><MoreHorizontal className="h-4 w-4"/>More</summary>
