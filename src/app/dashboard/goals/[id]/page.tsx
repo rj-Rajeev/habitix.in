@@ -40,6 +40,7 @@ type RoadmapDay = {
 };
 
 type GoalDetail = {
+  planSource: "course" | "ai" | "manual";
   _id: string;
   title: string;
   description?: string;

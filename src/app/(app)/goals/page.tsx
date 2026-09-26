@@ -6,6 +6,7 @@ import { ChevronRight, Loader2, Plus, Target } from "lucide-react";
 import AppShell from "@/components/app/AppShell";
 
 type GoalItem = {
+  planSource: "course" | "ai" | "manual";
   _id: string;
   title: string;
   description?: string;

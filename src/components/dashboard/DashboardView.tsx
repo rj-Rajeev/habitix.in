@@ -9,6 +9,7 @@ import { Alert, Card, Progress, Skeleton } from "@/components/ui";
 import type { TodayQueue } from "@/types/today";
 
 type Goal = {
+  planSource: "course" | "ai" | "manual";
   _id: string;
   title: string;
   roadmap?: Array<{ tasks?: Array<{ isCompleted?: boolean }> }>;
