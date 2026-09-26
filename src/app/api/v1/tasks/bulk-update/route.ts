@@ -7,6 +7,7 @@ import { connectDb } from "@/lib/db";
 import { z } from "zod";
 import { taskRepository } from "@/modules/tasks/task.repository";
 import { goalCompletionService } from "@/modules/goals/goal-completion.service";
+import { taskCompletionService } from "@/modules/tasks/task-completion.service";
 
 const itemSchema = z.object({
   id: z.string().min(1),
@@ -38,16 +39,39 @@ export async function PATCH(req: NextRequest) {
         continue;
       }
       try {
-        await taskRepository.updateById(item.id, userId, {
+        const statusChanged = item.status !== undefined && item.status !== existing.status;
+        const nonStatusUpdate = {
           ...(item.task ? { task: item.task } : {}),
           ...(item.topic ? { topic: item.topic } : {}),
           ...(item.description ? { description: item.description } : {}),
           ...(item.date ? { date: item.date } : {}),
           ...(item.minutes ? { minutes: item.minutes } : {}),
           ...(item.priority ? { priority: item.priority } : {}),
-          ...(item.status ? { status: item.status } : {}),
-        } as any);
-        if (item.status !== undefined && item.status !== existing.status) affectedGoals.add(existing.goalId.toString());
+        };
+
+        let statusHandledCanonically = false;
+        if (statusChanged && item.status === "completed") {
+          await taskCompletionService.complete(item.id, userId, { scheduleRevision: "none" });
+          statusHandledCanonically = true;
+        } else if (statusChanged && item.status === "pending" && existing.status === "completed") {
+          await taskCompletionService.reopen(item.id, userId);
+          statusHandledCanonically = true;
+        } else if (statusChanged && item.status === "skipped") {
+          await taskCompletionService.skip(item.id, userId);
+          statusHandledCanonically = true;
+        }
+
+        const directStatusUpdate = statusChanged && !statusHandledCanonically;
+        if (Object.keys(nonStatusUpdate).length > 0 || directStatusUpdate) {
+          await taskRepository.updateById(item.id, userId, {
+            ...nonStatusUpdate,
+            ...(directStatusUpdate ? { status: item.status } : {}),
+          } as any);
+        }
+
+        if (directStatusUpdate) {
+          affectedGoals.add(existing.goalId.toString());
+        }
         results.push({ id: item.id, ok: true });
       } catch (err) {
         results.push({ id: item.id, ok: false, error: String(err) });
