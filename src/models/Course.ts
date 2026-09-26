@@ -10,6 +10,7 @@ export interface ICourse extends Document {
   thumbnail?: string;
   price: number;
   status: CourseStatus;
+  delete: boolean;
 }
 
 const CourseSchema: Schema<ICourse> = new Schema(
@@ -21,6 +22,7 @@ const CourseSchema: Schema<ICourse> = new Schema(
     thumbnail: { type: String, trim: true },
     price: { type: Number, required: true, min: 0, default: 0 },
     status: { type: String, enum: ["draft", "published"], default: "draft", required: true },
+    delete: { type: Boolean, default: false, required: true },
   },
   { timestamps: true }
 );

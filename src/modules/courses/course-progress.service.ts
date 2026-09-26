@@ -14,7 +14,7 @@ type CourseProgress = {
 };
 
 async function findPublishedCourse(courseId: string) {
-  const course = await Course.findOne({ _id: courseId, status: "published" }).select("_id");
+  const course = await Course.findOne({ _id: courseId, status: "published", delete: { $ne: true } }).select("_id");
   if (!course) throw Errors.notFound("Course");
   return course;
 }

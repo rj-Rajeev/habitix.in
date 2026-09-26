@@ -15,7 +15,7 @@ export async function GET(
     await connectDb();
     const { courseId } = await params;
     if (!isObjectId(courseId)) throw Errors.notFound("Course");
-    const course = await Course.findOne({ _id: courseId, status: "published" }).select("_id");
+    const course = await Course.findOne({ _id: courseId, status: "published", delete: { $ne: true } }).select("_id");
     if (!course) throw Errors.notFound("Course");
     const enrollment = await Enrollment.findOne({ userId, courseId }).select("status paymentStatus enrolledAt");
     if (!enrollment) return jsonOk({ enrolled: false });

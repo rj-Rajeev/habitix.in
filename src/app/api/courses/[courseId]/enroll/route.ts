@@ -17,7 +17,7 @@ export async function POST(
     const { courseId } = await params;
     if (!isObjectId(courseId)) throw Errors.notFound("Course");
 
-    const course = await Course.findOne({ _id: courseId, status: "published" });
+    const course = await Course.findOne({ _id: courseId, status: "published", delete: { $ne: true } });
     if (!course) throw Errors.notFound("Course");
 
     const existing = await Enrollment.findOne({ userId, courseId });

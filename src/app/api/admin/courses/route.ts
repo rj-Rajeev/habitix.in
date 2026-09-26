@@ -8,7 +8,7 @@ import { courseCreateSchema, normalizeSlug } from "@/lib/courses";
 export async function GET() {
   try {
     await requireAdminUser();
-    const courses = await Course.find().sort({ createdAt: -1 });
+    const courses = await Course.find({ delete: { $ne: true } }).sort({ createdAt: -1 });
     return jsonOk(courses);
   } catch (error) {
     return handleRouteError(error);
@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
     if (!slug) throw Errors.badRequest("Slug must contain letters or numbers");
 
     try {
-      const course = await Course.create({ ...parsed.data, slug });
+      const course = await Course.create({ ...parsed.data, slug, status: "draft" });
       return jsonOk(course, { status: 201 });
     } catch (error) {
       if ((error as { code?: number }).code === 11000) {

@@ -10,7 +10,7 @@ import { courseProgressService } from "@/modules/courses/course-progress.service
 const completeLessonSchema = z.object({ lessonId: z.string().regex(/^[a-f\d]{24}$/i) });
 
 async function resolvePublishedCourseId(identifier: string) {
-  const course = await Course.findOne({ slug: normalizeSlug(identifier), status: "published" }).select("_id");
+    const course = await Course.findOne({ slug: normalizeSlug(identifier), status: "published", delete: { $ne: true } }).select("_id");
   if (!course) throw Errors.notFound("Course");
   return course._id.toString();
 }

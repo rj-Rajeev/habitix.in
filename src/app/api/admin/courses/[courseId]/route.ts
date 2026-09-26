@@ -4,8 +4,6 @@ import { requireAdminUser } from "@/lib/auth/admin";
 import { connectDb } from "@/lib/db";
 import { courseUpdateSchema, isObjectId, normalizeSlug } from "@/lib/courses";
 import Course from "@/models/Course";
-import CourseModule from "@/models/CourseModule";
-import CourseLesson from "@/models/CourseLesson";
 
 async function getCourseId(params: Promise<{ courseId: string }>) {
   const { courseId } = await params;
@@ -21,7 +19,7 @@ export async function GET(
     await requireAdminUser();
     await connectDb();
     const courseId = await getCourseId(params);
-    const course = await Course.findById(courseId);
+    const course = await Course.findOne({ _id: courseId, delete: { $ne: true } });
     if (!course) throw Errors.notFound("Course");
     return jsonOk(course);
   } catch (error) {
@@ -49,7 +47,7 @@ export async function PATCH(
     }
 
     try {
-      const course = await Course.findByIdAndUpdate(courseId, update, {
+      const course = await Course.findOneAndUpdate({ _id: courseId, delete: { $ne: true } }, update, {
         new: true,
         runValidators: true,
       });
@@ -74,16 +72,9 @@ export async function DELETE(
     await requireAdminUser();
     await connectDb();
     const courseId = await getCourseId(params);
-    const course = await Course.findById(courseId).select("_id");
+    const course = await Course.findOneAndUpdate({ _id: courseId, delete: { $ne: true } }, { delete: true }, { new: true }).select("_id");
     if (!course) throw Errors.notFound("Course");
-
-    const modules = await CourseModule.find({ courseId }).select("_id");
-    const moduleIds = modules.map((module) => module._id);
-    await CourseLesson.deleteMany({ moduleId: { $in: moduleIds } });
-    await CourseModule.deleteMany({ courseId });
-    await Course.deleteOne({ _id: courseId });
-
-    return jsonOk({ deleted: true });
+    return jsonOk({ deleted: true, archived: true });
   } catch (error) {
     return handleRouteError(error);
   }

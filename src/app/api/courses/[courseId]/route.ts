@@ -15,7 +15,7 @@ export async function GET(
   try {
     await connectDb();
     const { courseId: slug } = await params;
-    const course = await Course.findOne({ slug: normalizeSlug(slug), status: "published" });
+    const course = await Course.findOne({ slug: normalizeSlug(slug), status: "published", delete: { $ne: true } });
     if (!course) throw Errors.notFound("Course");
 
     const userId = await getOptionalUserId();

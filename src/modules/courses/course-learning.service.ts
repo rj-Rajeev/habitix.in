@@ -14,7 +14,7 @@ export type CourseLearningLesson = {
 export const courseLearningService = {
   async loadPublishedCourseContent(courseId: string) {
     if (!Types.ObjectId.isValid(courseId)) throw Errors.notFound("Course");
-    const course = await Course.findOne({ _id: courseId, status: "published" }).select("_id title description");
+    const course = await Course.findOne({ _id: courseId, status: "published", delete: { $ne: true } }).select("_id title description");
     if (!course) throw Errors.notFound("Course");
 
     const modules = await CourseModule.find({ courseId: course._id }).sort({ order: 1, createdAt: 1 });

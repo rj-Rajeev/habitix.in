@@ -10,7 +10,7 @@ export const courseCreateSchema = z.object({
   status: z.enum(["draft", "published"]).default("draft"),
 }).strict();
 
-export const courseUpdateSchema = courseCreateSchema.partial().refine(
+export const courseUpdateSchema = courseCreateSchema.omit({ status: true }).partial().refine(
   (value) => Object.keys(value).length > 0,
   "At least one course field is required"
 );

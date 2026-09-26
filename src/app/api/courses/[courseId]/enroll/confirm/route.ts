@@ -23,7 +23,7 @@ export async function POST(
     const orderId = typeof body?.orderId === "string" ? body.orderId : "";
     if (!paymentId || !signature || !orderId) throw Errors.badRequest("Payment confirmation is incomplete");
 
-    const course = await Course.findOne({ _id: courseId, status: "published" }).select("_id price");
+    const course = await Course.findOne({ _id: courseId, status: "published", delete: { $ne: true } }).select("_id price");
     if (!course) throw Errors.notFound("Course");
     const enrollment = await Enrollment.findOne({ userId, courseId });
     if (!enrollment) throw Errors.notFound("Enrollment");

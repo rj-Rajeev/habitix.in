@@ -101,7 +101,7 @@ export default function CourseCsvImport() {
           body: JSON.stringify({ action: "import", csv }),
         })
       );
-      setImported(result);
+      window.location.assign(`/admin/courses/${result.course._id}`);
     } catch (importError) {
       setError(importError instanceof Error ? importError.message : "Unable to import this course.");
     } finally {

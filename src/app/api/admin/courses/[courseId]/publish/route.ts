@@ -23,8 +23,8 @@ export async function PATCH(
       throw Errors.badRequest("Status must be draft or published", parsed.error.flatten());
     }
 
-    const course = await Course.findByIdAndUpdate(
-      courseId,
+    const course = await Course.findOneAndUpdate(
+      { _id: courseId, delete: { $ne: true } },
       { status: parsed.data.status },
       { new: true, runValidators: true }
     );

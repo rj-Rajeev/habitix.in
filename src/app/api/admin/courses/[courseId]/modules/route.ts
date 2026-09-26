@@ -13,7 +13,7 @@ async function getCourseId(params: Promise<{ courseId: string }>) {
 }
 
 async function requireCourse(courseId: string) {
-  const course = await Course.findById(courseId).select("_id");
+  const course = await Course.findOne({ _id: courseId, delete: { $ne: true } }).select("_id");
   if (!course) throw Errors.notFound("Course");
 }
 

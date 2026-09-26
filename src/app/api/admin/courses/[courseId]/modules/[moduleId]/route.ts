@@ -14,7 +14,7 @@ async function getIds(params: Promise<{ courseId: string; moduleId: string }>) {
 }
 
 async function requireModule(courseId: string, moduleId: string) {
-  const course = await Course.findById(courseId).select("_id");
+  const course = await Course.findOne({ _id: courseId, delete: { $ne: true } }).select("_id");
   if (!course) throw Errors.notFound("Course");
   const module = await CourseModule.findOne({ _id: moduleId, courseId });
   if (!module) throw Errors.notFound("Module");
