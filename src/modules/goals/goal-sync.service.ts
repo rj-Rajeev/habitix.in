@@ -5,6 +5,7 @@ import { goalRepository } from "./goal.repository";
 import { taskRepository } from "@/modules/tasks/task.repository";
 import type { IRoadmapDay } from "./goal.model";
 import { courseLearningService } from "@/modules/courses/course-learning.service";
+import { goalCompletionService } from "./goal-completion.service";
 
 function normalizeDayDate(dayDate: string | Date): string {
   if (typeof dayDate === "string") {
@@ -29,6 +30,7 @@ export const goalSyncService = {
     const tasks = await flattenRoadmapToTasks(userId, goalId, goal.courseId?.toString(), goal.roadmap);
     await taskRepository.createMany(tasks);
     await goalRepository.markTasksSynced(goalId, userId);
+    await goalCompletionService.evaluateGoalCompletion(goalId, userId);
     return tasks.length;
   },
 
@@ -115,4 +117,5 @@ export async function syncRoadmapTaskCompletion(
       completedAt: isCompleted ? new Date() : undefined,
     }
   );
+  await goalCompletionService.evaluateGoalCompletion(goalId, userId);
 }

@@ -3,6 +3,7 @@ import { Errors } from "@/lib/api";
 import { toDateKey } from "@/lib/dates";
 import { taskRepository } from "./task.repository";
 import { TASK_SPREADSHEET_REQUIRED_HEADERS } from "./task-spreadsheet";
+import { goalCompletionService } from "@/modules/goals/goal-completion.service";
 
 type Row = Record<string, unknown>;
 
@@ -169,6 +170,7 @@ export const taskImportService = {
     }
 
     await taskRepository.createMany(tasks);
+    await goalCompletionService.evaluateGoalCompletion(goalId, userId);
     return { imported: tasks.length, skipped: rows.length - tasks.length };
   },
 };

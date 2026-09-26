@@ -4,6 +4,7 @@ import { jsonOk } from "@/lib/api/response";
 import { requireUserId } from "@/lib/auth/session";
 import { connectDb } from "@/lib/db";
 import { taskRepository } from "@/modules/tasks/task.repository";
+import { goalCompletionService } from "@/modules/goals/goal-completion.service";
 
 export async function DELETE(
   _req: NextRequest,
@@ -18,6 +19,7 @@ export async function DELETE(
     if (!existing) return new Response(JSON.stringify({ success: false, error: { message: "Not found" } }), { status: 404 });
 
     await (existing as any).remove();
+    await goalCompletionService.evaluateGoalCompletion(existing.goalId.toString(), userId);
 
     return jsonOk({ success: true });
   } catch (err) {

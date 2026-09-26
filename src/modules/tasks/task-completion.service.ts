@@ -9,6 +9,7 @@ import { TaskHistory } from "./task-history.model";
 import { analyticsService } from "@/modules/analytics/analytics.service";
 import type { RevisionPreset } from "@/lib/dates";
 import { courseProgressService } from "@/modules/courses/course-progress.service";
+import { goalCompletionService } from "@/modules/goals/goal-completion.service";
 
 const OBJECT_ID_PATTERN = /^[a-f\d]{24}$/i;
 
@@ -50,6 +51,7 @@ export const taskCompletionService = {
       completedAt: now,
       notes: input.note ?? task.notes,
     });
+    await goalCompletionService.evaluateGoalCompletion(task.goalId.toString(), userId);
 
     if (task.type === "revision") {
       await revisionRepository.markCompletedByRevisionTaskId(taskId);
@@ -91,6 +93,7 @@ export const taskCompletionService = {
       status: "skipped",
       skippedAt: new Date(),
     });
+    await goalCompletionService.evaluateGoalCompletion(task.goalId.toString(), userId);
 
     await TaskHistory.create({
       userId: new Types.ObjectId(userId),
@@ -112,6 +115,7 @@ export const taskCompletionService = {
       completedAt: undefined,
       skippedAt: undefined,
     });
+    await goalCompletionService.evaluateGoalCompletion(task.goalId.toString(), userId);
 
     await TaskHistory.create({
       userId: new Types.ObjectId(userId),
@@ -139,6 +143,7 @@ export const taskCompletionService = {
       lastRescheduledAt: new Date(),
       skippedAt: undefined,
     });
+    await goalCompletionService.evaluateGoalCompletion(task.goalId.toString(), userId);
 
     await TaskHistory.create({
       userId: new Types.ObjectId(userId),

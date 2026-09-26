@@ -6,6 +6,7 @@ import { requireUserId } from "@/lib/auth/session";
 import { connectDb } from "@/lib/db";
 import { z } from "zod";
 import { taskRepository } from "@/modules/tasks/task.repository";
+import { goalCompletionService } from "@/modules/goals/goal-completion.service";
 
 const itemSchema = z.object({
   id: z.string().min(1),
@@ -29,6 +30,7 @@ export async function PATCH(req: NextRequest) {
     if (!parsed.success) throw Errors.badRequest("Invalid input", parsed.error.flatten());
 
     const results: Array<{ id: string; ok: boolean; error?: string }> = [];
+    const affectedGoals = new Set<string>();
     for (const item of parsed.data.items) {
       const existing = await taskRepository.findByIdForUser(item.id, userId);
       if (!existing) {
@@ -45,11 +47,14 @@ export async function PATCH(req: NextRequest) {
           ...(item.priority ? { priority: item.priority } : {}),
           ...(item.status ? { status: item.status } : {}),
         } as any);
+        if (item.status !== undefined && item.status !== existing.status) affectedGoals.add(existing.goalId.toString());
         results.push({ id: item.id, ok: true });
       } catch (err) {
         results.push({ id: item.id, ok: false, error: String(err) });
       }
     }
+
+    for (const goalId of affectedGoals) await goalCompletionService.evaluateGoalCompletion(goalId, userId);
 
     return jsonOk({ results });
   } catch (err) {

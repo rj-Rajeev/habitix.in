@@ -6,6 +6,7 @@ import { requireUserId } from "@/lib/auth/session";
 import { connectDb } from "@/lib/db";
 import { z } from "zod";
 import { taskRepository } from "@/modules/tasks/task.repository";
+import { goalCompletionService } from "@/modules/goals/goal-completion.service";
 
 const updateSchema = z.object({
   task: z.string().max(200).optional(),
@@ -35,6 +36,9 @@ export async function PATCH(
 
     const update = parsed.data;
     const updated = await taskRepository.updateById(id, userId, update as any);
+    if (update.status !== undefined && update.status !== existing.status) {
+      await goalCompletionService.evaluateGoalCompletion(existing.goalId.toString(), userId);
+    }
 
     return jsonOk({
       id: updated?._id?.toString(),

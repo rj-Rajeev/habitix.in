@@ -5,6 +5,7 @@ import { connectDb } from "@/lib/db";
 import { createManualTaskSchema } from "@/modules/tasks/task.schemas";
 import { taskRepository } from "@/modules/tasks/task.repository";
 import { goalRepository } from "@/modules/goals/goal.repository";
+import { goalCompletionService } from "@/modules/goals/goal-completion.service";
 
 export async function POST(req: NextRequest) {
   try {
@@ -45,6 +46,7 @@ export async function POST(req: NextRequest) {
         },
       },
     ]);
+    await goalCompletionService.evaluateGoalCompletion(parsed.data.goalId, userId);
 
     return jsonOk(
       {
