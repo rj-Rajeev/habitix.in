@@ -43,6 +43,9 @@ type GoalDetail = {
   planSource: "course" | "ai" | "manual";
   _id: string;
   title: string;
+  completed: boolean;
+  status: "active" | "completed" | "archived";
+  progress: { total: number; completed: number; remaining: number; percentage: number };
   description?: string;
   targetDate?: string;
   hoursPerDay?: number;
@@ -542,12 +545,11 @@ export default function GoalDetailPage() {
     return sectionsFromRoadmap(goal?.roadmap ?? []);
   }, [goal?.roadmap, tasks]);
 
-  const totalTasks = sections.reduce((sum, section) => sum + section.tasks.length, 0);
-  const completedTasks = sections.reduce(
-    (sum, section) => sum + section.tasks.filter((task) => task.completed).length,
-    0
-  );
-  const progress = totalTasks ? Math.round((completedTasks / totalTasks) * 100) : 0;
+  const taskListCount = sections.reduce((sum, section) => sum + section.tasks.length, 0);
+  const totalTasks = goal?.progress.total ?? 0;
+  const completedTasks = goal?.progress.completed ?? 0;
+  const remainingTasks = goal?.progress.remaining ?? 0;
+  const progress = goal?.progress.percentage ?? 0;
   const today = new Date();
   const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
   const todaysTasks = tasks.filter((task) => task.scheduledDate?.slice(0, 10) === todayKey);
@@ -627,7 +629,7 @@ export default function GoalDetailPage() {
             {courseSummary && <section className="rounded-2xl border border-border bg-white p-5"><div className="flex flex-wrap items-start justify-between gap-3"><div><h3 className="text-lg font-semibold text-text-primary">{courseSummary.title}</h3><p className="mt-1 text-sm text-text-secondary">{courseSummary.completedCount} / {courseSummary.totalCount} lessons</p></div><Link href={`/courses/${encodeURIComponent(courseSummary.slug)}`} className="inline-flex min-h-10 items-center gap-1 text-sm font-semibold text-brand-primary">Continue learning <ArrowRight className="h-4 w-4"/></Link></div><div className="ui-progress mt-3"><span style={{width:`${courseSummary.totalCount ? Math.round((courseSummary.completedCount / courseSummary.totalCount) * 100) : 0}%`}}/></div></section>}
           </div>}
 
-          {activeTab === "progress" && <div className="space-y-5"><section className="rounded-2xl border border-border bg-white p-5 sm:p-6"><h3 className="text-lg font-semibold text-text-primary">Overall progress</h3><div className="mt-4 flex items-center justify-between text-sm"><span className="text-text-secondary">{completedTasks} of {totalTasks} tasks complete</span><span className="font-semibold text-text-primary">{progress}%</span></div><div className="ui-progress mt-2"><span style={{width:`${progress}%`}}/></div><div className="mt-5 grid grid-cols-2 gap-4 border-t border-border pt-4 sm:grid-cols-3"><div><p className="text-xs text-text-muted">Completed</p><p className="mt-1 text-lg font-semibold text-text-primary">{completedTasks}</p></div><div><p className="text-xs text-text-muted">Remaining</p><p className="mt-1 text-lg font-semibold text-text-primary">{Math.max(0,totalTasks-completedTasks)}</p></div><div><p className="text-xs text-text-muted">Roadmap tasks</p><p className="mt-1 text-lg font-semibold text-text-primary">{totalTasks}</p></div></div></section>{courseSummary && <section className="rounded-2xl border border-border bg-white p-5 sm:p-6"><h3 className="font-semibold text-text-primary">{courseSummary.title}</h3><p className="mt-1 text-sm text-text-secondary">{courseSummary.completedCount} of {courseSummary.totalCount} lessons complete</p><div className="ui-progress mt-3"><span style={{width:`${courseSummary.totalCount ? Math.round(courseSummary.completedCount/courseSummary.totalCount*100) : 0}%`}}/></div></section>}</div>}
+          {activeTab === "progress" && <div className="space-y-5"><section className="rounded-2xl border border-border bg-white p-5 sm:p-6"><h3 className="text-lg font-semibold text-text-primary">Overall progress</h3><div className="mt-4 flex items-center justify-between text-sm"><span className="text-text-secondary">{completedTasks} of {totalTasks} tasks complete</span><span className="font-semibold text-text-primary">{progress}%</span></div><div className="ui-progress mt-2"><span style={{width:`${progress}%`}}/></div><div className="mt-5 grid grid-cols-2 gap-4 border-t border-border pt-4 sm:grid-cols-3"><div><p className="text-xs text-text-muted">Completed</p><p className="mt-1 text-lg font-semibold text-text-primary">{completedTasks}</p></div><div><p className="text-xs text-text-muted">Remaining</p><p className="mt-1 text-lg font-semibold text-text-primary">{remainingTasks}</p></div><div><p className="text-xs text-text-muted">Executable tasks</p><p className="mt-1 text-lg font-semibold text-text-primary">{totalTasks}</p></div></div></section>{courseSummary && <section className="rounded-2xl border border-border bg-white p-5 sm:p-6"><h3 className="font-semibold text-text-primary">{courseSummary.title}</h3><p className="mt-1 text-sm text-text-secondary">{courseSummary.completedCount} of {courseSummary.totalCount} lessons complete</p><div className="ui-progress mt-3"><span style={{width:`${courseSummary.totalCount ? Math.round(courseSummary.completedCount/courseSummary.totalCount*100) : 0}%`}}/></div></section>}</div>}
 
           <section className={`rounded-2xl border border-border bg-white p-4 shadow-sm ${activeTab === "roadmap" ? "" : "hidden"}`}>
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -635,7 +637,7 @@ export default function GoalDetailPage() {
                 <h3 className="text-lg font-semibold text-slate-950">
                   Tasks
                 </h3>
-                <p className="text-sm text-slate-500">{totalTasks} in this goal</p>
+                <p className="text-sm text-slate-500">{taskListCount} in this goal</p>
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 <button
@@ -676,7 +678,7 @@ export default function GoalDetailPage() {
                 <button
                   type="button"
                   onClick={exportCsv}
-                  disabled={totalTasks === 0}
+                  disabled={taskListCount === 0}
                   className="inline-flex h-10 items-center gap-2 rounded-full border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
                 >
                   <Download className="h-4 w-4" />

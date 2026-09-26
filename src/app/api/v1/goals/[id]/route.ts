@@ -4,6 +4,7 @@ import { jsonOk } from "@/lib/api/response";
 import { requireUserId } from "@/lib/auth/session";
 import { connectDb } from "@/lib/db";
 import { goalService } from "@/modules/goals/goal.service";
+import { goalCompletionService } from "@/modules/goals/goal-completion.service";
 import { taskRepository } from "@/modules/tasks/task.repository";
 import Goal from "@/models/Goal";
 
@@ -16,7 +17,8 @@ export async function GET(
     const userId = await requireUserId();
     const { id } = await params;
     const goal = await goalService.getById(id, userId);
-    return jsonOk(goal);
+    const progress = await goalCompletionService.getGoalTaskProgress(id, userId);
+    return jsonOk({ ...goal, progress });
   } catch (err) {
     return handleRouteError(err);
   }

@@ -3,27 +3,49 @@ import { Errors } from "@/lib/api";
 import Goal from "./goal.model";
 import { Task } from "@/modules/tasks/task.model";
 
-export const goalCompletionService = {
-  async evaluateGoalCompletion(goalId: string, userId: string) {
-    const [counts] = await Task.aggregate<{ taskCount: number; completedCount: number }>([
-      {
-        $match: {
-          goalId: new Types.ObjectId(goalId),
-          userId: new Types.ObjectId(userId),
-          type: "execution",
-        },
-      },
-      {
-        $group: {
-          _id: null,
-          taskCount: { $sum: 1 },
-          completedCount: { $sum: { $cond: [{ $eq: ["$status", "completed"] }, 1, 0] } },
-        },
-      },
-    ]);
+type ExecutionTaskCounts = { taskCount: number; completedCount: number };
 
-    const executableTaskCount = counts?.taskCount ?? 0;
-    const completed = executableTaskCount > 0 && counts.completedCount === executableTaskCount;
+async function getExecutionTaskCounts(goalId: string, userId: string) {
+  const [counts] = await Task.aggregate<ExecutionTaskCounts>([
+    {
+      $match: {
+        goalId: new Types.ObjectId(goalId),
+        userId: new Types.ObjectId(userId),
+        type: "execution",
+      },
+    },
+    {
+      $group: {
+        _id: null,
+        taskCount: { $sum: 1 },
+        completedCount: { $sum: { $cond: [{ $eq: ["$status", "completed"] }, 1, 0] } },
+      },
+    },
+  ]);
+
+  return {
+    taskCount: counts?.taskCount ?? 0,
+    completedCount: counts?.completedCount ?? 0,
+  };
+}
+
+export const goalCompletionService = {
+  async getGoalTaskProgress(goalId: string, userId: string) {
+    const { taskCount, completedCount } = await getExecutionTaskCounts(goalId, userId);
+    const remaining = taskCount - completedCount;
+
+    return {
+      total: taskCount,
+      completed: completedCount,
+      remaining,
+      percentage: taskCount > 0 ? Math.round((completedCount / taskCount) * 100) : 0,
+    };
+  },
+
+  async evaluateGoalCompletion(goalId: string, userId: string) {
+    const { taskCount: executableTaskCount, completedCount } =
+      await getExecutionTaskCounts(goalId, userId);
+    const completed = executableTaskCount > 0 && completedCount === executableTaskCount;
     const goal = await Goal.findOneAndUpdate(
       { _id: goalId, userId },
       { completed, status: completed ? "completed" : "active" },
