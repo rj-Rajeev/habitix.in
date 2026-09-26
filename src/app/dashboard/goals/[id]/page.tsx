@@ -663,11 +663,19 @@ export default function GoalDetailPage() {
           {activeTab === "progress" && <div className="space-y-5"><section className="rounded-2xl border border-border bg-white p-5 sm:p-6"><h3 className="text-lg font-semibold text-text-primary">Goal Progress</h3><p className="mt-1 text-sm text-text-secondary">Your executable tasks toward this goal.</p><div className="mt-4 flex items-center justify-between text-sm"><span className="text-text-secondary">{completedTasks} of {totalTasks} tasks complete</span><span className="font-semibold text-text-primary">{progress}%</span></div><div className="ui-progress mt-2"><span style={{width:`${progress}%`}}/></div><p className="mt-4 text-sm text-text-secondary">{remainingTasks} remaining</p></section>{courseSummary && <section className="rounded-2xl border border-border bg-white p-5 sm:p-6"><h3 className="font-semibold text-text-primary">Course Progress</h3><p className="mt-1 text-sm text-text-secondary">Your progress through the linked course.</p><p className="mt-3 text-sm font-medium text-text-primary">{courseSummary.title}</p><div className="mt-1 flex items-center justify-between text-sm"><span className="text-text-secondary">{courseSummary.completedCount} of {courseSummary.totalCount} lessons complete</span><span className="font-semibold text-text-primary">{courseProgress}%</span></div><div className="ui-progress mt-3"><span style={{width:`${courseProgress}%`}}/></div></section>}</div>}
 
           <section className={`rounded-2xl border border-border bg-white p-4 shadow-sm ${activeTab === "roadmap" ? "" : "hidden"}`}>
+            <div className="mb-4 border-b border-border pb-4">
+              <div className="flex flex-wrap items-center gap-2">
+                <h3 className="text-lg font-semibold text-text-primary">Plan</h3>
+                <Badge tone="neutral">{planSourceLabel}</Badge>
+              </div>
+              <p className="mt-1 text-sm text-text-secondary">The tasks below are your executable plan for achieving this goal.</p>
+              {goal.planSource === "course" && courseSummary && <p className="mt-1 text-sm text-text-muted">{courseSummary.title}</p>}
+              {goal.planSource === "ai" && <p className="mt-1 text-sm text-text-muted">Created with AI and editable as you execute.</p>}
+              {goal.planSource === "manual" && <p className="mt-1 text-sm text-text-muted">Created by you and fully editable.</p>}
+            </div>
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <h3 className="text-lg font-semibold text-slate-950">
-                  Tasks
-                </h3>
+                <h3 className="text-lg font-semibold text-slate-950">Tasks</h3>
                 <p className="text-sm text-slate-500">{taskListCount} in this goal</p>
               </div>
               <div className="flex flex-wrap items-center gap-2">
