@@ -202,7 +202,7 @@ export default function GoalChatPage() {
       ]);
 
       setTimeout(() => {
-        router.push(`/dashboard/goals/${id}`);
+        router.push(`/goals/${id}`);
       }, 2000);
     } catch (error) {
       console.error("Error generating roadmap:", error);

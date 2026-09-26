@@ -166,7 +166,7 @@ export default function TodayView() {
     const json = await res.json();
     const id = json?.data?.id ?? json?.id;
     if (!id) throw new Error("Missing goal id");
-    router.push(`/dashboard/goals/${id}`);
+    router.push(`/goals/${id}`);
   };
 
   const userName = session?.user?.name?.split(" ")[0] ?? "there";

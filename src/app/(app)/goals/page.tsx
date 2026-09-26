@@ -90,7 +90,7 @@ export default function GoalsListPage() {
               return (
                 <li key={goal._id}>
                   <Link
-                    href={`/dashboard/goals/${goal._id}`}
+                    href={`/goals/${goal._id}`}
                     className="block rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-slate-300 hover:bg-slate-50"
                   >
                     <div className="flex items-start justify-between gap-3">

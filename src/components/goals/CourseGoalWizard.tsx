@@ -271,7 +271,7 @@ export default function CourseGoalWizard({ onCancel }: { onCancel: () => void })
       });
       const result = await responseData<{ id: string }>(response);
       if (!result.id) throw new Error("Missing goal id");
-      router.push(`/dashboard/goals/${result.id}`);
+      router.push(`/goals/${result.id}`);
     } catch {
       setError("We couldn't create your goal. Your learning plan is still available to review.");
     } finally {

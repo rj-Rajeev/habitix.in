@@ -18,7 +18,7 @@ export default function NewGoalPage() {
     if (!res.ok) throw new Error(json?.message || json?.error || "Failed to create goal");
     const id = json?.data?.id ?? json?.id;
     if (!id) throw new Error("Missing goal id");
-    router.push(`/dashboard/goals/${id}`);
+    router.push(`/goals/${id}`);
   };
   return <AppShell eyebrow="Create" title="New goal">
     {flow === "choice" && <section className="mx-auto max-w-5xl">
