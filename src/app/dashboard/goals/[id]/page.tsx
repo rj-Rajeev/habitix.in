@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import {
   AlertCircle,
-  BookOpen,
   Calendar,
   Check,
   ChevronLeft,
@@ -13,10 +12,10 @@ import {
   Download,
   GripVertical,
   Loader2,
-  Plus,
   Save,
-  Target,
   Upload,
+  ArrowRight,
+  MoreHorizontal,
 } from "lucide-react";
 import AppShell from "@/components/app/AppShell";
 import {
@@ -50,7 +49,10 @@ type GoalDetail = {
   preferredTime?: string;
   motivation?: string;
   roadmap?: RoadmapDay[];
+  courseId?: string | { _id?: string };
 };
+
+type CourseSummary = { title: string; slug: string; completedCount: number; totalCount: number };
 
 type GoalTask = {
   _id: string;
@@ -63,7 +65,9 @@ type GoalTask = {
   priority?: "low" | "medium" | "high";
   estimatedMinutes?: number;
   type?: "execution" | "revision" | "recovery";
+  metadata?: { learning?: { courseId: string; moduleId: string; lessonId: string; lessonTitle?: string } };
 };
+type LearningMetadata = NonNullable<NonNullable<GoalTask["metadata"]>["learning"]>;
 
 type TaskSection = {
   key: string;
@@ -78,6 +82,8 @@ type TaskSection = {
     minutes: number;
     source: "task" | "roadmap";
     dayNumber?: number;
+    type?: GoalTask["type"];
+    learning?: LearningMetadata;
   }>;
 };
 
@@ -110,6 +116,8 @@ function sectionsFromTasks(tasks: GoalTask[]): TaskSection[] {
       completed: task.status === "completed",
       minutes: task.estimatedMinutes ?? 30,
       source: "task",
+      type: task.type,
+      learning: task.metadata?.learning,
     })),
   }));
 }
@@ -149,6 +157,10 @@ export default function GoalDetailPage() {
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"plan" | "excel">("plan");
+  const [activeTab, setActiveTab] = useState<"overview" | "roadmap" | "progress">("overview");
+  const [courseSummary, setCourseSummary] = useState<CourseSummary | null>(null);
+  const [courseSlug, setCourseSlug] = useState<string | null>(null);
+  const [confirmDeleteTaskId, setConfirmDeleteTaskId] = useState<string | null>(null);
   const [edits, setEdits] = useState<Record<string, Partial<GoalTask>>>({});
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState<string | null>(null);
@@ -194,6 +206,28 @@ export default function GoalDetailPage() {
   useEffect(() => {
     loadGoal();
   }, [loadGoal]);
+
+  useEffect(() => {
+    const rawCourseId = goal?.courseId;
+    const courseId = typeof rawCourseId === "string" ? rawCourseId : rawCourseId?._id;
+    setCourseSummary(null);
+    setCourseSlug(null);
+    if (!courseId) return;
+    let active = true;
+    void fetch("/api/courses").then((response) => response.json()).then(async (payload) => {
+      const courses = payload?.data ?? [];
+      const course = Array.isArray(courses) ? courses.find((item: { _id?: string }) => item._id === courseId) : undefined;
+      if (!course?.slug) return;
+      if (active) setCourseSlug(course.slug);
+      const progressResponse = await fetch(`/api/courses/${encodeURIComponent(course.slug)}/progress`);
+      const progressPayload = await progressResponse.json().catch(() => null);
+      const progress = progressPayload?.data;
+      if (active && progress && Number.isFinite(progress.completedCount) && Number.isFinite(progress.totalCount)) {
+        setCourseSummary({ title: course.title, slug: course.slug, completedCount: progress.completedCount, totalCount: progress.totalCount });
+      }
+    }).catch(() => undefined);
+    return () => { active = false; };
+  }, [typeof goal?.courseId === "string" ? goal.courseId : goal?.courseId?._id]);
 
   const updateLocalTaskStatus = (taskId: string, completed: boolean) => {
     setTasks((prev) =>
@@ -513,6 +547,10 @@ export default function GoalDetailPage() {
     0
   );
   const progress = totalTasks ? Math.round((completedTasks / totalTasks) * 100) : 0;
+  const today = new Date();
+  const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+  const todaysTasks = tasks.filter((task) => task.scheduledDate?.slice(0, 10) === todayKey);
+  const learningTasks = tasks.filter((task) => task.metadata?.learning);
   const pendingEditCount = Object.keys(edits).length;
 
   return (
@@ -530,89 +568,67 @@ export default function GoalDetailPage() {
       }
     >
       {loading ? (
-        <div className="flex min-h-72 items-center justify-center rounded-3xl bg-white text-slate-500">
-          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          Loading
+        <div className="mx-auto max-w-5xl space-y-4" aria-label="Loading goal">
+          <div className="rounded-2xl border border-border bg-white p-6"><span className="ui-skeleton h-7 w-2/3"/><span className="ui-skeleton mt-3 h-4 w-full max-w-xl"/><span className="ui-skeleton mt-6 h-2 w-full"/></div>
+          <div className="rounded-2xl border border-border bg-white p-6"><span className="ui-skeleton h-5 w-1/3"/><span className="ui-skeleton mt-4 h-12 w-full"/></div>
         </div>
       ) : error ? (
-        <div className="flex gap-3 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+        <div className="flex items-center justify-between gap-3 rounded-2xl border border-error/20 bg-error/5 p-4 text-sm text-error">
           <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-          {error}
+          <span className="flex-1">{error}</span><button type="button" onClick={() => void loadGoal()} className="min-h-10 rounded-control border border-error/20 bg-white px-3 font-semibold">Retry</button>
         </div>
       ) : goal ? (
-        <div className="space-y-5">
-          <section className="rounded-3xl bg-slate-950 p-5 text-white shadow-sm">
-            <div className="flex items-start justify-between gap-4">
-              <div className="min-w-0">
-                <h2 className="text-2xl font-semibold tracking-tight">
-                  {goal.title}
-                </h2>
-                {goal.description && (
-                  <p className="mt-2 line-clamp-3 text-sm leading-6 text-slate-300">
-                    {goal.description}
-                  </p>
-                )}
+        <div className="mx-auto max-w-5xl space-y-6">
+          <input ref={importInputRef} type="file" accept={TASK_SPREADSHEET_ACCEPT} className="hidden" onChange={(event) => void importTasks(event.target.files?.[0])} />
+          <section className="rounded-2xl border border-border bg-surface p-5 shadow-sm sm:p-7">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div className="min-w-0 flex-1">
+                <Link href="/goals" className="mb-3 inline-flex min-h-10 items-center gap-2 text-sm font-semibold text-text-secondary"><ChevronLeft className="h-4 w-4" />Goals</Link>
+                <h2 className="text-2xl font-semibold tracking-tight text-text-primary sm:text-3xl">{goal.title}</h2>
+                {goal.description && <p className="mt-2 max-w-3xl text-sm leading-6 text-text-secondary">{goal.description}</p>}
+                {goal.motivation && <p className="mt-3 max-w-3xl text-sm italic text-text-muted">{goal.motivation}</p>}
+                <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-sm text-text-secondary">
+                  <span className="inline-flex items-center gap-1.5"><Calendar className="h-4 w-4 text-brand-primary" />Target {formatDate(goal.targetDate)}</span>
+                  {goal.hoursPerDay && <span>{goal.hoursPerDay} {goal.hoursPerDay === 1 ? "hour" : "hours"} / day</span>}
+                  {goal.daysPerWeek && <span>{goal.daysPerWeek} days / week</span>}
+                  {goal.preferredTime && <span className="capitalize">{goal.preferredTime}</span>}
+                </div>
               </div>
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white/10">
-                <Target className="h-6 w-6 text-emerald-300" />
-              </div>
+              <details className="relative">
+                <summary className="flex h-10 cursor-pointer list-none items-center gap-2 rounded-control border border-border-strong bg-white px-3 text-sm font-semibold text-text-secondary"><MoreHorizontal className="h-4 w-4"/>More</summary>
+                <div className="absolute right-0 z-20 mt-2 w-52 rounded-xl border border-border bg-white p-2 shadow-md">
+                  <button type="button" onClick={() => importInputRef.current?.click()} className="block min-h-10 w-full rounded-lg px-3 text-left text-sm text-text-secondary hover:bg-surface-subtle">Import tasks (Excel)</button>
+                  <button type="button" onClick={exportCsv} className="block min-h-10 w-full rounded-lg px-3 text-left text-sm text-text-secondary hover:bg-surface-subtle">Export tasks (CSV)</button>
+                  <button type="button" onClick={() => { setActiveTab("progress"); setShowDeleteConfirm(true); }} className="block min-h-10 w-full rounded-lg px-3 text-left text-sm text-error hover:bg-error/5">Delete goal</button>
+                </div>
+              </details>
             </div>
-
-            <div className="mt-5">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-slate-300">Progress</span>
-                <span className="font-semibold">{progress}%</span>
-              </div>
-              <div className="mt-2 h-2 rounded-full bg-white/10">
-                <div
-                  className="h-full rounded-full bg-emerald-400 transition-all"
-                  style={{ width: `${progress}%` }}
-                />
-              </div>
-            </div>
-
-            <div className="mt-5 grid grid-cols-3 gap-2">
-              <div className="rounded-2xl bg-white/10 p-3">
-                <p className="text-lg font-semibold">{completedTasks}</p>
-                <p className="text-xs text-slate-300">Done</p>
-              </div>
-              <div className="rounded-2xl bg-white/10 p-3">
-                <p className="text-lg font-semibold">{totalTasks}</p>
-                <p className="text-xs text-slate-300">Tasks</p>
-              </div>
-              <div className="rounded-2xl bg-white/10 p-3">
-                <p className="text-lg font-semibold">
-                  {goal.targetDate ? formatDate(goal.targetDate) : "Open"}
-                </p>
-                <p className="text-xs text-slate-300">Target</p>
-              </div>
+            <div className="mt-6">
+              <div className="flex items-center justify-between text-sm"><span className="font-medium text-text-secondary">Overall progress</span><span className="font-semibold text-text-primary">{progress}%</span></div>
+              <div className="ui-progress mt-2"><span style={{ width: `${progress}%` }} /></div>
             </div>
           </section>
+          <nav aria-label="Goal sections" className="flex gap-1 overflow-x-auto border-b border-border">
+            {([ ["overview", "Overview"], ["roadmap", "Roadmap"], ["progress", "Progress"] ] as const).map(([key, label]) => <button key={key} type="button" onClick={() => setActiveTab(key)} className={`min-h-11 shrink-0 border-b-2 px-4 text-sm font-semibold ${activeTab === key ? "border-brand-primary text-brand-primary" : "border-transparent text-text-muted hover:text-text-primary"}`}>{label}</button>)}
+          </nav>
+          {activeTab === "overview" && <div className="space-y-5">
+            <section className="rounded-2xl border border-border bg-white p-5">
+              <div className="flex items-start justify-between gap-3"><div><h3 className="text-lg font-semibold text-text-primary">Today’s focus</h3><p className="mt-1 text-sm text-text-secondary">A clear next step for your goal.</p></div><Link href="/today" className="inline-flex min-h-10 items-center gap-1 text-sm font-semibold text-brand-primary">Today <ArrowRight className="h-4 w-4"/></Link></div>
+              {todaysTasks.length ? <div className="mt-4 divide-y divide-border">{todaysTasks.map(task => {
+                const focusTask: TaskSection["tasks"][number] = { id: task._id, title: task.title, completed: task.status === "completed", minutes: task.estimatedMinutes ?? 30, source: "task", type: task.type, learning: task.metadata?.learning };
+                return <div key={task._id} className="py-3">
+                  <div className="flex flex-wrap items-center justify-between gap-3"><div className="min-w-0"><p className={`font-medium ${focusTask.completed ? "text-text-muted line-through" : "text-text-primary"}`}>{task.title}</p><p className="mt-1 text-xs text-text-muted">{task.metadata?.learning ? "Course lesson" : task.type === "revision" ? "Revision" : "Task"} · {focusTask.minutes} min</p></div><div className="flex flex-wrap items-center gap-2">{task.metadata?.learning && courseSlug && <Link href={`/courses/${encodeURIComponent(courseSlug)}?lessonId=${task.metadata.learning.lessonId}`} className="inline-flex min-h-10 items-center gap-1 px-2 text-sm font-semibold text-brand-primary">Open lesson <ArrowRight className="h-4 w-4"/></Link>}<button type="button" disabled={busyTaskId === task._id} onClick={() => void toggleTaskDone(focusTask)} className="min-h-10 rounded-control border border-border-strong px-3 text-sm font-semibold text-text-secondary">{busyTaskId === task._id ? "Saving…" : focusTask.completed ? "Reopen" : "Complete"}</button></div></div>
+                  {expandedTaskId === task._id && !focusTask.completed && <div className="mt-3 flex flex-wrap gap-2 rounded-xl bg-surface-subtle p-3"><span className="w-full text-xs font-medium text-text-secondary">Complete and schedule revision</span>{REVISION_OPTIONS.map(option => <button key={option.key} type="button" disabled={busyTaskId === task._id} onClick={() => void toggleTaskDone(focusTask, option.key)} className="min-h-9 rounded-control border border-border-strong bg-white px-3 text-xs font-semibold text-text-secondary">{option.label}</button>)}</div>}
+                  <div className="mt-2 flex flex-wrap items-center gap-2"><label className="text-xs text-text-muted" htmlFor={`focus-date-${task._id}`}>Reschedule</label><input id={`focus-date-${task._id}`} type="date" value={task.scheduledDate?.slice(0, 10) ?? ""} onChange={event => void rescheduleTask(task._id, event.target.value)} className="min-h-9 max-w-full rounded-control border border-border-strong bg-white px-2 text-xs text-text-secondary"/><button type="button" onClick={() => setExpandedTaskId(current => current === task._id ? null : task._id)} className="min-h-9 rounded-control px-3 text-xs font-semibold text-text-secondary hover:bg-surface-subtle">{expandedTaskId === task._id ? "Hide revisions" : "Revision"}</button></div>
+                </div>;
+              })}</div> : <div className="mt-4 rounded-xl bg-surface-subtle p-4"><p className="font-medium text-text-primary">Nothing scheduled for today</p><p className="mt-1 text-sm text-text-secondary">Your next planned work will appear here.</p></div>}
+            </section>
+            {courseSummary && <section className="rounded-2xl border border-border bg-white p-5"><div className="flex flex-wrap items-start justify-between gap-3"><div><h3 className="text-lg font-semibold text-text-primary">{courseSummary.title}</h3><p className="mt-1 text-sm text-text-secondary">{courseSummary.completedCount} / {courseSummary.totalCount} lessons</p></div><Link href={`/courses/${encodeURIComponent(courseSummary.slug)}`} className="inline-flex min-h-10 items-center gap-1 text-sm font-semibold text-brand-primary">Continue learning <ArrowRight className="h-4 w-4"/></Link></div><div className="ui-progress mt-3"><span style={{width:`${courseSummary.totalCount ? Math.round((courseSummary.completedCount / courseSummary.totalCount) * 100) : 0}%`}}/></div></section>}
+          </div>}
 
-          <section className="grid grid-cols-2 gap-3">
-            <Link
-              href="/today"
-              className="rounded-2xl border border-slate-200 bg-white p-4 text-sm font-semibold text-slate-900 shadow-sm"
-            >
-              Today queue
-            </Link>
-            <Link
-              href="/goals/new"
-              className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white p-4 text-sm font-semibold text-slate-900 shadow-sm"
-            >
-              <Plus className="h-4 w-4" />
-              New goal
-            </Link>
-            <Link
-              href="/resources"
-              className="col-span-2 inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white p-4 text-sm font-semibold text-slate-900 shadow-sm"
-            >
-              <BookOpen className="h-4 w-4" />
-              Resources
-            </Link>
-          </section>
+          {activeTab === "progress" && <div className="space-y-5"><section className="rounded-2xl border border-border bg-white p-5 sm:p-6"><h3 className="text-lg font-semibold text-text-primary">Overall progress</h3><div className="mt-4 flex items-center justify-between text-sm"><span className="text-text-secondary">{completedTasks} of {totalTasks} tasks complete</span><span className="font-semibold text-text-primary">{progress}%</span></div><div className="ui-progress mt-2"><span style={{width:`${progress}%`}}/></div><div className="mt-5 grid grid-cols-2 gap-4 border-t border-border pt-4 sm:grid-cols-3"><div><p className="text-xs text-text-muted">Completed</p><p className="mt-1 text-lg font-semibold text-text-primary">{completedTasks}</p></div><div><p className="text-xs text-text-muted">Remaining</p><p className="mt-1 text-lg font-semibold text-text-primary">{Math.max(0,totalTasks-completedTasks)}</p></div><div><p className="text-xs text-text-muted">Roadmap tasks</p><p className="mt-1 text-lg font-semibold text-text-primary">{totalTasks}</p></div></div></section>{courseSummary && <section className="rounded-2xl border border-border bg-white p-5 sm:p-6"><h3 className="font-semibold text-text-primary">{courseSummary.title}</h3><p className="mt-1 text-sm text-text-secondary">{courseSummary.completedCount} of {courseSummary.totalCount} lessons complete</p><div className="ui-progress mt-3"><span style={{width:`${courseSummary.totalCount ? Math.round(courseSummary.completedCount/courseSummary.totalCount*100) : 0}%`}}/></div></section>}</div>}
 
-          <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+          <section className={`rounded-2xl border border-border bg-white p-4 shadow-sm ${activeTab === "roadmap" ? "" : "hidden"}`}>
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h3 className="text-lg font-semibold text-slate-950">
@@ -643,13 +659,6 @@ export default function GoalDetailPage() {
                 >
                   Excel view
                 </button>
-                <input
-                  ref={importInputRef}
-                  type="file"
-                  accept={TASK_SPREADSHEET_ACCEPT}
-                  className="hidden"
-                  onChange={(event) => void importTasks(event.target.files?.[0])}
-                />
                 <button
                   type="button"
                   onClick={() => importInputRef.current?.click()}
@@ -882,11 +891,11 @@ export default function GoalDetailPage() {
 
           {viewMode === "plan" && (
             sections.length === 0 ? (
-              <div className="rounded-3xl border border-dashed border-slate-300 bg-white/70 p-6 text-center text-sm text-slate-500">
-                No tasks in this goal yet.
+              <div className={`rounded-2xl border border-dashed border-border-strong bg-white p-6 text-center ${activeTab === "roadmap" ? "" : "hidden"}`}>
+                <p className="font-medium text-text-primary">Your roadmap is ready to build</p><p className="mt-1 text-sm text-text-secondary">No tasks have been added to this goal yet.</p>
               </div>
             ) : (
-              <div className="space-y-4">
+              <div className={`space-y-4 ${activeTab === "roadmap" ? "" : "hidden"}`}>
                 {sections.map((section) => (
                   <section
                     key={section.key}
@@ -896,7 +905,7 @@ export default function GoalDetailPage() {
                         void rescheduleTask(dragTaskId, section.dateKey);
                       }
                     }}
-                    className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm"
+                    className="rounded-2xl border border-border bg-white p-4 shadow-sm"
                   >
                     <div className="mb-4 flex items-center justify-between gap-3">
                       <div>
@@ -971,7 +980,14 @@ export default function GoalDetailPage() {
                                 </span>
                               )}
 
+                              {task.learning && courseSlug && (
+                                <Link href={`/courses/${encodeURIComponent(courseSlug)}?lessonId=${task.learning.lessonId}`} className="mt-2 inline-flex min-h-10 items-center gap-1 text-sm font-semibold text-brand-primary">
+                                  Open lesson <ArrowRight className="h-4 w-4" />
+                                </Link>
+                              )}
+
                               <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
+                                {task.learning && <span className="w-fit rounded-full bg-brand-primary/5 px-2 py-1 text-xs font-medium text-brand-primary">Course lesson</span>}
                                 <span className="inline-flex items-center gap-1 text-xs text-slate-500">
                                   <Clock3 className="h-3.5 w-3.5" />
                                   {task.minutes}m
@@ -1002,9 +1018,12 @@ export default function GoalDetailPage() {
                                     ? "Hide"
                                     : "Revision"}
                                 </button>
+                                {task.source === "task" && <button type="button" onClick={() => setConfirmDeleteTaskId(current => current === task.id ? null : task.id)} className="inline-flex min-h-10 items-center justify-center rounded-xl px-3 text-xs font-semibold text-text-muted hover:bg-error/5 hover:text-error">Delete</button>}
                               </div>
                             </div>
                           </div>
+
+                          {confirmDeleteTaskId === task.id && <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-error/20 bg-error/5 p-3 text-sm"><span className="text-error">Delete this task?</span><div className="flex gap-2"><button type="button" disabled={busyTaskId === task.id} onClick={() => void deleteTask(task.id).then(() => setConfirmDeleteTaskId(null))} className="min-h-9 rounded-control bg-error px-3 font-semibold text-white">Delete task</button><button type="button" onClick={() => setConfirmDeleteTaskId(null)} className="min-h-9 rounded-control border border-border-strong bg-white px-3 font-semibold text-text-secondary">Cancel</button></div></div>}
 
                           {expandedTaskId === task.id && !task.completed && (
                             <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-3">
@@ -1047,7 +1066,7 @@ export default function GoalDetailPage() {
             )
           )}
 
-          <section className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-900">
+          <section className={`rounded-2xl border border-error/20 bg-error/5 p-4 text-sm text-error ${activeTab === "progress" ? "" : "hidden"}`}>
             <h3 className="font-semibold text-red-800">Danger zone</h3>
             <p className="mt-2 text-xs text-red-700">
               Permanently delete this goal and its tasks. This action cannot be undone.
