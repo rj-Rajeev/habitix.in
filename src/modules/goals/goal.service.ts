@@ -47,6 +47,9 @@ function normalizeRoadmap(roadmap: CreateGoalInput["roadmap"]): IRoadmapDay[] {
 
 export const goalService = {
   async create(userId: string, input: CreateGoalInput) {
+    const planSource = input.planSource ?? (input.courseId ? "course" : "manual");
+    if (planSource === "course" && !input.courseId) throw Errors.badRequest("Course goals require a courseId");
+    if (planSource !== "course" && input.courseId) throw Errors.badRequest(`${planSource} goals cannot include a courseId`);
     if (!input.courseId && input.roadmap?.some((day) => day.tasks.some((task) => task.courseLessonId))) {
       throw Errors.badRequest("Course lesson references require a courseId");
     }
@@ -67,6 +70,7 @@ export const goalService = {
 
     const goal = await goalRepository.create({
       userId,
+      planSource,
       title: input.title,
       description: input.description,
       targetDate: input.targetDate,
@@ -84,7 +88,7 @@ export const goalService = {
     const goalId = goal._id.toString();
     await goalSyncService.syncGoalTasks(userId, goalId);
 
-    return { id: goalId, goal };
+    return { id: goalId, goal: normalizeGoal(goal) };
   },
 
   async getById(id: string, userId: string) {
@@ -94,14 +98,20 @@ export const goalService = {
       throw Errors.notFound("Goal");
     }
 
-    return goal;
+    return normalizeGoal(goal);
   },
 
   async listForUser(userId: string) {
-    return goalRepository.findActiveByUser(userId);
+    return (await goalRepository.findActiveByUser(userId)).map(normalizeGoal);
   },
 
   async countForUser(userId: string) {
     return goalRepository.countActiveByUser(userId);
   },
 };
+
+function normalizeGoal<T extends { toObject?: () => Record<string, unknown>; courseId?: unknown; $isDefault?: (path: string) => boolean }>(goal: T) {
+  const data = goal.toObject ? goal.toObject() : goal as unknown as Record<string, unknown>;
+  const legacyMissingSource = goal.$isDefault?.("planSource") ?? data.planSource === undefined;
+  return { ...data, planSource: legacyMissingSource ? (data.courseId ? "course" : "manual") : data.planSource };
+}

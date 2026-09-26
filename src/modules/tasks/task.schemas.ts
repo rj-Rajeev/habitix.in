@@ -21,6 +21,7 @@ export const rescheduleTaskSchema = z.object({
 });
 
 export const createGoalSchema = z.object({
+  planSource: z.enum(["course", "ai", "manual"]).optional(),
   courseId: z.string().regex(/^[a-f\d]{24}$/i).optional(),
   title: z.string().min(1).max(200),
   description: z.string().max(2000).optional(),
@@ -47,6 +48,14 @@ export const createGoalSchema = z.object({
       })
     )
     .optional(),
+}).superRefine((value, context) => {
+  const source = value.planSource ?? (value.courseId ? "course" : "manual");
+  if (source === "course" && !value.courseId) {
+    context.addIssue({ code: z.ZodIssueCode.custom, path: ["courseId"], message: "Course goals require a courseId" });
+  }
+  if (source !== "course" && value.courseId) {
+    context.addIssue({ code: z.ZodIssueCode.custom, path: ["courseId"], message: `${source} goals cannot include a courseId` });
+  }
 });
 
 export const generateRoadmapSchema = z.object({

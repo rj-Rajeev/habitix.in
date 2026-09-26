@@ -61,6 +61,7 @@ export default function ManualGoalForm({
     setLoading(true);
     try {
       await onSubmit({
+        planSource: "manual",
         title,
         description: trimOrUndefined(form.description),
         targetDate: trimOrUndefined(form.targetDate),

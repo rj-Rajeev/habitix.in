@@ -167,6 +167,7 @@ export default function GoalChatPage() {
       });
 
       const fullGoal = {
+        planSource: "ai",
         title: goalData.title,
         description: "",
         hoursPerDay: goalData.hoursPerDay,

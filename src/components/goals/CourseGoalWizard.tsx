@@ -212,6 +212,7 @@ export default function CourseGoalWizard({ onCancel }: { onCancel: () => void })
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          planSource: "course",
           courseId: course._id,
           title: objective.trim(),
           objective: objective.trim(),

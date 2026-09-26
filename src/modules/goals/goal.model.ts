@@ -22,6 +22,7 @@ export interface IRoadmapDay {
 }
 
 export interface IGoal extends Document {
+  planSource: "course" | "ai" | "manual";
   userId: string;
   title: string;
   description?: string;
@@ -43,6 +44,7 @@ export interface IGoal extends Document {
 const GoalSchema = new Schema<IGoal>(
   {
     userId: { type: String, required: true, index: true },
+    planSource: { type: String, enum: ["course", "ai", "manual"], default: "manual", required: true },
     title: { type: String, required: true },
     description: String,
     targetDate: String,
