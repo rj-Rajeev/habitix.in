@@ -55,17 +55,20 @@ async function generateText(prompt: string) {
 
 export const aiService = {
   async generateRoadmap(input: GenerateRoadmapInput) {
-    const prompt = `You're a learning coach. Create a detailed ${input.duration} study plan (maximum 14 days) for:
+    const prompt = `You're a learning coach. Create meaningful, ordered work for the goal below within the supplied planning window and capacity:
 
 Goal: ${input.title}
+Planning window: ${input.duration}
 Preferred time: ${input.preferredTime}
 Days per week: ${input.daysPerWeek}
 Hours per day: ${input.hoursPerDay}
 Motivation: ${input.motivation ?? "N/A"}
 
-Return ONLY a JSON array. Each item:
-- "dayNumber": number (1-based)
-- "tasks": array of 3-5 objects with "title" (actionable, specific)
+Return only a JSON array of ordered work groups. The groups are sequence containers, not calendar days. Habitix assigns calendar dates after generation. Do not output dates or decide which weekdays are study days. Use the requested available time and frequency as capacity context; do not invent task duration estimates.
+
+Each item must have:
+- "dayNumber": numeric sequence metadata only
+- "tasks": array of 3-5 objects with an actionable, specific "title"
 
 Example:
 [{"dayNumber":1,"tasks":[{"title":"Read chapter 1"}]}]`;
@@ -114,10 +117,6 @@ Example:
       throw Errors.badRequest("This course does not have any lessons yet");
     }
 
-    const allowedLessonIds = new Set(
-      lessons.map((lesson) => lesson.lessonId)
-    );
-
     const allowedModules = new Map(
       modules.map((module) => [module.moduleId, module.moduleTitle])
     );
@@ -135,13 +134,22 @@ Example:
     const selectedFocusAreas = input.focusAreas?.map(
       (moduleId) => allowedModules.get(moduleId) as string
     );
+    const selectedModuleIds = new Set(input.focusAreas ?? []);
+    const planLessons = selectedModuleIds.size
+      ? lessons.filter((lesson) => selectedModuleIds.has(lesson.moduleId))
+      : lessons;
+    if (planLessons.length === 0) {
+      throw Errors.badRequest("The selected course focus has no lessons to plan");
+    }
+    const allowedLessonIds = new Set(planLessons.map((lesson) => lesson.lessonId));
 
-    const prompt = `You're a learning coach. Create a personalized ${input.duration} study plan (maximum 30 days) for this published course.
+    const prompt = `You're a learning coach. Create personalized, ordered work for the goal and planning window below. Habitix, not you, assigns calendar dates.
 
 Course: ${course.title}
 Course description: ${course.description}
 Goal: ${input.title}
 Objective: ${input.objective ?? input.title}
+Planning window: ${input.duration}
 Current level: ${input.currentLevel ?? "not specified"}
 Existing knowledge: ${input.existingKnowledge ?? "not specified"}
 Focus areas: ${selectedFocusAreas?.join(", ") || "not specified"}
@@ -152,10 +160,10 @@ Days per week: ${input.daysPerWeek}
 Hours per day: ${input.hoursPerDay}
 Motivation: ${input.motivation ?? "N/A"}
 
-Available real lessons (lessonId is an authoritative database ID):
-${JSON.stringify(lessons)}
+Available real lessons for this plan (lessonId is an authoritative database ID):
+${JSON.stringify(planLessons)}
 
-Return ONLY a JSON array. Each item has "dayNumber" (1-based) and "tasks" (3-5 objects). Each task must have an actionable "title" and a "lessonId" copied exactly from the available lessons. Never create or alter lesson IDs.
+Return ONLY a JSON array of ordered work groups. Each item's "dayNumber" is sequence metadata only, not a calendar day. Do not output dates or choose study weekdays. Include one task for every supplied lesson exactly once. Each task needs an actionable "title" and the exact "lessonId" copied from that lesson. Never create, alter, omit, or duplicate lesson IDs. Use the selected time capacity as context, but do not invent tasks beyond the supplied course lessons or task duration estimates.
 
 Example:
 [{"dayNumber":1,"tasks":[{"title":"Understand the fundamentals","lessonId":"${lessons[0].lessonId}"}]}]`;
@@ -174,35 +182,38 @@ Example:
         JSON.parse(text.slice(jsonStart, jsonEnd))
       );
 
-      if (
-        parsed.some((day) =>
-          day.tasks.some(
-            (task) => !allowedLessonIds.has(task.lessonId)
-          )
-        )
-      ) {
-        throw new Error(
-          "AI returned a lesson ID outside the supplied course"
-        );
+      const generatedTitles = new Map<string, string>();
+      for (const task of parsed.flatMap((day) => day.tasks)) {
+        if (!allowedLessonIds.has(task.lessonId)) {
+          throw new Error("AI returned a lesson ID outside the supplied course focus");
+        }
+        if (!generatedTitles.has(task.lessonId)) generatedTitles.set(task.lessonId, task.title);
       }
 
-      const lessonTitles = new Map(
-        lessons.map((lesson) => [lesson.lessonId, lesson.lessonTitle])
-      );
-
-      return parsed.map((day, index) => ({
-        dayNumber: day.dayNumber,
-        unlocked: index === 0,
+      // Preserve AI ordering for matched lessons, then include any omitted real
+      // lessons in course order using their real lesson title as the fallback.
+      const orderedLessonIds = [
+        ...generatedTitles.keys(),
+        ...planLessons
+          .map((lesson) => lesson.lessonId)
+          .filter((lessonId) => !generatedTitles.has(lessonId)),
+      ];
+      const lessonById = new Map(planLessons.map((lesson) => [lesson.lessonId, lesson]));
+      return [{
+        dayNumber: 1,
+        unlocked: true,
         completed: false,
-        tasks: day.tasks.map((task) => ({
-          title: task.title,
+        tasks: orderedLessonIds.map((lessonId) => {
+          const lesson = lessonById.get(lessonId)!;
+          return {
+          title: generatedTitles.get(lessonId)?.trim() || lesson.lessonTitle,
           isCompleted: false,
           createdAt: new Date(),
-          courseLessonId: task.lessonId,
-          lessonTitle: lessonTitles.get(task.lessonId),
-        })),
+          courseLessonId: lesson.lessonId,
+          lessonTitle: lesson.lessonTitle,
+        }; }),
         proof: { uploaded: false },
-      }));
+      }];
     } catch (err) {
       console.error("[AI] course roadmap generation failed:", err);
       throw Errors.internal("Failed to generate course roadmap");

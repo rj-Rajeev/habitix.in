@@ -5,6 +5,7 @@ import type React from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, BookOpen, Check, LoaderCircle, LockKeyhole, Sparkles } from "lucide-react";
 import { enrollInCourse } from "@/lib/courses/enroll-client";
+import { dateKeyInTimezone, scheduleRoadmapTasks } from "@/lib/goals/goal-scheduling";
 
 type CourseSummary = {
   _id: string;
@@ -47,18 +48,18 @@ async function responseData<T>(response: Response): Promise<T> {
   return (payload?.data ?? payload) as T;
 }
 
-function todayKey() {
-  const date = new Date();
-  date.setMinutes(date.getMinutes() - date.getTimezoneOffset());
-  return date.toISOString().slice(0, 10);
-}
-
-function localDateKey(date: Date) {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+function formatCalendarDate(dateKey: string) {
+  return new Date(`${dateKey}T12:00:00`).toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+  });
 }
 
 export default function CourseGoalWizard({ onCancel }: { onCancel: () => void }) {
   const router = useRouter();
+  const timezone = useMemo(() => Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC", []);
+  const now = useMemo(() => new Date(), []);
+  const today = useMemo(() => dateKeyInTimezone(now, timezone), [now, timezone]);
   const [courses, setCourses] = useState<CourseSummary[]>([]);
   const [coursesLoading, setCoursesLoading] = useState(true);
   const [courseLoadError, setCourseLoadError] = useState("");
@@ -191,7 +192,7 @@ export default function CourseGoalWizard({ onCancel }: { onCancel: () => void })
     const targetTimestamp = /^\d{4}-\d{2}-\d{2}$/.test(targetDate)
       ? Date.parse(`${targetDate}T00:00:00Z`)
       : Number.NaN;
-    const todayTimestamp = Date.parse(`${todayKey()}T00:00:00Z`);
+    const todayTimestamp = Date.parse(`${today}T00:00:00Z`);
     if (!Number.isFinite(targetTimestamp) || new Date(targetTimestamp).toISOString().slice(0, 10) !== targetDate || targetTimestamp < todayTimestamp) {
       setError("Choose a valid target date that is today or later.");
       return;
@@ -206,7 +207,7 @@ export default function CourseGoalWizard({ onCancel }: { onCancel: () => void })
     }
     setError("");
     setGenerating(true);
-    const days = Math.max(1, Math.ceil((targetTimestamp - todayTimestamp) / 86400000));
+    const days = Math.max(1, Math.floor((targetTimestamp - todayTimestamp) / 86400000) + 1);
     try {
       const response = await fetch("/api/v1/goals/generate-roadmap", {
         method: "POST",
@@ -229,15 +230,19 @@ export default function CourseGoalWizard({ onCancel }: { onCancel: () => void })
         }),
       });
       const result = await responseData<{ roadmap: Array<{ dayNumber: number; tasks: Array<{ title: string; courseLessonId: string; lessonTitle?: string }> }> }>(response);
-      const startDate = new Date(`${todayKey()}T00:00:00`);
-      setRoadmap(result.roadmap.map((day, index) => {
-        const dayDate = new Date(startDate);
-        dayDate.setDate(dayDate.getDate() + index);
-        return { ...day, dayDate: localDateKey(dayDate) };
-      }));
+      const scheduledRoadmap = scheduleRoadmapTasks(result.roadmap, {
+        targetDate,
+        daysPerWeek,
+        timezone,
+        now,
+      });
+      if (scheduledRoadmap.length === 0) {
+        throw new Error("There are no selected study days between today and your target date. Adjust your target date or study frequency and try again.");
+      }
+      setRoadmap(scheduledRoadmap);
       setStep("review");
-    } catch {
-      setError("We couldn't create your learning plan right now. Please try again.");
+    } catch (generationError) {
+      setError(generationError instanceof Error ? generationError.message : "We couldn't create your learning plan right now. Please try again.");
     } finally {
       setGenerating(false);
     }
@@ -265,7 +270,7 @@ export default function CourseGoalWizard({ onCancel }: { onCancel: () => void })
             `Learning preference: ${preferences.find((item) => item.value === learningPreference)?.label}`,
             additionalRequirements.trim(),
           ].filter(Boolean).join("\n").slice(0, 2000),
-          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
+          timezone,
           roadmap,
         }),
       });
@@ -326,7 +331,7 @@ export default function CourseGoalWizard({ onCancel }: { onCancel: () => void })
       <div className="rounded-xl bg-surface-subtle px-4 py-3"><p className="text-sm font-semibold">{course.title}</p><p className="mt-1 text-xs text-text-secondary">{courseContext?.modules.length ?? 0} modules · {totalLessons} lessons</p></div>
       <label className="block space-y-2"><span className="text-sm font-semibold">What do you want to achieve? <span className="text-brand-primary">*</span></span><textarea maxLength={2000} value={objective} onChange={(event) => setObjective(event.target.value)} placeholder="I want to learn this subject well enough to confidently use it in my work." rows={4} className={inputClass} /></label>
       <fieldset className="space-y-2"><legend className="mb-2 text-sm font-semibold">Your current level <span className="text-brand-primary">*</span></legend><div className="grid grid-cols-1 gap-2 sm:grid-cols-3">{levels.map((level) => <label key={level.value} className={`flex min-h-12 cursor-pointer items-center gap-2 rounded-xl border px-3 text-sm ${currentLevel === level.value ? "border-brand-primary bg-brand-primary-soft text-brand-primary" : "border-border bg-surface text-text-secondary"}`}><input type="radio" name="currentLevel" value={level.value} checked={currentLevel === level.value} onChange={(event) => setCurrentLevel(event.target.value)} className="accent-teal-700" />{level.label}</label>)}</div></fieldset>
-      <div className="grid gap-5 sm:grid-cols-2"><label className="block space-y-2"><span className="text-sm font-semibold">Target date <span className="text-brand-primary">*</span></span><input type="date" min={todayKey()} value={targetDate} onChange={(event) => setTargetDate(event.target.value)} className={inputClass} /></label><fieldset className="space-y-2"><legend className="text-sm font-semibold">Time available per day <span className="text-brand-primary">*</span></legend><div className="flex flex-wrap gap-2">{timeOptions.map((option) => <button key={option.hours} type="button" aria-pressed={hoursPerDay === option.hours} onClick={() => setHoursPerDay(option.hours)} className={`min-h-10 rounded-xl border px-3 text-sm ${hoursPerDay === option.hours ? "border-brand-primary bg-brand-primary-soft font-semibold text-brand-primary" : "border-border bg-surface text-text-secondary"}`}>{option.label}</button>)}</div></fieldset></div>
+      <div className="grid gap-5 sm:grid-cols-2"><label className="block space-y-2"><span className="text-sm font-semibold">Target date <span className="text-brand-primary">*</span></span><input type="date" min={today} value={targetDate} onChange={(event) => setTargetDate(event.target.value)} className={inputClass} /></label><fieldset className="space-y-2"><legend className="text-sm font-semibold">Time available per day <span className="text-brand-primary">*</span></legend><div className="flex flex-wrap gap-2">{timeOptions.map((option) => <button key={option.hours} type="button" aria-pressed={hoursPerDay === option.hours} onClick={() => setHoursPerDay(option.hours)} className={`min-h-10 rounded-xl border px-3 text-sm ${hoursPerDay === option.hours ? "border-brand-primary bg-brand-primary-soft font-semibold text-brand-primary" : "border-border bg-surface text-text-secondary"}`}>{option.label}</button>)}</div></fieldset></div>
       <label className="block space-y-2"><span className="text-sm font-semibold">What do you already know? <span className="font-normal text-text-muted">Optional</span></span><textarea maxLength={2000} value={existingKnowledge} onChange={(event) => setExistingKnowledge(event.target.value)} placeholder="I already know the fundamentals and have tried a few projects." rows={2} className={inputClass} /></label>
       {Boolean(courseContext?.modules.length) && <fieldset className="space-y-2"><legend className="text-sm font-semibold">Main focus <span className="font-normal text-text-muted">Optional</span></legend><p className="text-xs text-text-secondary">Choose areas from this course that matter most to you.</p><div className="grid gap-2 sm:grid-cols-2">{courseContext?.modules.map((module) => <label key={module._id} className="flex min-h-11 cursor-pointer items-center gap-2 rounded-xl border border-border px-3 text-sm text-text-secondary"><input type="checkbox" checked={focusAreas.includes(module._id)} onChange={(event) => setFocusAreas((current) => event.target.checked ? [...current, module._id] : current.filter((item) => item !== module._id))} className="accent-teal-700" />{module.title}</label>)}</div></fieldset>}
       <label className="block space-y-2"><span className="text-sm font-semibold">Learning preference</span><select value={learningPreference} onChange={(event) => setLearningPreference(event.target.value)} className={inputClass}>{preferences.map((preference) => <option key={preference.value} value={preference.value}>{preference.label}</option>)}</select></label>
@@ -338,9 +343,9 @@ export default function CourseGoalWizard({ onCancel }: { onCancel: () => void })
     </>}
 
     {step === "review" && <>
-      <div className="mb-5 rounded-2xl border border-border bg-surface p-5"><p className="text-xs font-semibold uppercase tracking-wide text-brand-primary">{course.title}</p><p className="mt-2 text-lg font-semibold">{objective}</p><dl className="mt-4 grid gap-3 border-t border-border pt-4 text-sm sm:grid-cols-2"><div><dt className="text-text-muted">Current level</dt><dd className="mt-0.5 font-medium text-text-primary">{levels.find((level) => level.value === currentLevel)?.label}</dd></div><div><dt className="text-text-muted">Target date</dt><dd className="mt-0.5 font-medium text-text-primary">{targetDate}</dd></div><div><dt className="text-text-muted">Time available</dt><dd className="mt-0.5 font-medium text-text-primary">{timeOptions.find((option) => option.hours === hoursPerDay)?.label} per day</dd></div><div><dt className="text-text-muted">Learning preference</dt><dd className="mt-0.5 font-medium text-text-primary">{preferences.find((preference) => preference.value === learningPreference)?.label}</dd></div></dl></div>
+      <div className="mb-5 rounded-2xl border border-border bg-surface p-5"><p className="text-xs font-semibold uppercase tracking-wide text-brand-primary">{course.title}</p><p className="mt-2 text-lg font-semibold">{objective}</p><dl className="mt-4 grid gap-3 border-t border-border pt-4 text-sm sm:grid-cols-2"><div><dt className="text-text-muted">Current level</dt><dd className="mt-0.5 font-medium text-text-primary">{levels.find((level) => level.value === currentLevel)?.label}</dd></div><div><dt className="text-text-muted">Target date</dt><dd className="mt-0.5 font-medium text-text-primary">{targetDate}</dd></div><div><dt className="text-text-muted">Time available</dt><dd className="mt-0.5 font-medium text-text-primary">{timeOptions.find((option) => option.hours === hoursPerDay)?.label} per day</dd></div><div><dt className="text-text-muted">Study days</dt><dd className="mt-0.5 font-medium text-text-primary">{daysPerWeek} days/week · {preferredTime}</dd></div><div><dt className="text-text-muted">Learning preference</dt><dd className="mt-0.5 font-medium text-text-primary">{preferences.find((preference) => preference.value === learningPreference)?.label}</dd></div></dl></div>
       {error && <p className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800" role="alert">{error}</p>}
-      <div className="space-y-3">{roadmap.map((day) => <article key={`${day.dayNumber}-${day.dayDate}`} className="rounded-2xl border border-border bg-surface p-5"><div className="flex items-center justify-between gap-3"><h3 className="font-semibold">Day {day.dayNumber}</h3><span className="text-xs text-text-muted">{day.dayDate}</span></div><ul className="mt-3 space-y-3">{day.tasks.map((task, index) => { const linked = lessonLookup.get(task.courseLessonId); return <li key={`${task.courseLessonId}-${index}`} className="flex gap-3 border-t border-border pt-3"><Check className="mt-0.5 h-4 w-4 shrink-0 text-brand-primary" /><div className="min-w-0"><p className="text-sm font-medium text-text-primary">{task.title}</p>{linked && <p className="mt-1 text-xs leading-5 text-text-secondary">{linked.moduleTitle} · {task.lessonTitle || linked.title}</p>}</div></li>; })}</ul></article>)}</div>
+      <div className="space-y-3">{roadmap.map((day) => <article key={`${day.dayNumber}-${day.dayDate}`} className="rounded-2xl border border-border bg-surface p-5"><div className="flex items-center justify-between gap-3"><h3 className="font-semibold">Day {day.dayNumber} · {formatCalendarDate(day.dayDate)}</h3><span className="text-xs text-text-muted">{day.dayDate}</span></div><ul className="mt-3 space-y-3">{day.tasks.map((task, index) => { const linked = lessonLookup.get(task.courseLessonId); return <li key={`${task.courseLessonId}-${index}`} className="flex gap-3 border-t border-border pt-3"><Check className="mt-0.5 h-4 w-4 shrink-0 text-brand-primary" /><div className="min-w-0"><p className="text-sm font-medium text-text-primary">{task.title}</p>{linked && <p className="mt-1 text-xs leading-5 text-text-secondary">{linked.moduleTitle} · {task.lessonTitle || linked.title}</p>}</div></li>; })}</ul></article>)}</div>
       <div className="sticky bottom-20 mt-5 flex flex-col-reverse gap-2 rounded-2xl border border-border bg-background/95 p-3 backdrop-blur sm:static sm:flex-row sm:justify-end sm:border-0 sm:bg-transparent sm:p-0"><button type="button" onClick={() => setStep("requirements")} disabled={saving} className="min-h-12 rounded-xl border border-border bg-surface px-5 text-sm font-semibold text-text-secondary">Back</button><button type="button" onClick={() => void createGoal()} disabled={saving || accessStatus !== "ready"} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-brand-primary px-5 text-sm font-semibold text-white disabled:opacity-60">{saving && <LoaderCircle className="h-4 w-4 animate-spin" />}{saving ? "Creating goal…" : "Create goal"}</button></div>
     </>}
   </section>;
