@@ -7,12 +7,13 @@ import { ArrowRight, BookOpen, CalendarCheck, Plus, Target } from "lucide-react"
 import AppShell from "@/components/app/AppShell";
 import { Alert, Card, Progress, Skeleton } from "@/components/ui";
 import type { TodayQueue } from "@/types/today";
+import { getBrowserTimezone } from "@/lib/dates";
 
 type Goal = {
   planSource: "course" | "ai" | "manual";
   _id: string;
   title: string;
-  roadmap?: Array<{ tasks?: Array<{ isCompleted?: boolean }> }>;
+  progress?: { total: number; completed: number; remaining: number; percentage: number };
 };
 type Analytics = { currentStreak?: number; totalTasksCompleted?: number };
 type Enrollment = {
@@ -52,8 +53,9 @@ function LoadingLines() {
 
 export default function DashboardView() {
   const { data: session } = useSession();
-  const today = useResource<TodayQueue>("/api/v1/today");
-  const goals = useResource<Goal[]>("/api/v1/goals");
+  const timezone = getBrowserTimezone();
+  const today = useResource<TodayQueue>(`/api/v1/today?timezone=${encodeURIComponent(timezone)}`);
+  const goals = useResource<Goal[]>("/api/v1/goals?status=active");
   const analytics = useResource<Analytics>("/api/v1/analytics/summary");
   const enrollments = useResource<Enrollment[]>("/api/enrollments");
   const firstName = session?.user?.name?.trim().split(/\s+/)[0] || "there";
@@ -82,9 +84,8 @@ export default function DashboardView() {
       <div className="grid gap-5 sm:grid-cols-2">
         <SectionCard title="Active goals">
           {goals.loading ? <LoadingLines /> : goals.error ? <Alert tone="error">{goals.error}</Alert> : !goals.data?.length ? <><p className="font-medium">No goals yet.</p><p className="mt-1 text-sm text-text-secondary">Set a direction for something you want to build.</p><Link href="/goals/new" className="mt-4 inline-flex min-h-10 items-center gap-2 text-sm font-semibold text-brand-primary">Create a goal <ArrowRight className="h-4 w-4" /></Link></> : <><p className="text-sm text-text-secondary">{goals.data.length} active goal{goals.data.length === 1 ? "" : "s"}</p><ul className="mt-3 space-y-3">{goals.data.slice(0, 2).map((goal) => {
-            const items = goal.roadmap?.flatMap((day) => day.tasks ?? []) ?? [];
-            const percent = items.length ? Math.round(items.filter((task) => task.isCompleted).length / items.length * 100) : null;
-            return <li key={goal._id}><Link href={`/goals/${goal._id}`} className="flex items-center justify-between gap-3 text-sm font-medium text-text-primary hover:text-brand-primary"><span className="truncate">{goal.title}</span>{percent !== null && <span className="text-text-secondary">{percent}%</span>}</Link>{percent !== null && <Progress className="mt-2" value={percent} label={`${goal.title} progress`} />}</li>;
+            const percent = goal.progress?.percentage;
+            return <li key={goal._id}><Link href={`/goals/${goal._id}`} className="flex items-center justify-between gap-3 text-sm font-medium text-text-primary hover:text-brand-primary"><span className="truncate">{goal.title}</span>{typeof percent === "number" && <span className="text-text-secondary">{percent}%</span>}</Link>{typeof percent === "number" && <Progress className="mt-2" value={percent} label={`${goal.title} progress`} />}</li>;
           })}</ul><Link href="/goals" className="mt-4 inline-flex min-h-10 items-center gap-1 text-sm font-semibold text-brand-primary">View all goals <ArrowRight className="h-4 w-4" /></Link></>}
         </SectionCard>
 

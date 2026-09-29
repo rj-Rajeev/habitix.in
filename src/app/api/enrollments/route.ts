@@ -8,7 +8,11 @@ export async function GET() {
     const userId = await requireUserId();
     await connectDb();
     const enrollments = await Enrollment.find({ userId })
-      .populate("courseId", "title slug thumbnail price")
+      .populate({
+        path: "courseId",
+        select: "title slug thumbnail price",
+        match: { status: "published", delete: { $ne: true } },
+      })
       .sort({ enrolledAt: -1 });
     return jsonOk(enrollments);
   } catch (error) {

@@ -12,6 +12,10 @@ export const goalRepository = {
     });
   },
 
+  async findGoalsWithStatusByUser(userId: string, status: "active") {
+    return Goal.find({ userId, status }).sort({ createdAt: -1 });
+  },
+
   async countActiveByUser(userId: string) {
     return Goal.countDocuments({ userId, status: { $ne: "archived" } });
   },

@@ -22,11 +22,13 @@ export async function POST(req: NextRequest) {
   }
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     await connectDb();
     const userId = await requireUserId();
-    const goals = await goalService.listForUser(userId);
+    const goals = request.nextUrl.searchParams.get("status") === "active"
+      ? await goalService.listActiveForDashboard(userId)
+      : await goalService.listForUser(userId);
     return jsonOk(goals);
   } catch (err) {
     return handleRouteError(err);

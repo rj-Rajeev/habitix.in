@@ -8,6 +8,7 @@ import { goalRepository } from "./goal.repository";
 import { goalSyncService } from "./goal-sync.service";
 import type { IRoadmapDay } from "./goal.model";
 import { courseLearningService } from "@/modules/courses/course-learning.service";
+import { goalCompletionService } from "./goal-completion.service";
 
 function normalizeRoadmap(roadmap: CreateGoalInput["roadmap"]): IRoadmapDay[] {
   if (!roadmap?.length) return [];
@@ -103,6 +104,14 @@ export const goalService = {
 
   async listForUser(userId: string) {
     return (await goalRepository.findActiveByUser(userId)).map(normalizeGoal);
+  },
+
+  async listActiveForDashboard(userId: string) {
+    const goals = await goalRepository.findGoalsWithStatusByUser(userId, "active");
+    return Promise.all(goals.map(async (goal) => ({
+      ...normalizeGoal(goal),
+      progress: await goalCompletionService.getGoalTaskProgress(goal._id.toString(), userId),
+    })));
   },
 
   async countForUser(userId: string) {
