@@ -117,6 +117,10 @@ export const goalService = {
   async countForUser(userId: string) {
     return goalRepository.countActiveByUser(userId);
   },
+
+  async countActiveOnlyForUser(userId: string) {
+    return goalRepository.countActiveOnlyByUser(userId);
+  },
 };
 
 function normalizeGoal<T extends { toObject?: () => Record<string, unknown>; courseId?: unknown; $isDefault?: (path: string) => boolean }>(goal: T) {

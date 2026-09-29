@@ -20,6 +20,10 @@ export const goalRepository = {
     return Goal.countDocuments({ userId, status: { $ne: "archived" } });
   },
 
+  async countActiveOnlyByUser(userId: string) {
+    return Goal.countDocuments({ userId, status: "active" });
+  },
+
   async create(data: Partial<IGoal>) {
     return Goal.create(data);
   },

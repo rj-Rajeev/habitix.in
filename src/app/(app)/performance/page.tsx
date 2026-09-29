@@ -4,11 +4,11 @@ import { useEffect, useState } from "react";
 import { BarChart3, Clock3, Flame, Loader2, Target } from "lucide-react";
 import AppShell from "@/components/app/AppShell";
 import type { TodayQueue } from "@/types/today";
+import { getBrowserTimezone } from "@/lib/dates";
 
 type Summary = {
   currentStreak: number;
-  activeGoals: number;
-  completedCount?: number;
+  activeGoalCount?: number;
 };
 
 export default function PerformancePage() {
@@ -18,8 +18,8 @@ export default function PerformancePage() {
 
   useEffect(() => {
     Promise.all([
-      fetch("/api/v1/analytics/summary").then((r) => r.json()),
-      fetch("/api/v1/today").then((r) => r.json()),
+      fetch("/api/v1/analytics/summary?includeActiveGoalCount=true").then((r) => r.json()),
+      fetch(`/api/v1/today?timezone=${encodeURIComponent(getBrowserTimezone())}`).then((r) => r.json()),
     ])
       .then(([summaryJson, todayJson]) => {
         if (summaryJson.success) setSummary(summaryJson.data);
@@ -31,7 +31,7 @@ export default function PerformancePage() {
   const total = queue?.summary.total ?? 0;
   const overdue = queue?.summary.overdueCount ?? 0;
   const focusLoad = queue?.summary.estimatedMinutes ?? 0;
-  const completionProxy = total ? Math.max(0, Math.round(((total - overdue) / total) * 100)) : 100;
+  const queueHealth = total ? Math.max(0, Math.round(((total - overdue) / total) * 100)) : 100;
 
   return (
     <AppShell eyebrow="Insights" title="Performance">
@@ -46,21 +46,22 @@ export default function PerformancePage() {
             <div className="flex items-center gap-3">
               <BarChart3 className="h-6 w-6 text-emerald-300" />
               <div>
-                <p className="text-sm text-slate-300">Today health</p>
-                <h2 className="text-3xl font-semibold">{completionProxy}%</h2>
+                <p className="text-sm text-slate-300">Today queue health</p>
+                <h2 className="text-3xl font-semibold">{queueHealth}%</h2>
               </div>
             </div>
+            <p className="mt-2 text-sm text-slate-300">Share of today&apos;s queued work that is not overdue.</p>
             <div className="mt-4 h-2 rounded-full bg-white/10">
               <div
                 className="h-full rounded-full bg-emerald-400"
-                style={{ width: `${completionProxy}%` }}
+                style={{ width: `${queueHealth}%` }}
               />
             </div>
           </section>
 
           <section className="grid grid-cols-2 gap-3">
             <Metric icon={<Flame className="h-4 w-4" />} label="Streak" value={`${summary?.currentStreak ?? 0}d`} />
-            <Metric icon={<Target className="h-4 w-4" />} label="Goals" value={String(summary?.activeGoals ?? 0)} />
+            <Metric icon={<Target className="h-4 w-4" />} label="Goals" value={String(summary?.activeGoalCount ?? 0)} />
             <Metric icon={<Clock3 className="h-4 w-4" />} label="Focus load" value={`${focusLoad}m`} />
             <Metric icon={<BarChart3 className="h-4 w-4" />} label="Overdue" value={String(overdue)} />
           </section>
@@ -94,7 +95,7 @@ export default function PerformancePage() {
                 },
                 {
                   label: "Goals",
-                  value: summary?.activeGoals ?? 0,
+                  value: summary?.activeGoalCount ?? 0,
                 },
                 {
                   label: "Streak",
