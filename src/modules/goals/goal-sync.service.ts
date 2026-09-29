@@ -1,4 +1,3 @@
-import { Types } from "mongoose";
 import { toDateKey } from "@/lib/dates";
 import { Errors } from "@/lib/api";
 import { goalRepository } from "./goal.repository";
@@ -6,6 +5,7 @@ import { taskRepository } from "@/modules/tasks/task.repository";
 import type { IRoadmapDay } from "./goal.model";
 import { courseLearningService } from "@/modules/courses/course-learning.service";
 import { goalCompletionService } from "./goal-completion.service";
+import { taskCompletionService } from "@/modules/tasks/task-completion.service";
 
 function normalizeDayDate(dayDate: string | Date): string {
   if (typeof dayDate === "string") {
@@ -27,9 +27,25 @@ export const goalSyncService = {
     const goal = await goalRepository.findByIdForUser(goalId, userId);
     if (!goal?.roadmap?.length) return 0;
 
-    const tasks = await flattenRoadmapToTasks(userId, goalId, goal.courseId?.toString(), goal.roadmap);
-    await taskRepository.createMany(tasks);
+    const roadmap = goal.roadmap as unknown as IRoadmapDay[];
+    const initiallyCompletedTaskKeys = new Set(
+      roadmap.flatMap((day: IRoadmapDay) =>
+        day.tasks.flatMap((task, index) =>
+          task.isCompleted ? [`${day.dayNumber}:${index}`] : []
+        )
+      )
+    );
+    const tasks = await flattenRoadmapToTasks(userId, goalId, goal.courseId?.toString(), roadmap);
+    const createdTasks = await taskRepository.createMany(tasks);
     await goalRepository.markTasksSynced(goalId, userId);
+    for (const [index, task] of tasks.entries()) {
+      const completionKey = `${task.source?.roadmapDayNumber}:${task.scheduledOrder}`;
+      if (initiallyCompletedTaskKeys.has(completionKey)) {
+        await taskCompletionService.complete(createdTasks[index]._id.toString(), userId, {
+          scheduleRevision: "none",
+        });
+      }
+    }
     await goalCompletionService.evaluateGoalCompletion(goalId, userId);
     return tasks.length;
   },
@@ -72,7 +88,7 @@ async function flattenRoadmapToTasks(
         title: t.title,
         scheduledDate,
         scheduledOrder: index,
-        status: t.isCompleted ? "completed" : "pending",
+        status: "pending",
         type: "execution",
         estimatedMinutes: 30,
         source: {
@@ -95,27 +111,4 @@ async function flattenRoadmapToTasks(
   }
 
   return items;
-}
-
-export async function syncRoadmapTaskCompletion(
-  userId: string,
-  goalId: string,
-  dayNumber: number,
-  legacyTaskId: string,
-  isCompleted: boolean
-) {
-  const { Task } = await import("@/modules/tasks/task.model");
-  await Task.updateOne(
-    {
-      userId: new Types.ObjectId(userId),
-      goalId: new Types.ObjectId(goalId),
-      "source.roadmapDayNumber": dayNumber,
-      "source.legacyTaskId": legacyTaskId,
-    },
-    {
-      status: isCompleted ? "completed" : "pending",
-      completedAt: isCompleted ? new Date() : undefined,
-    }
-  );
-  await goalCompletionService.evaluateGoalCompletion(goalId, userId);
 }

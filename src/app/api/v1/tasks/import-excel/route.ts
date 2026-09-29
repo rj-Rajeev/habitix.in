@@ -45,6 +45,12 @@ export async function POST(req: NextRequest) {
       throw Errors.notFound("Goal");
     }
 
+    if (form.get("replace") === "true" && goal.courseId) {
+      throw Errors.badRequest(
+        "Course Goal tasks cannot be replaced through Excel import because they are linked to Course lessons"
+      );
+    }
+
     const buffer = Buffer.from(await file.arrayBuffer());
     const result = await taskImportService.importExcel({
       userId,

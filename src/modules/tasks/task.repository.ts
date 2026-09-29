@@ -206,6 +206,9 @@ export const taskRepository = {
     }>
   ) {
     if (tasks.length === 0) return [];
+    if (tasks.some((task) => task.status === "completed")) {
+      throw new Error("Tasks must be created incomplete and completed through taskCompletionService.complete()");
+    }
     const docs = await Task.insertMany(
       tasks.map((t) => ({
         ...t,
@@ -224,6 +227,10 @@ export const taskRepository = {
   },
 
   async updateById(taskId: string, userId: string, update: Partial<ITask>) {
+    if (update.status === "completed") {
+      throw new Error("Task completion must use taskCompletionService.complete()");
+    }
+
     const normalized: Partial<ITask> = {
       ...update,
     };
@@ -237,12 +244,28 @@ export const taskRepository = {
       normalized.topic = update.topic ?? update.title;
       normalized.title = update.topic ?? update.title;
     }
+    if (update.status === "skipped") {
+      normalized.completedAt = undefined;
+    } else if (["pending", "in_progress", "cancelled"].includes(update.status ?? "")) {
+      normalized.completedAt = undefined;
+      normalized.skippedAt = undefined;
+    }
+
+    const set: Record<string, unknown> = {};
+    const unset: Record<string, 1> = {};
+    for (const [key, value] of Object.entries(normalized)) {
+      if (value === undefined) unset[key] = 1;
+      else set[key] = value;
+    }
     return Task.findOneAndUpdate(
       {
         _id: new Types.ObjectId(taskId),
         userId: new Types.ObjectId(userId),
       },
-      normalized,
+      {
+        ...(Object.keys(set).length > 0 ? { $set: set } : {}),
+        ...(Object.keys(unset).length > 0 ? { $unset: unset } : {}),
+      },
       { new: true }
     );
   },
@@ -260,9 +283,12 @@ export const taskRepository = {
         status: { $ne: "completed" },
       },
       {
-        status: "completed",
-        completedAt,
-        ...(notes !== undefined ? { notes } : {}),
+        $set: {
+          status: "completed",
+          completedAt,
+          ...(notes !== undefined ? { notes } : {}),
+        },
+        $unset: { skippedAt: 1 },
       },
       { new: true }
     );

@@ -7,6 +7,7 @@ import { connectDb } from "@/lib/db";
 import { z } from "zod";
 import { taskRepository } from "@/modules/tasks/task.repository";
 import { goalCompletionService } from "@/modules/goals/goal-completion.service";
+import { taskCompletionService } from "@/modules/tasks/task-completion.service";
 
 const updateSchema = z.object({
   task: z.string().max(200).optional(),
@@ -35,10 +36,31 @@ export async function PATCH(
     if (!existing) throw Errors.notFound("Task");
 
     const update = parsed.data;
-    const updated = await taskRepository.updateById(id, userId, update as any);
-    if (update.status !== undefined && update.status !== existing.status) {
+    const { status, ...fields } = update;
+    let statusHandledCanonically = false;
+
+    if (status === "completed") {
+      await taskCompletionService.complete(id, userId, { scheduleRevision: "none" });
+      statusHandledCanonically = true;
+    } else if (status === "skipped") {
+      await taskCompletionService.skip(id, userId);
+      statusHandledCanonically = true;
+    } else if (status === "pending" && existing.status === "completed") {
+      await taskCompletionService.reopen(id, userId);
+      statusHandledCanonically = true;
+    } else if (status !== undefined && status !== existing.status) {
+      await taskRepository.updateById(id, userId, { ...fields, status } as any);
       await goalCompletionService.evaluateGoalCompletion(existing.goalId.toString(), userId);
     }
+
+    if (
+      Object.keys(fields).length > 0 &&
+      (statusHandledCanonically || status === undefined || status === existing.status)
+    ) {
+      await taskRepository.updateById(id, userId, fields as any);
+    }
+
+    const updated = await taskRepository.findByIdForUser(id, userId);
 
     return jsonOk({
       id: updated?._id?.toString(),

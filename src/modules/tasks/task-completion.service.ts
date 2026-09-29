@@ -99,6 +99,7 @@ export const taskCompletionService = {
     await taskRepository.updateById(taskId, userId, {
       status: "skipped",
       skippedAt: new Date(),
+      completedAt: undefined,
     });
     if (task.type === "revision") {
       await revisionRepository.markCancelledByRevisionTaskId(taskId, userId);
@@ -165,6 +166,7 @@ export const taskCompletionService = {
       status: "pending",
       rescheduleCount: (task.rescheduleCount ?? 0) + 1,
       lastRescheduledAt: new Date(),
+      completedAt: undefined,
       skippedAt: undefined,
     });
     if (task.type === "revision") {

@@ -3,10 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/authOptions";
 import { connectDb } from "@/lib/db";
 import Goal, { type IRoadmapDay } from "@/models/Goal";
-import {
-  goalSyncService,
-  syncRoadmapTaskCompletion,
-} from "@/modules/goals/goal-sync.service";
+import { goalSyncService } from "@/modules/goals/goal-sync.service";
 import { taskCompletionService } from "@/modules/tasks/task-completion.service";
 import { Task } from "@/modules/tasks/task.model";
 import { Types } from "mongoose";
@@ -69,6 +66,9 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: "Task not found" }, { status: 404 });
     }
 
+    // Ensure the Task exists while the embedded roadmap still has its old status.
+    await goalSyncService.syncGoalTasks(userId, goalId);
+
     const newCompleted = !day.tasks[taskIndex].isCompleted;
     day.tasks[taskIndex].isCompleted = newCompleted;
 
@@ -83,12 +83,10 @@ export async function PATCH(req: NextRequest) {
 
     await goal.save();
 
-    await goalSyncService.syncGoalTasks(userId, goalId);
-    await syncRoadmapTaskCompletion(userId, goalId, dayNumber, taskId, newCompleted);
-
     const syncedTask = await Task.findOne({
       userId: new Types.ObjectId(userId),
       goalId: new Types.ObjectId(goalId),
+      "source.roadmapDayNumber": dayNumber,
       "source.legacyTaskId": taskId,
     });
 
@@ -98,10 +96,7 @@ export async function PATCH(req: NextRequest) {
         customRevisionDate,
       });
     } else if (syncedTask && !newCompleted) {
-      await Task.updateOne(
-        { _id: syncedTask._id, userId: new Types.ObjectId(userId) },
-        { status: "pending", completedAt: undefined }
-      );
+      await taskCompletionService.reopen(syncedTask._id.toString(), userId);
     }
 
     return NextResponse.json({ success: true }, { status: 200 });

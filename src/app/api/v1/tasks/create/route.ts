@@ -6,6 +6,7 @@ import { createManualTaskSchema } from "@/modules/tasks/task.schemas";
 import { taskRepository } from "@/modules/tasks/task.repository";
 import { goalRepository } from "@/modules/goals/goal.repository";
 import { goalCompletionService } from "@/modules/goals/goal-completion.service";
+import { taskCompletionService } from "@/modules/tasks/task-completion.service";
 
 export async function POST(req: NextRequest) {
   try {
@@ -40,13 +41,19 @@ export async function POST(req: NextRequest) {
         minutes: parsed.data.minutes,
         estimatedMinutes: parsed.data.minutes,
         type: "execution",
-        status: parsed.data.status,
+        status: parsed.data.status === "completed" ? "pending" : parsed.data.status,
         source: {
           type: "manual",
         },
       },
     ]);
-    await goalCompletionService.evaluateGoalCompletion(parsed.data.goalId, userId);
+    if (parsed.data.status === "completed") {
+      await taskCompletionService.complete(task._id.toString(), userId, {
+        scheduleRevision: "none",
+      });
+    } else {
+      await goalCompletionService.evaluateGoalCompletion(parsed.data.goalId, userId);
+    }
 
     return jsonOk(
       {
@@ -56,7 +63,7 @@ export async function POST(req: NextRequest) {
         topic: task.topic,
         title: task.title,
         minutes: task.minutes,
-        status: task.status,
+        status: parsed.data.status === "completed" ? "completed" : task.status,
       },
       { status: 201 }
     );

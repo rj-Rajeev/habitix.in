@@ -4,6 +4,8 @@ import { toDateKey } from "@/lib/dates";
 import { taskRepository } from "./task.repository";
 import { TASK_SPREADSHEET_REQUIRED_HEADERS } from "./task-spreadsheet";
 import { goalCompletionService } from "@/modules/goals/goal-completion.service";
+import { goalRepository } from "@/modules/goals/goal.repository";
+import { taskCompletionService } from "./task-completion.service";
 
 type Row = Record<string, unknown>;
 
@@ -122,6 +124,15 @@ export const taskImportService = {
     replaceExisting,
     file,
   }: ImportParams) {
+    if (replaceExisting) {
+      const goal = await goalRepository.findByIdForUser(goalId, userId);
+      if (goal?.courseId) {
+        throw Errors.badRequest(
+          "Course Goal tasks cannot be replaced through Excel import because they are linked to Course lessons"
+        );
+      }
+    }
+
     const workbook = XLSX.read(file, {
       type: "buffer",
       cellDates: true,
@@ -169,7 +180,18 @@ export const taskImportService = {
       await taskRepository.deleteByGoalId(goalId, userId);
     }
 
-    await taskRepository.createMany(tasks);
+    const tasksToCreate = tasks.map((task) => ({
+      ...task,
+      status: task.status === "completed" ? "pending" as const : task.status,
+    }));
+    const createdTasks = await taskRepository.createMany(tasksToCreate);
+    for (const [index, task] of tasks.entries()) {
+      if (task.status === "completed") {
+        await taskCompletionService.complete(createdTasks[index]._id.toString(), userId, {
+          scheduleRevision: "none",
+        });
+      }
+    }
     await goalCompletionService.evaluateGoalCompletion(goalId, userId);
     return { imported: tasks.length, skipped: rows.length - tasks.length };
   },
