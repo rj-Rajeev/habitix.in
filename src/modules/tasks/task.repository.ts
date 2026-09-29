@@ -247,6 +247,27 @@ export const taskRepository = {
     );
   },
 
+  async markCompletedIfNotCompleted(
+    taskId: string,
+    userId: string,
+    completedAt: Date,
+    notes?: string
+  ) {
+    return Task.findOneAndUpdate(
+      {
+        _id: new Types.ObjectId(taskId),
+        userId: new Types.ObjectId(userId),
+        status: { $ne: "completed" },
+      },
+      {
+        status: "completed",
+        completedAt,
+        ...(notes !== undefined ? { notes } : {}),
+      },
+      { new: true }
+    );
+  },
+
   async deleteByGoalId(goalId: string, userId: string) {
     return Task.deleteMany({
       goalId: new Types.ObjectId(goalId),

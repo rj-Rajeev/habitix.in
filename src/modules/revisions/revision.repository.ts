@@ -26,4 +26,38 @@ export const revisionRepository = {
       { new: true }
     );
   },
+
+  async updateScheduleByRevisionTaskId(
+    revisionTaskId: string,
+    userId: string,
+    dueDate: string,
+    intervalDays: number
+  ) {
+    return Revision.findOneAndUpdate(
+      {
+        revisionTaskId: new Types.ObjectId(revisionTaskId),
+        userId: new Types.ObjectId(userId),
+      },
+      {
+        $set: {
+          dueDate,
+          intervalDays,
+          status: "scheduled",
+        },
+        $unset: { completedAt: 1 },
+      },
+      { new: true }
+    );
+  },
+
+  async markCancelledByRevisionTaskId(revisionTaskId: string, userId: string) {
+    return Revision.findOneAndUpdate(
+      {
+        revisionTaskId: new Types.ObjectId(revisionTaskId),
+        userId: new Types.ObjectId(userId),
+      },
+      { $set: { status: "cancelled" }, $unset: { completedAt: 1 } },
+      { new: true }
+    );
+  },
 };

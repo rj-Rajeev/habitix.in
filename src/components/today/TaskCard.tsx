@@ -8,7 +8,6 @@ import {
   Check,
   ChevronDown,
   Clock3,
-  RotateCcw,
   SkipForward,
 } from "lucide-react";
 import type { TodayTaskCard } from "@/types/today";
@@ -17,7 +16,6 @@ type Props = {
   task: TodayTaskCard;
   onComplete: (taskId: string, revision?: string) => Promise<void>;
   onSkip: (taskId: string) => Promise<void>;
-  onReschedule: (taskId: string, date: string) => Promise<void>;
   onReveal?: (taskId: string) => void;
 };
 
@@ -30,17 +28,10 @@ const REVISION_OPTIONS = [
   { key: "15d", label: "15 days" },
 ] as const;
 
-function addDays(days: number) {
-  const date = new Date();
-  date.setDate(date.getDate() + days);
-  return date.toISOString().slice(0, 10);
-}
-
 export default function TaskCard({
   task,
   onComplete,
   onSkip,
-  onReschedule,
   onReveal,
 }: Props) {
   const router = useRouter();
@@ -49,6 +40,7 @@ export default function TaskCard({
   const [lessonNavigationError, setLessonNavigationError] = useState("");
   const [expanded, setExpanded] = useState(false);
   const [showAnswer, setShowAnswer] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
   const isDone = task.status === "completed";
   const scheduledLabel = useMemo(() => {
     const date = new Date(`${task.scheduledDate}T12:00:00`);
@@ -87,11 +79,16 @@ export default function TaskCard({
 
   const run = async (fn: () => Promise<void>) => {
     setBusy(true);
+    setActionError(null);
+    let succeeded = false;
     try {
       await fn();
+      succeeded = true;
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : "The task could not be updated. Please try again.");
     } finally {
       setBusy(false);
-      setExpanded(false);
+      if (succeeded) setExpanded(false);
     }
   };
 
@@ -219,6 +216,7 @@ export default function TaskCard({
             </button>
           </div>
           {lessonNavigationError && <p className="mt-2 text-xs text-text-muted" role="status">{lessonNavigationError}</p>}
+          {actionError && <p className="mt-2 rounded-lg border border-error/20 bg-error/5 px-3 py-2 text-sm text-error" role="alert">{actionError}</p>}
         </div>
       </div>
 
@@ -257,17 +255,7 @@ export default function TaskCard({
               </p>
             </div>
           )}
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              type="button"
-              disabled={busy}
-              onClick={() => run(() => onReschedule(task._id, addDays(1)))}
-              className="ui-button min-h-10 px-3 text-xs"
-              data-variant="secondary"
-            >
-              <RotateCcw className="h-4 w-4" aria-hidden="true" />
-              Tomorrow
-            </button>
+          <div className="flex gap-2">
             <button
               type="button"
               disabled={busy}

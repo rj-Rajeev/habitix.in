@@ -1,18 +1,20 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Upload, X } from "lucide-react";
 import {
   TASK_SPREADSHEET_ACCEPT,
   TASK_SPREADSHEET_HELP_TEXT,
 } from "@/modules/tasks/task-spreadsheet";
 import { Alert } from "@/components/ui";
+import { getBrowserTimezone, toDateKeyInTimezone } from "@/lib/dates";
 
 type Props = {
   isOpen: boolean;
   onClose: () => void;
   onImported: () => Promise<void>;
   goals: Array<{ _id: string; title: string }>;
+  defaultDate?: string;
 };
 
 export default function ExcelUploadModal({
@@ -20,14 +22,17 @@ export default function ExcelUploadModal({
   onClose,
   onImported,
   goals,
+  defaultDate,
 }: Props) {
-  const today = useMemo(() => new Date().toISOString().split("T")[0], []);
+  const today = defaultDate ?? toDateKeyInTimezone(new Date(), getBrowserTimezone());
   const [goalId, setGoalId] = useState("");
   const [scheduledDate, setScheduledDate] = useState(today);
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => setScheduledDate(today), [today]);
 
   if (!isOpen) return null;
 

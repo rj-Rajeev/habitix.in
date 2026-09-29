@@ -5,7 +5,6 @@ import {
   AlertCircle,
   FileUp,
   Plus,
-  RefreshCw,
   Target,
 } from "lucide-react";
 import { useSession } from "next-auth/react";
@@ -23,6 +22,7 @@ import type {
 } from "@/modules/tasks/task.schemas";
 import { useRouter } from "next/navigation";
 import { Alert, Skeleton } from "@/components/ui";
+import { getBrowserTimezone, toDateKeyInTimezone } from "@/lib/dates";
 
 type SectionConfig = {
   key: string;
@@ -35,13 +35,11 @@ function TaskSection({
   section,
   completeTask,
   skipTask,
-  rescheduleTask,
   onReveal,
 }: {
   section: SectionConfig;
   completeTask: (id: string, rev?: string) => Promise<void>;
   skipTask: (id: string) => Promise<void>;
-  rescheduleTask: (id: string, date: string) => Promise<void>;
   onReveal?: (id: string) => void;
 }) {
   return (
@@ -67,7 +65,6 @@ function TaskSection({
               task={task}
               onComplete={completeTask}
               onSkip={skipTask}
-              onReschedule={rescheduleTask}
               onReveal={onReveal}
             />
           ))}
@@ -86,14 +83,11 @@ export default function TodayView() {
     error,
     completeTask,
     skipTask,
-    rescheduleTask,
-    redistribute,
     refresh,
     moveTaskToEnd,
   } = useTodayQueue();
 
   const [summary, setSummary] = useState({ currentStreak: 0, activeGoals: 0 });
-  const [redistributing, setRedistributing] = useState(false);
   const [showAddTaskModal, setShowAddTaskModal] = useState(false);
   const [showAddGoalModal, setShowAddGoalModal] = useState(false);
   const [showExcelUploadModal, setShowExcelUploadModal] = useState(false);
@@ -144,8 +138,8 @@ export default function TodayView() {
     });
 
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.message || "Failed to create task");
+      const payload = await res.json().catch(() => ({}));
+      throw new Error(payload?.error?.message || payload?.message || "Failed to create task");
     }
 
     await refresh();
@@ -159,8 +153,8 @@ export default function TodayView() {
     });
 
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.message || "Failed to create goal");
+      const payload = await res.json().catch(() => ({}));
+      throw new Error(payload?.error?.message || payload?.message || "Failed to create Goal");
     }
 
     const json = await res.json();
@@ -170,15 +164,16 @@ export default function TodayView() {
   };
 
   const userName = session?.user?.name?.split(" ")[0] ?? "there";
-  const todayLabel = useMemo(
-    () =>
-      new Date().toLocaleDateString(undefined, {
+  const todayLabel = useMemo(() => {
+    if (!queue?.date) return "Today";
+    const dateKey = queue.date;
+    return new Date(`${dateKey}T12:00:00`).toLocaleDateString(undefined, {
         weekday: "short",
         month: "short",
         day: "numeric",
-      }),
-    []
-  );
+      });
+  }, [queue?.date]);
+  const todayKey = queue?.date ?? toDateKeyInTimezone(new Date(), getBrowserTimezone());
 
   const sections: SectionConfig[] = [
     {
@@ -213,24 +208,8 @@ export default function TodayView() {
             <div>
               <p className="text-sm font-medium text-text-secondary">Here&apos;s what matters today.</p>
               <p className="mt-2 text-3xl font-semibold tracking-tight text-text-primary">{queue?.summary.total ?? 0} tasks</p>
-              <p className="mt-1 text-sm text-text-secondary">~{queue?.summary.estimatedMinutes ?? 0}m of focused work</p>
+              <p className="mt-1 text-sm text-text-secondary">~{queue?.summary.estimatedMinutes ?? 0}m estimated work</p>
             </div>
-            <button
-              type="button"
-              disabled={redistributing || (queue?.summary.overdueCount ?? 0) === 0}
-              onClick={async () => {
-                setRedistributing(true);
-                try {
-                  await redistribute();
-                } finally {
-                  setRedistributing(false);
-                }
-              }}
-              className="inline-flex items-center gap-2 self-start rounded-control border border-border-strong bg-surface px-3 py-2 text-sm font-semibold text-text-secondary hover:bg-surface-subtle disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              <RefreshCw className={`h-4 w-4 ${redistributing ? "animate-spin" : ""}`} />
-              Rebalance
-            </button>
           </div>
           <div className="mt-5 flex flex-wrap gap-x-5 gap-y-2 border-t border-border pt-4 text-xs text-text-secondary">
             <span>{queue?.sections.today.length ?? 0} today</span>
@@ -286,7 +265,6 @@ export default function TodayView() {
                 section={section}
                 completeTask={completeTask}
                 skipTask={skipTask}
-                rescheduleTask={rescheduleTask}
                 onReveal={moveTaskToEnd}
               />
             ))}
@@ -315,7 +293,7 @@ export default function TodayView() {
         isOpen={showAddTaskModal}
         onClose={() => setShowAddTaskModal(false)}
         onSubmit={handleAddTask}
-        scheduledDate={new Date().toISOString().split("T")[0]}
+        scheduledDate={todayKey}
         goals={goals}
       />
 
@@ -330,6 +308,7 @@ export default function TodayView() {
         onClose={() => setShowExcelUploadModal(false)}
         onImported={refresh}
         goals={goals}
+        defaultDate={todayKey}
       />
     </AppShell>
   );

@@ -1,4 +1,4 @@
-import { toDateKey } from "@/lib/dates";
+import { toDateKeyInTimezone } from "@/lib/dates";
 import { goalSyncService } from "@/modules/goals/goal-sync.service";
 import { taskRepository, TaskLean } from "./task.repository";
 
@@ -22,10 +22,10 @@ export type TodayQueue = {
 };
 
 export const todayService = {
-  async getTodayQueue(userId: string): Promise<TodayQueue> {
+  async getTodayQueue(userId: string, timezone = "UTC"): Promise<TodayQueue> {
     await goalSyncService.syncAllUserGoals(userId);
 
-    const dateKey = toDateKey();
+    const dateKey = toDateKeyInTimezone(new Date(), timezone);
     const [overdue, today, revisions] = await Promise.all([
       taskRepository.findOverdue(userId, dateKey),
       taskRepository.findScheduledForDate(userId, dateKey),

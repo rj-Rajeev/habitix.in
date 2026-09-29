@@ -5,6 +5,33 @@ export function toDateKey(date: Date = new Date()): string {
   return format(startOfDay(date), "yyyy-MM-dd");
 }
 
+/** Format an instant as a calendar date in an IANA timezone. */
+export function toDateKeyInTimezone(date: Date, timezone: string): string {
+  let parts: Intl.DateTimeFormatPart[];
+  try {
+    parts = new Intl.DateTimeFormat("en-US", {
+      timeZone: timezone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).formatToParts(date);
+  } catch {
+    parts = new Intl.DateTimeFormat("en-US", {
+      timeZone: "UTC",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).formatToParts(date);
+  }
+
+  const values = Object.fromEntries(parts.map(({ type, value }) => [type, value]));
+  return `${values.year}-${values.month}-${values.day}`;
+}
+
+export function getBrowserTimezone(): string {
+  return Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+}
+
 export function addDaysToKey(dateKey: string, days: number): string {
   const base = parseISO(`${dateKey}T12:00:00`);
   return toDateKey(addDays(base, days));

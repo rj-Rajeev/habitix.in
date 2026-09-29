@@ -2,7 +2,7 @@ import {
   addDaysToKey,
   parseDateKey,
   resolveRevisionDateKey,
-  toDateKey,
+  toDateKeyInTimezone,
   type RevisionPreset,
 } from "@/lib/dates";
 import { differenceInCalendarDays } from "date-fns";
@@ -19,8 +19,9 @@ export const revisionService = {
     title: string;
     preset: RevisionPreset;
     customRevisionDate?: string;
+    timezone: string;
   }) {
-    const fromKey = toDateKey();
+    const fromKey = toDateKeyInTimezone(new Date(), params.timezone);
     const dueDate = resolveRevisionDateKey(
       params.preset,
       fromKey,

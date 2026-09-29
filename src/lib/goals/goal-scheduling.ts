@@ -1,3 +1,5 @@
+import { toDateKeyInTimezone } from "@/lib/dates";
+
 export type RoadmapWorkGroup<T> = {
   tasks: T[];
 };
@@ -34,25 +36,7 @@ function formatDateKey(date: Date) {
 }
 
 export function dateKeyInTimezone(date: Date, timezone: string) {
-  let parts: Intl.DateTimeFormatPart[];
-  try {
-    parts = new Intl.DateTimeFormat("en-US", {
-      timeZone: timezone,
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-    }).formatToParts(date);
-  } catch {
-    parts = new Intl.DateTimeFormat("en-US", {
-      timeZone: "UTC",
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-    }).formatToParts(date);
-  }
-
-  const value = Object.fromEntries(parts.map(({ type, value }) => [type, value]));
-  return `${value.year}-${value.month}-${value.day}`;
+  return toDateKeyInTimezone(date, timezone);
 }
 
 /**

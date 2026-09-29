@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { X } from "lucide-react";
 import type { CreateManualTaskInput } from "@/modules/tasks/task.schemas";
 import { Alert } from "@/components/ui";
+import { getBrowserTimezone, toDateKeyInTimezone } from "@/lib/dates";
 
 type AddTaskModalProps = {
   isOpen: boolean;
@@ -20,6 +21,7 @@ export default function AddTaskModal({
   scheduledDate,
   goals = [],
 }: AddTaskModalProps) {
+  const today = scheduledDate ?? toDateKeyInTimezone(new Date(), getBrowserTimezone());
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState<CreateManualTaskInput>({
@@ -27,7 +29,7 @@ export default function AddTaskModal({
     task: "",
     topic: "",
     description: "",
-    date: scheduledDate || new Date().toISOString().split("T")[0],
+    date: today,
     priority: "medium" as const,
     minutes: 30,
     status: "pending",
@@ -63,7 +65,7 @@ export default function AddTaskModal({
         task: "",
         topic: "",
         description: "",
-        date: scheduledDate || new Date().toISOString().split("T")[0],
+        date: today,
         priority: "medium",
         minutes: 30,
         status: "pending",

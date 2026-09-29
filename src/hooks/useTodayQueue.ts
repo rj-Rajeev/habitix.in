@@ -2,10 +2,17 @@
 
 import { useCallback, useEffect, useState } from "react";
 import type { TodayQueue } from "@/types/today";
+import { getBrowserTimezone } from "@/lib/dates";
 
 type ApiResponse<T> = { success: true; data: T } | { success: false };
 
+async function responseError(res: Response, fallback: string) {
+  const payload = await res.json().catch(() => ({}));
+  return payload?.error?.message || payload?.message || fallback;
+}
+
 export function useTodayQueue() {
+  const timezone = getBrowserTimezone();
   const [queue, setQueue] = useState<TodayQueue | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -14,10 +21,13 @@ export function useTodayQueue() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/v1/today");
-      const json = (await res.json()) as ApiResponse<TodayQueue>;
+      const res = await fetch(`/api/v1/today?timezone=${encodeURIComponent(timezone)}`);
+      const json = (await res.json().catch(() => ({}))) as ApiResponse<TodayQueue> & {
+        error?: { message?: string };
+        message?: string;
+      };
       if (!res.ok || !json.success) {
-        throw new Error("Failed to load today queue");
+        throw new Error(json.error?.message || json.message || "Failed to load Today");
       }
       setQueue(json.data);
     } catch (e) {
@@ -25,7 +35,7 @@ export function useTodayQueue() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [timezone]);
 
   useEffect(() => {
     fetchQueue();
@@ -39,7 +49,7 @@ export function useTodayQueue() {
         scheduleRevision: revision ?? "none",
       }),
     });
-    if (!res.ok) throw new Error("Failed to complete task");
+    if (!res.ok) throw new Error(await responseError(res, "Failed to complete task"));
     await fetchQueue();
   };
 
@@ -49,25 +59,7 @@ export function useTodayQueue() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({}),
     });
-    if (!res.ok) throw new Error("Failed to skip task");
-    await fetchQueue();
-  };
-
-  const rescheduleTask = async (taskId: string, scheduledDate: string) => {
-    const res = await fetch(`/api/v1/tasks/${taskId}/reschedule`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ date: scheduledDate }),
-    });
-    if (!res.ok) throw new Error("Failed to reschedule task");
-    await fetchQueue();
-  };
-
-  const redistribute = async () => {
-    const res = await fetch("/api/v1/scheduling/redistribute", {
-      method: "POST",
-    });
-    if (!res.ok) throw new Error("Failed to redistribute");
+    if (!res.ok) throw new Error(await responseError(res, "Failed to skip task"));
     await fetchQueue();
   };
 
@@ -100,8 +92,6 @@ export function useTodayQueue() {
     refresh: fetchQueue,
     completeTask,
     skipTask,
-    rescheduleTask,
-    redistribute,
     moveTaskToEnd,
   };
 }

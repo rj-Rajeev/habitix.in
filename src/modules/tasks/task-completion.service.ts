@@ -1,6 +1,7 @@
 import { Types } from "mongoose";
+import { differenceInCalendarDays } from "date-fns";
 import { Errors } from "@/lib/api";
-import { toDateKey } from "@/lib/dates";
+import { parseDateKey, toDateKeyInTimezone } from "@/lib/dates";
 import type { CompleteTaskInput } from "./task.schemas";
 import { taskRepository } from "./task.repository";
 import { revisionService } from "@/modules/revisions/revision.service";
@@ -10,6 +11,7 @@ import { analyticsService } from "@/modules/analytics/analytics.service";
 import type { RevisionPreset } from "@/lib/dates";
 import { courseProgressService } from "@/modules/courses/course-progress.service";
 import { goalCompletionService } from "@/modules/goals/goal-completion.service";
+import { goalRepository } from "@/modules/goals/goal.repository";
 
 const OBJECT_ID_PATTERN = /^[a-f\d]{24}$/i;
 
@@ -46,11 +48,15 @@ export const taskCompletionService = {
     }
 
     const now = new Date();
-    await taskRepository.updateById(taskId, userId, {
-      status: "completed",
-      completedAt: now,
-      notes: input.note ?? task.notes,
-    });
+    const goal = await goalRepository.findByIdForUser(task.goalId.toString(), userId);
+    const timezone = goal?.timezone || "UTC";
+    const claimedTask = await taskRepository.markCompletedIfNotCompleted(
+      taskId,
+      userId,
+      now,
+      input.note ?? task.notes
+    );
+    if (!claimedTask) return { taskId, alreadyCompleted: true };
     await goalCompletionService.evaluateGoalCompletion(task.goalId.toString(), userId);
 
     if (task.type === "revision") {
@@ -65,7 +71,7 @@ export const taskCompletionService = {
       payload: { note: input.note },
     });
 
-    await analyticsService.recordTaskCompletion(userId, toDateKey(now));
+    await analyticsService.recordTaskCompletion(userId, toDateKeyInTimezone(now, timezone));
 
     if (
       input.scheduleRevision &&
@@ -79,6 +85,7 @@ export const taskCompletionService = {
         title: task.title,
         preset: input.scheduleRevision as RevisionPreset,
         customRevisionDate: input.customRevisionDate,
+        timezone,
       });
     }
 
@@ -93,6 +100,9 @@ export const taskCompletionService = {
       status: "skipped",
       skippedAt: new Date(),
     });
+    if (task.type === "revision") {
+      await revisionRepository.markCancelledByRevisionTaskId(taskId, userId);
+    }
     await goalCompletionService.evaluateGoalCompletion(task.goalId.toString(), userId);
 
     await TaskHistory.create({
@@ -115,6 +125,20 @@ export const taskCompletionService = {
       completedAt: undefined,
       skippedAt: undefined,
     });
+    if (task.type === "revision") {
+      const goal = await goalRepository.findByIdForUser(task.goalId.toString(), userId);
+      const fromKey = toDateKeyInTimezone(new Date(), goal?.timezone || "UTC");
+      const intervalDays = differenceInCalendarDays(
+        parseDateKey(task.scheduledDate),
+        parseDateKey(fromKey)
+      );
+      await revisionRepository.updateScheduleByRevisionTaskId(
+        taskId,
+        userId,
+        task.scheduledDate,
+        intervalDays
+      );
+    }
     await goalCompletionService.evaluateGoalCompletion(task.goalId.toString(), userId);
 
     await TaskHistory.create({
@@ -143,6 +167,20 @@ export const taskCompletionService = {
       lastRescheduledAt: new Date(),
       skippedAt: undefined,
     });
+    if (task.type === "revision") {
+      const goal = await goalRepository.findByIdForUser(task.goalId.toString(), userId);
+      const fromKey = toDateKeyInTimezone(new Date(), goal?.timezone || "UTC");
+      const intervalDays = differenceInCalendarDays(
+        parseDateKey(scheduledDate),
+        parseDateKey(fromKey)
+      );
+      await revisionRepository.updateScheduleByRevisionTaskId(
+        taskId,
+        userId,
+        scheduledDate,
+        intervalDays
+      );
+    }
     await goalCompletionService.evaluateGoalCompletion(task.goalId.toString(), userId);
 
     await TaskHistory.create({
