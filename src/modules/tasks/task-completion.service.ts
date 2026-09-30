@@ -12,6 +12,7 @@ import type { RevisionPreset } from "@/lib/dates";
 import { courseProgressService } from "@/modules/courses/course-progress.service";
 import { goalCompletionService } from "@/modules/goals/goal-completion.service";
 import { goalRepository } from "@/modules/goals/goal.repository";
+import { AppError } from "@/lib/api/errors";
 
 const OBJECT_ID_PATTERN = /^[a-f\d]{24}$/i;
 
@@ -24,6 +25,7 @@ export const taskCompletionService = {
       return { taskId, alreadyCompleted: true };
     }
 
+    let courseLessonProgressUnavailable = false;
     const metadata = task.metadata as unknown;
     if (task.type === "execution" && metadata && typeof metadata === "object" && "learning" in metadata) {
       const learning = metadata.learning as unknown;
@@ -44,7 +46,12 @@ export const taskCompletionService = {
         throw Errors.badRequest("Invalid course learning metadata");
       }
 
-      await courseProgressService.completeLesson(userId, learning.courseId, learning.lessonId);
+      try {
+        await courseProgressService.completeLesson(userId, learning.courseId, learning.lessonId);
+      } catch (error) {
+        if (!(error instanceof AppError) || error.code !== "NOT_FOUND") throw error;
+        courseLessonProgressUnavailable = true;
+      }
     }
 
     const now = new Date();
@@ -68,7 +75,12 @@ export const taskCompletionService = {
       taskId: new Types.ObjectId(taskId),
       goalId: task.goalId,
       event: "completed",
-      payload: { note: input.note },
+      payload: {
+        note: input.note,
+        ...(courseLessonProgressUnavailable
+          ? { courseLessonProgress: "not_updated_source_unavailable" }
+          : {}),
+      },
     });
 
     await analyticsService.recordTaskCompletion(userId, toDateKeyInTimezone(now, timezone));
@@ -89,7 +101,7 @@ export const taskCompletionService = {
       });
     }
 
-    return { taskId, alreadyCompleted: false };
+    return { taskId, alreadyCompleted: false, courseLessonProgressUnavailable };
   },
 
   async skip(taskId: string, userId: string, reason?: string) {

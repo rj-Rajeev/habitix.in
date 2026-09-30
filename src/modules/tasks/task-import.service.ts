@@ -1,4 +1,5 @@
 import * as XLSX from "xlsx";
+import { Types } from "mongoose";
 import { Errors } from "@/lib/api";
 import { toDateKey } from "@/lib/dates";
 import { taskRepository } from "./task.repository";
@@ -176,15 +177,46 @@ export const taskImportService = {
       return { imported: 0, skipped: rows.length };
     }
 
-    if (replaceExisting) {
-      await taskRepository.deleteByGoalId(goalId, userId);
-    }
+    const previousTaskIds = replaceExisting
+      ? (await taskRepository.findByGoalForUser(goalId, userId)).map((task) => task._id)
+      : [];
 
     const tasksToCreate = tasks.map((task) => ({
       ...task,
       status: task.status === "completed" ? "pending" as const : task.status,
     }));
-    const createdTasks = await taskRepository.createMany(tasksToCreate);
+    const replacementIds = replaceExisting
+      ? tasksToCreate.map(() => new Types.ObjectId().toString())
+      : [];
+    const tasksToStage = tasksToCreate.map((task, index) => ({
+      ...task,
+      ...(replaceExisting ? { _id: replacementIds[index] } : {}),
+    }));
+    let createdTasks;
+    try {
+      createdTasks = await taskRepository.createMany(tasksToStage);
+    } catch (error) {
+      if (replaceExisting) {
+        try {
+          await taskRepository.deleteByIdsForGoal(replacementIds, goalId, userId);
+        } catch {
+          // Keep the original creation error; old tasks have not been deleted.
+        }
+      }
+      throw error;
+    }
+    if (replaceExisting) {
+      try {
+        await taskRepository.deleteByIdsForGoal(previousTaskIds, goalId, userId);
+      } catch (error) {
+        try {
+          await taskRepository.deleteByIdsForGoal(replacementIds, goalId, userId);
+        } catch {
+          // Preserve the deletion error; cleanup is scoped to staged replacement IDs.
+        }
+        throw error;
+      }
+    }
     for (const [index, task] of tasks.entries()) {
       if (task.status === "completed") {
         await taskCompletionService.complete(createdTasks[index]._id.toString(), userId, {

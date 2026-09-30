@@ -98,10 +98,7 @@ export default function PeoplePage() {
 
                 {/* User Info */}
                 <div>
-                  <p className="font-medium text-sm">{user.name}</p>
-                  <p className="text-xs text-gray-500 truncate max-w-[180px]">
-                    {user.email}
-                  </p>
+                  <p className="font-medium text-sm">{user.fullname}</p>
                 </div>
               </div>
 

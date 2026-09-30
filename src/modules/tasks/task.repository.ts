@@ -186,6 +186,7 @@ export const taskRepository = {
 
   async createMany(
     tasks: Array<{
+      _id?: string;
       userId: string;
       goalId: string;
       date?: string;
@@ -212,6 +213,7 @@ export const taskRepository = {
     const docs = await Task.insertMany(
       tasks.map((t) => ({
         ...t,
+        _id: t._id ? new Types.ObjectId(t._id) : undefined,
         date: t.date ?? t.scheduledDate,
         task: t.task ?? t.topic ?? t.title,
         topic: t.topic ?? t.title ?? t.task,
@@ -296,6 +298,15 @@ export const taskRepository = {
 
   async deleteByGoalId(goalId: string, userId: string) {
     return Task.deleteMany({
+      goalId: new Types.ObjectId(goalId),
+      userId: new Types.ObjectId(userId),
+    });
+  },
+
+  async deleteByIdsForGoal(taskIds: string[], goalId: string, userId: string) {
+    if (taskIds.length === 0) return { deletedCount: 0 };
+    return Task.deleteMany({
+      _id: { $in: taskIds.map((taskId) => new Types.ObjectId(taskId)) },
       goalId: new Types.ObjectId(goalId),
       userId: new Types.ObjectId(userId),
     });

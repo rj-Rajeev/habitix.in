@@ -17,7 +17,7 @@ export async function GET() {
 
     const users = await User.find({
       _id: { $ne: currentUserId },
-    }).select("_id fullname email");
+    }).select("_id fullname");
 
     return NextResponse.json(users);
 
