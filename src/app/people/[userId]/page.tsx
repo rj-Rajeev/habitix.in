@@ -4,6 +4,10 @@ import { useEffect, useState, useRef } from "react";
 import { useParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { io, Socket } from "socket.io-client";
+import Link from "next/link";
+
+type ChatMessage = { _id: string | number; text: string; senderId?: string };
+type ChatUser = { email?: string; fullname?: string };
 
 export default function ChatPage() {
   const params = useParams();
@@ -14,13 +18,13 @@ export default function ChatPage() {
   const currentUserId = session?.user?.id;
 
   const [chatId, setChatId] = useState("");
-  const [messages, setMessages] = useState<any[]>([]);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [text, setText] = useState("");
-  const [otherUser, setOtherUser] = useState<any>(null);
+  const [otherUser, setOtherUser] = useState<ChatUser | null>(null);
   const [isTyping, setIsTyping] = useState(false);
 
   const socketRef = useRef<Socket | null>(null);
-  const typingTimeoutRef = useRef<any>(null);
+  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   // 🔹 Fetch user
@@ -162,9 +166,9 @@ return (
           </div>
         </div>
 
-        <a className="px-4 py-2 text-blue-600 font-medium" href="/people">
+        <Link className="px-4 py-2 text-blue-600 font-medium" href="/people">
           Back
-        </a>
+        </Link>
       </div>
 
       {/* 🔷 Messages (ONLY SCROLLABLE AREA) */}

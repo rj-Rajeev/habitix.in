@@ -8,11 +8,11 @@ import { Errors, handleRouteError } from "@/lib/api";
 
 export async function GET(
   _req: Request,
-  { params }: { params: { chatId: string } }
+  { params }: { params: Promise<{ chatId: string }> }
 ) {
   try {
     const userId = await requireUserId();
-    const { chatId } = params;
+    const { chatId } = await params;
     if (!Types.ObjectId.isValid(chatId)) throw Errors.notFound("Chat");
 
     await dbConnect();

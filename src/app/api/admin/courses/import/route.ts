@@ -41,11 +41,11 @@ export async function POST(request: NextRequest) {
       const moduleIds: mongoose.Types.ObjectId[] = [];
       try {
         for (const item of data.modules) {
-          const module = await CourseModule.create({ courseId: course._id, title: item.title, description: item.description, order: item.order });
-          moduleIds.push(module._id);
+          const courseModule = await CourseModule.create({ courseId: course._id, title: item.title, description: item.description, order: item.order });
+          moduleIds.push(courseModule._id);
           for (const lesson of item.lessons) {
             await CourseLesson.create({
-              moduleId: module._id,
+              moduleId: courseModule._id,
               title: lesson.title,
               description: lesson.description,
               order: lesson.order,
@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
         await session.withTransaction(async () => {
           const [course] = await Course.create([{ ...data.course }], { session });
           for (const item of data.modules) {
-            const [module] = await CourseModule.create([{
+            const [courseModule] = await CourseModule.create([{
               courseId: course._id,
               title: item.title,
               description: item.description,
@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
             }], { session });
             for (const lesson of item.lessons) {
               await CourseLesson.create([{
-                moduleId: module._id,
+                moduleId: courseModule._id,
                 title: lesson.title,
                 description: lesson.description,
                 order: lesson.order,

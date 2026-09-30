@@ -25,12 +25,12 @@ export const courseLearningService = {
       course: { courseId: course._id.toString(), title: course.title, description: course.description },
       modules: modules.map((module) => ({ moduleId: module._id.toString(), moduleTitle: module.title })),
       lessons: lessons.map((lesson) => {
-        const module = modules.find((item) => item._id.toString() === lesson.moduleId.toString());
+        const courseModule = modules.find((item) => item._id.toString() === lesson.moduleId.toString());
         return {
           lessonId: lesson._id.toString(),
           lessonTitle: lesson.title,
           moduleId: lesson.moduleId.toString(),
-          moduleTitle: module?.title ?? "",
+          moduleTitle: courseModule?.title ?? "",
         } satisfies CourseLearningLesson;
       }),
     };

@@ -44,8 +44,8 @@ export async function POST(
     await requireCourse(courseId);
     const parsed = moduleSchema.safeParse(await request.json());
     if (!parsed.success) throw Errors.badRequest("Invalid module data", parsed.error.flatten());
-    const module = await CourseModule.create({ ...parsed.data, courseId });
-    return jsonOk(module, { status: 201 });
+    const courseModule = await CourseModule.create({ ...parsed.data, courseId });
+    return jsonOk(courseModule, { status: 201 });
   } catch (error) {
     return handleRouteError(error);
   }

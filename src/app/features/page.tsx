@@ -60,7 +60,7 @@ export default function FeaturesPage() {
             className="mb-4 text-white font-semibold"
           />
           <Typography variant="h3" className="font-bold text-gray-800 mb-3">
-            Why You'll Love Habitix 💚
+            Why You&apos;ll Love Habitix 💚
           </Typography>
           <Typography variant="body1" className="text-gray-600">
             Your all-in-one growth companion, turning tasks into triumphs and

@@ -288,16 +288,6 @@ export function GoalDetailView({ goalId, initialTab }: { goalId: string; initial
     [edits]
   );
 
-  const setTaskEdit = useCallback((taskId: string, update: Partial<GoalTask>) => {
-    setEdits((prev) => ({
-      ...prev,
-      [taskId]: {
-        ...prev[taskId],
-        ...update,
-      },
-    }));
-  }, []);
-
   const resetTaskEdit = useCallback((taskId: string) => {
     setEdits((prev) => {
       const next = { ...prev };
@@ -592,7 +582,6 @@ export function GoalDetailView({ goalId, initialTab }: { goalId: string; initial
     : goal?.completed || goal?.status === "completed"
       ? "Completed"
       : "In progress";
-  const learningTasks = tasks.filter((task) => task.metadata?.learning);
   const pendingEditCount = Object.keys(edits).length;
 
   useEffect(() => {

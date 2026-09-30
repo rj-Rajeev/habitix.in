@@ -5,9 +5,25 @@ import Script from "next/script";
 import { Button } from "@mui/material";
 import { redirect } from "next/navigation";
 
+type RazorpaySuccess = { razorpay_payment_id: string };
+type RazorpayOptions = {
+  key: string;
+  amount: number;
+  currency: string;
+  name: string;
+  description: string;
+  order_id: string;
+  handler: (response: RazorpaySuccess) => void;
+  modal: { ondismiss: () => void };
+};
+type RazorpayCheckout = {
+  on(event: "payment.failed", handler: (error: unknown) => void): void;
+  open(): void;
+};
+
 declare global {
   interface Window {
-    Razorpay: any;
+    Razorpay: new (options: RazorpayOptions) => RazorpayCheckout;
   }
 }
 
@@ -41,7 +57,7 @@ export default function PaymentButton({
         name: "Habitix",
         description: buttonText,
         order_id: orderId,
-        handler: (response: any) => {
+        handler: (response: RazorpaySuccess) => {
           alert(`Payment successful: ${response.razorpay_payment_id}`);
           redirect("/dashboard");
         },
@@ -51,7 +67,7 @@ export default function PaymentButton({
       };
 
       const rz = new window.Razorpay(options);
-      rz.on("payment.failed", (err: any) => {
+      rz.on("payment.failed", (err) => {
         console.error(err);
         alert("Payment failed. Please try again.");
         setLoading(false);

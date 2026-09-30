@@ -8,6 +8,7 @@ import { z } from "zod";
 import { taskRepository } from "@/modules/tasks/task.repository";
 import { goalCompletionService } from "@/modules/goals/goal-completion.service";
 import { taskCompletionService } from "@/modules/tasks/task-completion.service";
+import type { ITask } from "@/modules/tasks/task.model";
 
 const updateSchema = z.object({
   task: z.string().max(200).optional(),
@@ -52,7 +53,7 @@ export async function PATCH(
       await taskCompletionService.reopen(id, userId);
       statusHandledCanonically = true;
     } else if (status !== undefined && status !== existing.status) {
-      await taskRepository.updateById(id, userId, { ...fields, status } as any);
+      await taskRepository.updateById(id, userId, { ...fields, status } as Partial<ITask>);
       await goalCompletionService.evaluateGoalCompletion(existing.goalId.toString(), userId);
     }
 
@@ -60,7 +61,7 @@ export async function PATCH(
       Object.keys(fields).length > 0 &&
       (statusHandledCanonically || status === undefined || status === existing.status)
     ) {
-      await taskRepository.updateById(id, userId, fields as any);
+      await taskRepository.updateById(id, userId, fields as Partial<ITask>);
     }
 
     const updated = await taskRepository.findByIdForUser(id, userId);

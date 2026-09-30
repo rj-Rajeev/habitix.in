@@ -6,12 +6,6 @@ import { Types } from "mongoose";
 const DEFAULT_DAILY_CAP_MINUTES = 120;
 const MAX_TASKS_PER_DAY = 8;
 
-function priorityWeight(priority: string): number {
-  if (priority === "high") return 3;
-  if (priority === "medium") return 2;
-  return 1;
-}
-
 export const schedulingService = {
   /**
    * Redistribute pending tasks from a start date using daily capacity caps.

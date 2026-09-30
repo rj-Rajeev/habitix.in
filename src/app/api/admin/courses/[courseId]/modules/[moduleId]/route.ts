@@ -16,9 +16,9 @@ async function getIds(params: Promise<{ courseId: string; moduleId: string }>) {
 async function requireModule(courseId: string, moduleId: string) {
   const course = await Course.findOne({ _id: courseId, delete: { $ne: true } }).select("_id");
   if (!course) throw Errors.notFound("Course");
-  const module = await CourseModule.findOne({ _id: moduleId, courseId });
-  if (!module) throw Errors.notFound("Module");
-  return module;
+  const courseModule = await CourseModule.findOne({ _id: moduleId, courseId });
+  if (!courseModule) throw Errors.notFound("Module");
+  return courseModule;
 }
 
 export async function PATCH(
@@ -32,13 +32,13 @@ export async function PATCH(
     await requireModule(courseId, moduleId);
     const parsed = moduleUpdateSchema.safeParse(await request.json());
     if (!parsed.success) throw Errors.badRequest("Invalid module data", parsed.error.flatten());
-    const module = await CourseModule.findOneAndUpdate(
+    const courseModule = await CourseModule.findOneAndUpdate(
       { _id: moduleId, courseId },
       parsed.data,
       { new: true, runValidators: true }
     );
-    if (!module) throw Errors.notFound("Module");
-    return jsonOk(module);
+    if (!courseModule) throw Errors.notFound("Module");
+    return jsonOk(courseModule);
   } catch (error) {
     return handleRouteError(error);
   }

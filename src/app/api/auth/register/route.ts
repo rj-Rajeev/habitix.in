@@ -33,17 +33,18 @@ export async function POST(req: Request) {
       },
       { status: 201 }
     );
-  } catch (error: any) {
-    if (error?.cause === "CONFLICT") {
+  } catch (error: unknown) {
+    const registrationError = error as { cause?: string; message?: string };
+    if (registrationError.cause === "CONFLICT") {
       return NextResponse.json(
         { error: "User already exists" },
         { status: 409 }
       );
     }
 
-    if (error?.cause === "VALIDATION") {
+    if (registrationError.cause === "VALIDATION") {
       return NextResponse.json(
-        { error: error.message },
+        { error: registrationError.message },
         { status: 400 }
       );
     }

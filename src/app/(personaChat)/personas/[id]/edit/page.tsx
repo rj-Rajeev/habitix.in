@@ -17,7 +17,6 @@ interface IPersona {
 export default function PersonaDetailPage() {
   const [persona, setPersona] = useState<IPersona | null>(null);
   const [loading, setLoading] = useState(true);
-  const [isEditing, setIsEditing] = useState(false);
 
   const router = useRouter();
     const params = useParams();
@@ -40,23 +39,6 @@ export default function PersonaDetailPage() {
 
   const handleStartConversation = () => {
     router.push(`/personas/${personaId}`);
-  };
-
-  const handleEdit = () => {
-    router.push(`/personas/${personaId}/edit`);
-  };
-
-  const handleDelete = async () => {
-    if (confirm("Are you sure you want to delete this persona?")) {
-      try {
-        await fetch(`/api-v2/personas/${personaId}`, {
-          method: 'DELETE',
-        });
-        router.push('/personas');
-      } catch (error) {
-        console.error('Failed to delete persona:', error);
-      }
-    }
   };
 
   if (loading) {
@@ -100,7 +82,7 @@ export default function PersonaDetailPage() {
           <div className="text-center">
           <div className="text-6xl mb-6">😔</div>
           <h2 className="text-2xl font-bold text-contrast mb-4">Persona Not Found</h2>
-          <p className="text-slate-200 mb-8">The persona you're looking for doesn't exist.</p>
+          <p className="text-slate-200 mb-8">The persona you&apos;re looking for doesn&apos;t exist.</p>
           <button
             onClick={() => router.push('/personas')}
             className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-8 py-3 rounded-2xl font-semibold hover:scale-105 transition-transform duration-300 shadow-lg"

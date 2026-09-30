@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import type { TodayQueue } from "@/types/today";
+import type { TodayTaskCard } from "@/types/today";
 import { getBrowserTimezone } from "@/lib/dates";
 
 type ApiResponse<T> = { success: true; data: T } | { success: false };
@@ -69,7 +70,7 @@ export function useTodayQueue() {
 
       const copy = { ...prev } as typeof prev;
 
-      const moveInList = (list: any[]) => {
+      const moveInList = (list: TodayTaskCard[]) => {
         const idx = list.findIndex((t) => t._id === taskId);
         if (idx === -1) return false;
         const [item] = list.splice(idx, 1);

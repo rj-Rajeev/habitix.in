@@ -1,4 +1,4 @@
-import { addDaysToKey, toDateKey } from "@/lib/dates";
+import { addDaysToKey } from "@/lib/dates";
 import { UserAnalytics } from "./user-analytics.model";
 
 export const analyticsService = {

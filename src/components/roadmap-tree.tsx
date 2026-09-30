@@ -322,7 +322,7 @@ export default function RoadmapTree({
                                     </div>
                                     <div className="flex-1">
                                       <h4 className="font-semibold text-red-800 mb-2">Delete Task</h4>
-                                      <p className="text-gray-700 mb-2 font-medium">"{task.text}"</p>
+                                      <p className="text-gray-700 mb-2 font-medium">&quot;{task.text}&quot;</p>
                                       <p className="text-red-600 text-sm mb-4">
                                         Are you sure you want to delete this task? This action cannot be undone.
                                       </p>

@@ -184,22 +184,6 @@ function CloseIcon() {
   );
 }
 
-function CopyIcon() {
-  return (
-    <svg
-      width="14"
-      height="14"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-    >
-      <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
-      <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
-    </svg>
-  );
-}
-
 // Enhanced markdown renderer component
 function MarkdownRenderer({
   content,
@@ -454,7 +438,7 @@ export default function PersonaChatPage() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [thinkingStage, setThinkingStage] = useState<
+  const [thinkingStage] = useState<
     "thinking" | "processing" | "generating" | "finalizing"
   >("thinking");
   const [isTyping, setIsTyping] = useState(false);
@@ -508,7 +492,7 @@ export default function PersonaChatPage() {
       ...prev,
       { role: "assistant", content: data.reply },
     ]);
-  } catch (error) {
+  } catch {
     setLoading(false);
     setMessages((prev) => [
       ...prev,
@@ -683,7 +667,7 @@ export default function PersonaChatPage() {
                   Start a conversation with {persona?.name}
                 </h3>
                 <p className="text-gray-600 max-w-md">
-                  Ask me anything! I'm here to help you with whatever you need.
+                  Ask me anything! I&apos;m here to help you with whatever you need.
                 </p>
               </div>
             </div>

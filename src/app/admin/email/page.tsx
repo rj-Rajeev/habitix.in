@@ -53,7 +53,7 @@ export default function EmailAdminPage() {
         setMessage("");
         setCategory("All");
       }
-    } catch (_) {
+    } catch {
       setToast({ open: true, msg: "Failed to send email. Try again later.", ok: false });
     } finally {
       setLoading(false);

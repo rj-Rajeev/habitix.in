@@ -5,8 +5,10 @@ import { useRouter } from "next/navigation";
 import { io } from "socket.io-client";
 import { useSession } from "next-auth/react";
 
+type UserSummary = { _id: string; fullname?: string; name?: string };
+
 export default function PeoplePage() {
-  const [users, setUsers] = useState<any[]>([]);
+  const [users, setUsers] = useState<UserSummary[]>([]);
   const [onlineUsers, setOnlineUsers] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 

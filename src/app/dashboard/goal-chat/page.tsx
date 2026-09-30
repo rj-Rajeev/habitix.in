@@ -4,7 +4,6 @@ import type React from "react";
 
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useSession } from "next-auth/react";
 import {
   Send,
   Target,
@@ -79,7 +78,6 @@ const createMessage = (role: "system" | "user", text: string): Message => ({
 });
 
 export default function GoalChatPage() {
-  const { data: session } = useSession();
   const [messages, setMessages] = useState<Message[]>([
     createMessage(
       "system",
@@ -129,7 +127,7 @@ export default function GoalChatPage() {
         ]);
       }, 1000);
     }
-  }, []);
+  }, [messages.length]);
 
   const simulateTyping = (message: string, callback: () => void) => {
     setIsTyping(true);
@@ -282,7 +280,7 @@ export default function GoalChatPage() {
                   Habitix | Roadmap Planner
                 </h1>
                 <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 truncate">
-                  Let's create your roadmap
+                  Let&apos;s create your roadmap
                 </p>
               </div>
             </div>

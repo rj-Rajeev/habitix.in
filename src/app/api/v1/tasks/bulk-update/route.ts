@@ -8,6 +8,7 @@ import { z } from "zod";
 import { taskRepository } from "@/modules/tasks/task.repository";
 import { goalCompletionService } from "@/modules/goals/goal-completion.service";
 import { taskCompletionService } from "@/modules/tasks/task-completion.service";
+import type { ITask } from "@/modules/tasks/task.model";
 
 const itemSchema = z.object({
   id: z.string().min(1),
@@ -70,7 +71,7 @@ export async function PATCH(req: NextRequest) {
           await taskRepository.updateById(item.id, userId, {
             ...nonStatusUpdate,
             ...(directStatusUpdate ? { status: item.status } : {}),
-          } as any);
+          } as Partial<ITask>);
         }
 
         if (directStatusUpdate) {

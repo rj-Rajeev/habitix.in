@@ -240,7 +240,7 @@ export default function NewPersonaPage() {
                         Description *
                       </label>
                       <p className="text-xs text-gray-500">
-                        Describe this persona's role, expertise, and personality traits
+                        Describe this persona&apos;s role, expertise, and personality traits
                       </p>
                       <textarea
                         placeholder="This persona is a creative writing expert who helps users craft compelling stories, develop characters, and improve their writing style. They are encouraging, imaginative, and provide detailed feedback..."
@@ -364,7 +364,7 @@ export default function NewPersonaPage() {
               💡 Tips for creating great personas
             </h3>
             <ul className="space-y-2 text-sm text-blue-800">
-              <li>• Be specific about the persona's expertise and personality traits</li>
+              <li>• Be specific about the persona&apos;s expertise and personality traits</li>
               <li>• Include examples of how they should respond in the system prompt</li>
               <li>• Consider the tone and style you want them to use</li>
               <li>• Think about what makes this persona unique and valuable</li>

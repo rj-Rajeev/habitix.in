@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { message, title = "Habitix", category } = body;
 
-    const query: any = { userId };
+    const query: { userId: string; categories?: string } = { userId };
     if (category) query.categories = category;
 
     const subs = await PushSubscription.find(query);
@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
     );
 
     return NextResponse.json({ success: true, sent: results.length });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 }

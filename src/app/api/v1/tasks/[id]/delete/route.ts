@@ -18,7 +18,7 @@ export async function DELETE(
     const existing = await taskRepository.findByIdForUser(id, userId);
     if (!existing) return new Response(JSON.stringify({ success: false, error: { message: "Not found" } }), { status: 404 });
 
-    await (existing as any).remove();
+    await existing.deleteOne();
     await goalCompletionService.evaluateGoalCompletion(existing.goalId.toString(), userId);
 
     return jsonOk({ success: true });

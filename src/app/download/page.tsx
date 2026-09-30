@@ -4,14 +4,19 @@ import { useEffect, useState } from "react";
 import { Box, Button, Typography, Container } from "@mui/material";
 import DownloadIcon from "@mui/icons-material/Download";
 
+interface BeforeInstallPromptEvent extends Event {
+  prompt(): Promise<void>;
+  userChoice: Promise<{ outcome: "accepted" | "dismissed"; platform: string }>;
+}
+
 export default function InstallPWA() {
-  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isPWAInstallable, setIsPWAInstallable] = useState(false);
 
   useEffect(() => {
-    const handler = (e: any) => {
+    const handler = (e: Event) => {
       e.preventDefault();
-      setDeferredPrompt(e);
+      setDeferredPrompt(e as BeforeInstallPromptEvent);
       setIsPWAInstallable(true);
     };
 

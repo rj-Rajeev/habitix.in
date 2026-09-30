@@ -203,22 +203,22 @@ export function validateCourseCsv(csv: string): { data?: CourseImportData; issue
     if (!Number.isInteger(order) || order < 1) continue;
     const title = valueOf(record, "module_title");
     const description = valueOf(record, "module_description") || undefined;
-    let module = moduleMap.get(order);
-    if (!module) {
-      module = { order, title, description, lessons: [] };
-      moduleMap.set(order, module);
+    let courseModule = moduleMap.get(order);
+    if (!courseModule) {
+      courseModule = { order, title, description, lessons: [] };
+      moduleMap.set(order, courseModule);
       moduleRows.set(order, record.row);
       lessonOrders.set(order, new Set());
-    } else if (module.title !== title || (module.description ?? "") !== (description ?? "")) {
+    } else if (courseModule.title !== title || (courseModule.description ?? "") !== (description ?? "")) {
       issues.push({ row: record.row, message: `Module order ${order} has conflicting title or description (first seen on row ${moduleRows.get(order)}).` });
     }
 
     const lessonOrder = Number(valueOf(record, "lesson_order"));
     if (Number.isInteger(lessonOrder) && lessonOrder > 0) {
       const orders = lessonOrders.get(order)!;
-      if (orders.has(lessonOrder)) issues.push({ row: record.row, message: `lesson_order ${lessonOrder} is duplicated inside module "${module.title}".` });
+      if (orders.has(lessonOrder)) issues.push({ row: record.row, message: `lesson_order ${lessonOrder} is duplicated inside module "${courseModule.title}".` });
       orders.add(lessonOrder);
-      module.lessons.push({
+      courseModule.lessons.push({
         order: lessonOrder,
         title: valueOf(record, "lesson_title"),
         description: valueOf(record, "lesson_description") || undefined,
