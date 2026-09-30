@@ -40,7 +40,7 @@ export default function InstallPWA() {
           Install Habitix
         </Typography>
         <Typography variant="body1" className="mb-6 text-gray-600">
-          Download and install our Progressive Web App to stay productive, even offline!
+          Install Habitix as a Progressive Web App for a convenient app-like experience on your device.
         </Typography>
 
         {isPWAInstallable ? (

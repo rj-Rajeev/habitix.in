@@ -1,14 +1,13 @@
 import Link from "next/link";
-import { BarChart3, BookOpen, Bot, ChevronRight, CircleUserRound, Lightbulb, Plus } from "lucide-react";
+import { BarChart3, BookOpen, ChevronRight, CircleUserRound, Lightbulb, Sparkles } from "lucide-react";
 import AppShell from "@/components/app/AppShell";
 
 const links = [
   { href: "/profile", label: "Profile", icon: CircleUserRound },
-  { href: "/goals/new", label: "Create goal", icon: Plus },
+  { href: "/goals/new", label: "Create an AI Goal", icon: Sparkles },
   { href: "/performance", label: "Performance", icon: BarChart3 },
   { href: "/recommendations", label: "Recommendations", icon: Lightbulb },
   { href: "/resources", label: "Resources", icon: BookOpen },
-  { href: "/dashboard/goal-chat", label: "AI roadmap", icon: Bot },
 ];
 
 export default function MorePage() {

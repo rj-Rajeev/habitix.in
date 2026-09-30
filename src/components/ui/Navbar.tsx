@@ -45,7 +45,7 @@ export default function Navbar() {
   const navItems = [
     { label: "Product", href: "/features" },
     { label: "Courses", href: "/courses" },
-    { label: "How it works", href: "/roadmap" },
+    { label: "How it works", href: "/#how-it-works" },
   ];
 
   return (

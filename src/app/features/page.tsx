@@ -10,69 +10,42 @@ import {
 } from "@mui/material";
 import {
   CheckCircle,
-  RocketLaunch,
-  EmojiEvents,
-  CameraAlt,
-  Notifications,
   BarChart,
-  CloudOff,
-  PeopleAlt,
   AutoAwesome,
+  School,
+  Today,
 } from "@mui/icons-material";
 
 const features = [
   {
-    title: "Smart Habit Tracker",
+    title: "Goal Plans",
     icon: <CheckCircle color="primary" fontSize="large" />,
     description:
-      "Track habits effortlessly with ideal time targets and visual feedback on progress.",
+      "Create a goal and follow its executable tasks, whether your plan is manual, AI-created, or course-based.",
   },
   {
-    title: "AI Roadmap Generation",
+    title: "AI-assisted Planning",
     icon: <AutoAwesome color="secondary" fontSize="large" />,
     description:
-      "Set goals and let AI break them into realistic daily steps you can follow.",
+      "Use AI to turn a goal into a structured plan of tasks you can review and edit.",
   },
   {
-    title: "Gamified Levels",
-    icon: <RocketLaunch color="success" fontSize="large" />,
+    title: "Course Learning",
+    icon: <School color="primary" fontSize="large" />,
     description:
-      "Every day is a level. Complete your tasks to level up and stay engaged.",
+      "Explore courses, work through lessons, and track lesson completion separately from goal progress.",
   },
   {
-    title: "Proof of Progress",
-    icon: <CameraAlt color="action" fontSize="large" />,
+    title: "Daily Execution",
+    icon: <Today color="primary" fontSize="large" />,
     description:
-      "Upload photos/videos as proof of completed tasks and celebrate your wins.",
+      "Use Today to focus on scheduled tasks and record their completion.",
   },
   {
-    title: "Reward System",
-    icon: <EmojiEvents color="warning" fontSize="large" />,
-    description:
-      "Earn small and big rewards for consistency and big achievements.",
-  },
-  {
-    title: "Motivational Notifications",
-    icon: <Notifications color="error" fontSize="large" />,
-    description:
-      "Receive smart reminders to work, refocus, and celebrate small wins.",
-  },
-  {
-    title: "Productivity Analytics",
+    title: "Progress Summaries",
     icon: <BarChart color="info" fontSize="large" />,
     description:
-      "View streaks, heatmaps, and performance stats to optimize your day.",
-  },
-  {
-    title: "Offline Sync Support",
-    icon: <CloudOff color="disabled" fontSize="large" />,
-    description: "Work offline and sync automatically when back online.",
-  },
-  {
-    title: "Social & Community (Coming Soon)",
-    icon: <PeopleAlt fontSize="large" />,
-    description:
-      "Join groups, challenge friends, and grow together with community support.",
+      "Review executable task completion for goals and lesson completion for linked courses.",
   },
 ];
 
