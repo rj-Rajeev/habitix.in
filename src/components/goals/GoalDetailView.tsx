@@ -84,6 +84,7 @@ type TaskSection = {
     title: string;
     description?: string;
     completed: boolean;
+    status: GoalTask["status"];
     minutes: number;
     source: "task" | "roadmap";
     dayNumber?: number;
@@ -130,6 +131,7 @@ function sectionsFromTasks(tasks: GoalTask[]): TaskSection[] {
       title: task.title,
       description: task.description,
       completed: task.status === "completed",
+      status: task.status,
       minutes: task.estimatedMinutes ?? 30,
       source: "task",
       type: task.type,
@@ -150,6 +152,7 @@ function sectionsFromRoadmap(roadmap: RoadmapDay[] = []): TaskSection[] {
         id: task._id ?? `${day.dayNumber}-${index}`,
         title: task.title,
         completed: Boolean(task.isCompleted),
+        status: task.isCompleted ? "completed" : "pending",
         minutes: 30,
         source: "roadmap" as const,
         dayNumber: day.dayNumber,
@@ -243,14 +246,33 @@ export function GoalDetailView({ goalId, initialTab }: { goalId: string; initial
     return () => { active = false; };
   }, [typeof goal?.courseId === "string" ? goal.courseId : goal?.courseId?._id]);
 
-  const updateLocalTaskStatus = (taskId: string, completed: boolean) => {
+  const updateLocalTaskStatus = (taskId: string, status: GoalTask["status"]) => {
     setTasks((prev) =>
       prev.map((task) =>
         task._id === taskId
-          ? { ...task, status: completed ? "completed" : "pending" }
+          ? { ...task, status }
           : task
       )
     );
+  };
+
+  const returnTaskToPending = async (taskId: string) => {
+    setBusyTaskId(taskId);
+    setSaveError(null);
+    setSaveSuccess(null);
+    try {
+      const response = await fetch(`/api/v1/tasks/${taskId}/reopen`, { method: "PATCH" });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !data.success) {
+        throw new Error(data?.error?.message || "Failed to return task to pending");
+      }
+      updateLocalTaskStatus(taskId, "pending");
+      setSaveSuccess("Task returned to pending.");
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusyTaskId(null);
+    }
   };
 
   const updateLocalTaskSchedule = (taskId: string, scheduledDate: string) => {
@@ -525,7 +547,7 @@ export function GoalDetailView({ goalId, initialTab }: { goalId: string; initial
       if (task.source === "roadmap") {
         updateLocalRoadmapTask(task.id, !task.completed);
       } else {
-        updateLocalTaskStatus(task.id, !task.completed);
+        updateLocalTaskStatus(task.id, task.completed ? "pending" : "completed");
       }
     } finally {
       setBusyTaskId(null);
@@ -1024,6 +1046,30 @@ export function GoalDetailView({ goalId, initialTab }: { goalId: string; initial
                                 {task.title}
                               </span>
 
+                              <span
+                                className={`mt-1 block text-xs font-medium ${
+                                  task.status === "completed"
+                                    ? "text-emerald-700"
+                                    : task.status === "in_progress"
+                                      ? "text-brand-primary"
+                                      : task.status === "skipped"
+                                        ? "text-amber-700"
+                                        : task.status === "cancelled"
+                                          ? "text-error"
+                                          : "text-slate-500"
+                                }`}
+                              >
+                                {task.status === "completed"
+                                  ? "Completed"
+                                  : task.status === "in_progress"
+                                    ? "In progress"
+                                    : task.status === "skipped"
+                                      ? "Skipped · still remaining for this Goal"
+                                      : task.status === "cancelled"
+                                        ? "Cancelled · needs resolution for this Goal"
+                                        : "Pending"}
+                              </span>
+
                               {task.description && (
                                 <span className="mt-1 block line-clamp-2 text-xs leading-5 text-slate-500">
                                   {task.description}
@@ -1075,6 +1121,7 @@ export function GoalDetailView({ goalId, initialTab }: { goalId: string; initial
                                     : "Revision"}
                                 </button>
                                 {task.source === "task" && <button type="button" onClick={() => setConfirmDeleteTaskId(current => current === task.id ? null : task.id)} className="inline-flex min-h-10 items-center justify-center rounded-xl px-3 text-xs font-semibold text-text-muted hover:bg-error/5 hover:text-error">Delete</button>}
+                                {task.source === "task" && (task.status === "skipped" || task.status === "cancelled") && <button type="button" disabled={busyTaskId === task.id} onClick={() => void returnTaskToPending(task.id)} className="inline-flex min-h-10 items-center justify-center rounded-xl border border-border-strong bg-white px-3 text-xs font-semibold text-text-secondary hover:bg-surface-subtle disabled:opacity-60">Return to pending</button>}
                               </div>
                             </div>
                           </div>

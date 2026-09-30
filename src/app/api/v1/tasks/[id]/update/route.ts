@@ -45,7 +45,10 @@ export async function PATCH(
     } else if (status === "skipped") {
       await taskCompletionService.skip(id, userId);
       statusHandledCanonically = true;
-    } else if (status === "pending" && existing.status === "completed") {
+    } else if (
+      status === "pending" &&
+      ["completed", "skipped", "cancelled"].includes(existing.status)
+    ) {
       await taskCompletionService.reopen(id, userId);
       statusHandledCanonically = true;
     } else if (status !== undefined && status !== existing.status) {

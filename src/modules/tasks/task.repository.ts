@@ -168,7 +168,7 @@ export const taskRepository = {
     const docs = await Task.find({
       userId: new Types.ObjectId(userId),
       goalId: new Types.ObjectId(goalId),
-      status: { $in: ["pending", "in_progress", "completed"] },
+      status: { $in: ["pending", "in_progress", "completed", "skipped", "cancelled"] },
     })
       .sort({ date: 1, scheduledDate: 1, scheduledOrder: 1, createdAt: 1 })
       .populate("goalId", "title")

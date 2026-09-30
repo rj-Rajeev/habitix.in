@@ -53,7 +53,11 @@ export async function PATCH(req: NextRequest) {
         if (statusChanged && item.status === "completed") {
           await taskCompletionService.complete(item.id, userId, { scheduleRevision: "none" });
           statusHandledCanonically = true;
-        } else if (statusChanged && item.status === "pending" && existing.status === "completed") {
+        } else if (
+          statusChanged &&
+          item.status === "pending" &&
+          ["completed", "skipped", "cancelled"].includes(existing.status)
+        ) {
           await taskCompletionService.reopen(item.id, userId);
           statusHandledCanonically = true;
         } else if (statusChanged && item.status === "skipped") {
