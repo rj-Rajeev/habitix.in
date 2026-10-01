@@ -46,7 +46,7 @@ export default function SignUp() {
         setError(data?.error || "Registration failed. Please try again.");
         return;
       }
-      setSuccess("Account created successfully. Redirecting to sign in...");
+      setSuccess("Account created. Check your email and verify your address before signing in. Redirecting...");
       window.setTimeout(() => router.push("/signin"), 900);
     } catch {
       setError("Unable to create your account right now. Please try again.");

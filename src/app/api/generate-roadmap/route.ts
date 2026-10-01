@@ -1,13 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/authOptions";
+import { getOptionalUserId } from "@/lib/auth/session";
 import { connectDb } from "@/lib/db";
 import { generateRoadmapSchema } from "@/modules/tasks/task.schemas";
 import { aiService } from "@/services/ai/ai.service";
 
 export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
+  const userId = await getOptionalUserId();
+  if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -23,7 +22,7 @@ export async function POST(req: NextRequest) {
     }
 
     const roadmap = parsed.data.courseId
-      ? await aiService.generateCourseRoadmap(parsed.data, session.user.id, parsed.data.courseId)
+      ? await aiService.generateCourseRoadmap(parsed.data, userId, parsed.data.courseId)
       : await aiService.generateRoadmap(parsed.data);
     return NextResponse.json({ roadmap });
   } catch (err) {

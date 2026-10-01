@@ -7,6 +7,9 @@ export interface UserDetails {
   password?: string;
   provider?: "local" | "google" | "github";
   providerId?: string;
+  googleProviderId?: string;
+  githubProviderId?: string;
+  emailVerified?: boolean;
 }
 
 const registerUser = async ({
@@ -15,6 +18,9 @@ const registerUser = async ({
   password,
   provider = "local",
   providerId,
+  googleProviderId,
+  githubProviderId,
+  emailVerified,
 }: UserDetails): Promise<IUser> => {
   const normalizedFullname = fullname.trim();
   const normalizedEmail = email.trim().toLowerCase();
@@ -50,7 +56,10 @@ const registerUser = async ({
     password,
     provider,
     providerId,
+    googleProviderId,
+    githubProviderId,
     role: "user",
+    emailVerified: emailVerified ?? provider !== "local",
   });
 
   await newUser.save();

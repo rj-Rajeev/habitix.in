@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/authOptions";
+import { getOptionalUserId } from "@/lib/auth/session";
 import { connectDb } from "@/lib/db";
 import Goal, { type IRoadmapDay } from "@/models/Goal";
 import { goalSyncService } from "@/modules/goals/goal-sync.service";
@@ -28,8 +27,8 @@ interface ToggleTaskRequestBody {
 
 export async function PATCH(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
+    const userId = await getOptionalUserId();
+    if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -44,8 +43,6 @@ export async function PATCH(req: NextRequest) {
     }
 
     await connectDb();
-    const userId = session.user.id;
-
     const goal = await Goal.findOne({ _id: goalId, userId });
     if (!goal) {
       return NextResponse.json({ error: "Goal not found" }, { status: 404 });

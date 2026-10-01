@@ -7,7 +7,15 @@ export interface IUser extends Document {
   password?: string;
   provider: "local" | "google" | "github";
   providerId?: string;
+  googleProviderId?: string;
+  githubProviderId?: string;
   role: "user" | "admin";
+  emailVerified: boolean;
+  verificationTokenHash?: string;
+  verificationTokenExpiresAt?: Date;
+  pendingVerificationTokenHash?: string;
+  pendingVerificationTokenExpiresAt?: Date;
+  verificationEmailSentAt?: Date;
   comparePassword(candidatePassword: string): Promise<boolean>;
 }
 
@@ -40,15 +48,31 @@ const UserSchema: Schema<IUser> = new Schema(
     providerId: {
       type: String,
     },
+    googleProviderId: { type: String },
+    githubProviderId: { type: String },
     role: {
       type: String,
       enum: ["user", "admin"],
       required: true,
       default: "user",
     },
+    // Existing records without this field remain verified through this default.
+    emailVerified: {
+      type: Boolean,
+      required: true,
+      default: true,
+    },
+    verificationTokenHash: { type: String, select: false },
+    verificationTokenExpiresAt: { type: Date, select: false },
+    pendingVerificationTokenHash: { type: String, select: false },
+    pendingVerificationTokenExpiresAt: { type: Date, select: false },
+    verificationEmailSentAt: { type: Date, select: false },
   },
   { timestamps: true }
 );
+
+UserSchema.index({ googleProviderId: 1 }, { unique: true, sparse: true });
+UserSchema.index({ githubProviderId: 1 }, { unique: true, sparse: true });
 
 // Pre-save middleware to hash password (only for local auth)
 UserSchema.pre<IUser>("save", async function (next) {

@@ -2,18 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/db";
 import { Types } from "mongoose";
 import Chat from "@/models/PeoplesChat/Chat";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/authOptions";
+import { getOptionalUserId } from "@/lib/auth/session";
 
 export async function POST(req: NextRequest) {
   await dbConnect();
 
-  const session = await getServerSession(authOptions);
-  if (!session) {
+  const currentUserId = await getOptionalUserId();
+  if (!currentUserId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const currentUserId = session.user.id;
   const { userId } = await req.json();
   if (!userId || !Types.ObjectId.isValid(userId)) {
     return NextResponse.json(

@@ -1,28 +1,13 @@
 import { NextResponse } from "next/server";
 import connectDb from "@/lib/db";
-import registerUser from "@/lib/registerUser";
+import { registerLocalUser } from "@/modules/auth/registration.service";
 
 export async function POST(req: Request) {
   try {
     await connectDb();
 
     const body = await req.json();
-    const fullname = typeof body?.fullname === "string" ? body.fullname.trim() : "";
-    const email = typeof body?.email === "string" ? body.email.trim().toLowerCase() : "";
-    const password = typeof body?.password === "string" ? body.password : "";
-
-    if (!fullname || !email || !password) {
-      return NextResponse.json(
-        { error: "Fullname, email, and password are required" },
-        { status: 400 }
-      );
-    }
-
-    const user = await registerUser({
-      fullname,
-      email,
-      password,
-    });
+    const user = await registerLocalUser(body ?? {});
 
     return NextResponse.json(
       {
@@ -34,10 +19,10 @@ export async function POST(req: Request) {
       { status: 201 }
     );
   } catch (error: unknown) {
-    const registrationError = error as { cause?: string; message?: string };
+    const registrationError = error as { cause?: string; message?: string; code?: number };
     if (registrationError.cause === "CONFLICT") {
       return NextResponse.json(
-        { error: "User already exists" },
+        { error: "An account with this email already exists" },
         { status: 409 }
       );
     }
@@ -46,6 +31,13 @@ export async function POST(req: Request) {
       return NextResponse.json(
         { error: registrationError.message },
         { status: 400 }
+      );
+    }
+
+    if (registrationError.code === 11000) {
+      return NextResponse.json(
+        { error: "An account with this email already exists" },
+        { status: 409 }
       );
     }
 

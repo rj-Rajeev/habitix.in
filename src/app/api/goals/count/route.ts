@@ -1,18 +1,17 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/authOptions";
+import { getOptionalUserId } from "@/lib/auth/session";
 import { connectDb } from "@/lib/db";
 import { goalService } from "@/modules/goals/goal.service";
 
 export async function GET() {
   try {
     await connectDb();
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
+    const userId = await getOptionalUserId();
+    if (!userId) {
       return NextResponse.json({ count: 0 }, { status: 401 });
     }
 
-    const count = await goalService.countForUser(session.user.id);
+    const count = await goalService.countForUser(userId);
     return NextResponse.json({ count });
   } catch (err) {
     console.error("Failed to fetch goal count:", err);

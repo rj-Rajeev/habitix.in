@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/authOptions";
+import { getOptionalUserId } from "@/lib/auth/session";
 import { connectDb } from "@/lib/db";
 import { todayService } from "@/modules/tasks/today.service";
 
@@ -8,8 +7,8 @@ import { todayService } from "@/modules/tasks/today.service";
 export async function GET() {
   await connectDb();
 
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
+  const userId = await getOptionalUserId();
+  if (!userId) {
     return NextResponse.json(
       { success: false, message: "Unauthorized" },
       { status: 401 }
@@ -17,7 +16,7 @@ export async function GET() {
   }
 
   try {
-    const queue = await todayService.getTodayQueue(session.user.id);
+    const queue = await todayService.getTodayQueue(userId);
     const all = [
       ...queue.sections.overdue,
       ...queue.sections.today,
