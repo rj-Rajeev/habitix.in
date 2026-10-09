@@ -1,38 +1,22 @@
-import { addDays, format, startOfDay } from "date-fns";
 import { Types } from "mongoose";
-import { toDateKey } from "@/lib/dates";
 import { Errors } from "@/lib/api";
 import { requireCourseAccess } from "@/lib/enrollments/access";
 import type { CreateGoalInput } from "@/modules/tasks/task.schemas";
-import { goalRepository } from "./goal.repository";
+import { goalRepository, isManualGoalRecord } from "./goal.repository";
 import { goalSyncService } from "./goal-sync.service";
 import type { IRoadmapDay } from "./goal.model";
 import { courseLearningService } from "@/modules/courses/course-learning.service";
 import { goalCompletionService } from "./goal-completion.service";
+import { taskRepository } from "@/modules/tasks/task.repository";
+import { dateKeyInTimezone, isValidGoalTimezone, parseGoalDateKey, validateRoadmapSchedule } from "@/lib/goals/goal-scheduling";
 
 function normalizeRoadmap(roadmap: CreateGoalInput["roadmap"]): IRoadmapDay[] {
   if (!roadmap?.length) return [];
 
   return roadmap.map((day, index) => {
-    let dayDate: string;
-    if (typeof day.dayDate === "string") {
-      dayDate = /^\d{4}-\d{2}-\d{2}$/.test(day.dayDate)
-        ? day.dayDate
-        : toDateKey(new Date(day.dayDate));
-    } else {
-      dayDate = toDateKey(new Date(day.dayDate));
-    }
-
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(dayDate)) {
-      dayDate = format(
-        startOfDay(addDays(new Date(), index)),
-        "yyyy-MM-dd"
-      );
-    }
-
     return {
       dayNumber: day.dayNumber,
-      dayDate,
+      dayDate: day.dayDate,
       unlocked: day.unlocked ?? index === 0,
       completed: day.completed ?? false,
       tasks: day.tasks.map((t) => ({
@@ -54,16 +38,47 @@ export const goalService = {
     if (!input.courseId && input.roadmap?.some((day) => day.tasks.some((task) => task.courseLessonId))) {
       throw Errors.badRequest("Course lesson references require a courseId");
     }
+    if (input.roadmap?.some((day) => day.tasks.length === 0)) {
+      throw Errors.badRequest("Every roadmap day must contain at least one task");
+    }
+
+    const timezone = input.timezone || "UTC";
+    if (!isValidGoalTimezone(timezone)) throw Errors.badRequest("Goal timezone must be a valid IANA timezone");
+    if (!Number.isInteger(input.daysPerWeek) || input.daysPerWeek < 1 || input.daysPerWeek > 7) {
+      throw Errors.badRequest("Days per week must be a whole number from 1 to 7");
+    }
+    const now = new Date();
+    if (!input.targetDate && input.roadmap?.some((day) => day.tasks.length > 0)) {
+      throw Errors.badRequest("A target date is required when a Goal has scheduled roadmap tasks");
+    }
+    if (input.targetDate) {
+      const targetDate = parseGoalDateKey(input.targetDate);
+      if (!targetDate) throw Errors.badRequest("Target date must be a valid YYYY-MM-DD calendar date");
+      const today = parseGoalDateKey(dateKeyInTimezone(now, timezone));
+      if (!today || targetDate < today) throw Errors.badRequest("Target date must be today or later in the Goal timezone");
+    }
+    const scheduleErrors = input.roadmap?.some((day) => day.tasks.length > 0)
+      ? validateRoadmapSchedule(input.roadmap, {
+          targetDate: input.targetDate!,
+          daysPerWeek: input.daysPerWeek,
+          timezone,
+        }, now)
+      : [];
+    if (scheduleErrors.length) throw Errors.badRequest("Invalid Goal schedule", { issues: scheduleErrors });
 
     if (input.courseId) {
       const content = await courseLearningService.loadPublishedCourseContent(input.courseId);
       await requireCourseAccess(userId, input.courseId);
-      const validLessonIds = new Set(content.lessons.map((lesson) => lesson.lessonId));
+      if (content.lessons.length === 0) throw Errors.badRequest("Course Goals require a course with at least one lesson");
+      const courseTaskCount = input.roadmap?.reduce((total, day) => total + day.tasks.length, 0) ?? 0;
       const requestedLessonIds = input.roadmap?.flatMap((day) => day.tasks
         .map((task) => task.courseLessonId)
         .filter((lessonId): lessonId is string => Boolean(lessonId))) ?? [];
-      if (requestedLessonIds.some((lessonId) => !validLessonIds.has(lessonId))) {
-        throw Errors.badRequest("Roadmap contains a lesson that does not belong to this course");
+      const expectedLessonIds = content.lessons.map((lesson) => lesson.lessonId);
+      if (courseTaskCount !== expectedLessonIds.length ||
+          requestedLessonIds.length !== courseTaskCount ||
+          requestedLessonIds.some((lessonId, index) => lessonId !== expectedLessonIds[index])) {
+        throw Errors.badRequest("Course Goal roadmap must include every course lesson exactly once in curriculum order");
       }
     }
 
@@ -79,7 +94,7 @@ export const goalService = {
       preferredTime: input.preferredTime,
       daysPerWeek: input.daysPerWeek,
       motivation: input.motivation,
-      timezone: input.timezone,
+      timezone,
       courseId: input.courseId ? new Types.ObjectId(input.courseId) : undefined,
       roadmap,
       status: "active",
@@ -87,7 +102,21 @@ export const goalService = {
     });
 
     const goalId = goal._id.toString();
-    await goalSyncService.syncGoalTasks(userId, goalId);
+    try {
+      await goalSyncService.syncGoalTasks(userId, goalId);
+    } catch (error) {
+      // Completion can write history, analytics, or Course Lesson Progress before
+      // a later sync step fails. Keep the Goal and its Tasks together once any
+      // Task has been created so those durable side effects never point at data
+      // removed by this compensating cleanup.
+      try {
+        const tasksExist = await taskRepository.existsForGoal(goalId, userId);
+        if (!tasksExist) await goalRepository.deleteByIdForUser(goalId, userId);
+      } catch {
+        // If cleanup cannot establish that no Tasks exist, preserve the Goal.
+      }
+      throw error;
+    }
 
     return { id: goalId, goal: normalizeGoal(goal) };
   },
@@ -99,11 +128,22 @@ export const goalService = {
       throw Errors.notFound("Goal");
     }
 
-    return normalizeGoal(goal);
+    const hasManualTaskEvidence = await taskRepository.hasManualTaskEvidence(id, userId);
+    return {
+      ...normalizeGoal(goal),
+      spreadsheetImportEligible: isManualGoalRecord(goal, hasManualTaskEvidence),
+    };
   },
 
   async listForUser(userId: string) {
-    return (await goalRepository.findActiveByUser(userId)).map(normalizeGoal);
+    const goals = await goalRepository.findActiveByUser(userId);
+    return Promise.all(goals.map(async (goal) => ({
+      ...normalizeGoal(goal),
+      spreadsheetImportEligible: isManualGoalRecord(
+        goal,
+        await taskRepository.hasManualTaskEvidence(goal._id.toString(), userId)
+      ),
+    })));
   },
 
   async listActiveForDashboard(userId: string) {

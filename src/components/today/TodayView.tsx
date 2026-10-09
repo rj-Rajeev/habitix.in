@@ -91,7 +91,7 @@ export default function TodayView() {
   const [showAddTaskModal, setShowAddTaskModal] = useState(false);
   const [showAddGoalModal, setShowAddGoalModal] = useState(false);
   const [showExcelUploadModal, setShowExcelUploadModal] = useState(false);
-  const [goals, setGoals] = useState<Array<{ _id: string; title: string }>>([]);
+  const [goals, setGoals] = useState<Array<{ _id: string; title: string; spreadsheetImportEligible: boolean }>>([]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -115,9 +115,10 @@ export default function TodayView() {
           const data = await goalsRes.json();
           if (data.success && Array.isArray(data.data)) {
             setGoals(
-              data.data.map((g: { _id: string; title: string }) => ({
+              data.data.map((g: { _id: string; title: string; spreadsheetImportEligible?: boolean }) => ({
                 _id: g._id,
                 title: g.title,
+                spreadsheetImportEligible: Boolean(g.spreadsheetImportEligible),
               }))
             );
           }

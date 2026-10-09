@@ -29,6 +29,7 @@ type RoadmapTask = {
   title: string;
   isCompleted?: boolean;
   createdAt?: string;
+  courseLessonId?: string;
 };
 
 type RoadmapDay = {
@@ -55,6 +56,7 @@ type GoalDetail = {
   motivation?: string;
   roadmap?: RoadmapDay[];
   courseId?: string | { _id?: string };
+  spreadsheetImportEligible?: boolean;
 };
 
 type CourseSummary = { title: string; slug: string; completedCount: number; totalCount: number };
@@ -356,7 +358,6 @@ export function GoalDetailView({ goalId, initialTab }: { goalId: string; initial
         const form = new FormData();
         form.set("goalId", goalId);
         form.set("date", new Date().toISOString().split("T")[0]);
-        form.set("replace", "true");
         form.set("file", file);
 
         const res = await fetch("/api/v1/tasks/import-excel", {
@@ -375,7 +376,7 @@ export function GoalDetailView({ goalId, initialTab }: { goalId: string; initial
         const imported = data?.data?.imported ?? 0;
         const skipped = data?.data?.skipped ?? 0;
         setSaveSuccess(
-          `Replaced with ${imported} task${imported === 1 ? "" : "s"}${
+          `Added ${imported} task${imported === 1 ? "" : "s"}${
             skipped ? `, skipped ${skipped}` : ""
           }.`
         );
@@ -572,7 +573,12 @@ export function GoalDetailView({ goalId, initialTab }: { goalId: string; initial
   const courseProgress = courseSummary?.totalCount
     ? Math.round((courseSummary.completedCount / courseSummary.totalCount) * 100)
     : 0;
-  const planSourceLabel = goal?.planSource === "course"
+  const isCourseGoal = Boolean(goal && (
+    goal.planSource === "course" ||
+    goal.courseId ||
+    goal.roadmap?.some((day) => day.tasks.some((task) => task.courseLessonId))
+  ));
+  const planSourceLabel = isCourseGoal
     ? "Course Plan"
     : goal?.planSource === "ai"
       ? "AI Plan"
@@ -652,7 +658,7 @@ export function GoalDetailView({ goalId, initialTab }: { goalId: string; initial
               <details className="relative">
                 <summary className="flex h-10 cursor-pointer list-none items-center gap-2 rounded-control border border-border-strong bg-white px-3 text-sm font-semibold text-text-secondary"><MoreHorizontal className="h-4 w-4"/>More</summary>
                 <div className="absolute right-0 z-20 mt-2 w-52 rounded-xl border border-border bg-white p-2 shadow-md">
-                  <button type="button" onClick={() => importInputRef.current?.click()} className="block min-h-10 w-full rounded-lg px-3 text-left text-sm text-text-secondary hover:bg-surface-subtle">Import tasks (Excel)</button>
+                  {goal.spreadsheetImportEligible && <button type="button" onClick={() => importInputRef.current?.click()} className="block min-h-10 w-full rounded-lg px-3 text-left text-sm text-text-secondary hover:bg-surface-subtle">Import tasks (Excel)</button>}
                   <button type="button" onClick={exportCsv} className="block min-h-10 w-full rounded-lg px-3 text-left text-sm text-text-secondary hover:bg-surface-subtle">Export tasks (CSV)</button>
                   <button type="button" onClick={() => setShowDeleteConfirm(true)} className="block min-h-10 w-full rounded-lg px-3 text-left text-sm text-error hover:bg-error/5">Delete goal</button>
                 </div>
@@ -720,7 +726,7 @@ export function GoalDetailView({ goalId, initialTab }: { goalId: string; initial
                 >
                   Excel view
                 </button>
-                <button
+                {goal.spreadsheetImportEligible && <button
                   type="button"
                   onClick={() => importInputRef.current?.click()}
                   disabled={importing}
@@ -732,7 +738,7 @@ export function GoalDetailView({ goalId, initialTab }: { goalId: string; initial
                     <Upload className="h-4 w-4" />
                   )}
                   Import
-                </button>
+                </button>}
                 <button
                   type="button"
                   onClick={exportCsv}

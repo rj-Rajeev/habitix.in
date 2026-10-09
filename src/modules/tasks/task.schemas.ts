@@ -1,4 +1,9 @@
 import { z } from "zod";
+import { isValidGoalTimezone, parseGoalDateKey } from "@/lib/goals/goal-scheduling";
+
+const dateKeySchema = z.string().refine((value) => parseGoalDateKey(value) !== null, {
+  message: "Expected a valid YYYY-MM-DD calendar date",
+});
 
 export const completeTaskSchema = z.object({
   note: z.string().max(2000).optional(),
@@ -25,17 +30,17 @@ export const createGoalSchema = z.object({
   courseId: z.string().regex(/^[a-f\d]{24}$/i).optional(),
   title: z.string().min(1).max(200),
   description: z.string().max(2000).optional(),
-  targetDate: z.string().optional(),
+  targetDate: dateKeySchema.optional(),
   hoursPerDay: z.coerce.number().min(0.5).max(24).default(1),
   preferredTime: z.string().default("morning"),
-  daysPerWeek: z.coerce.number().min(1).max(7).default(5),
+  daysPerWeek: z.coerce.number().int().min(1).max(7).default(5),
   motivation: z.string().max(2000).optional(),
-  timezone: z.string().default("UTC"),
+  timezone: z.string().refine(isValidGoalTimezone, "Expected a valid IANA timezone").default("UTC"),
   roadmap: z
     .array(
       z.object({
         dayNumber: z.number(),
-        dayDate: z.union([z.string(), z.coerce.date()]),
+        dayDate: dateKeySchema,
         unlocked: z.boolean().optional(),
         completed: z.boolean().optional(),
         tasks: z.array(
@@ -63,7 +68,7 @@ export const generateRoadmapSchema = z.object({
   title: z.string().min(1),
   duration: z.string().min(1),
   hoursPerDay: z.coerce.number().min(0.5).max(24),
-  daysPerWeek: z.coerce.number().min(1).max(7),
+  daysPerWeek: z.coerce.number().int().min(1).max(7),
   preferredTime: z.string(),
   motivation: z.string().optional(),
   currentLevel: z.enum(["beginner", "some_knowledge", "comfortable"]).optional(),

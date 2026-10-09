@@ -18,8 +18,11 @@ export const courseLearningService = {
     if (!course) throw Errors.notFound("Course");
 
     const modules = await CourseModule.find({ courseId: course._id }).sort({ order: 1, createdAt: 1 });
-    const lessons = await CourseLesson.find({ moduleId: { $in: modules.map((module) => module._id) } })
-      .sort({ order: 1, createdAt: 1 })
+    const lessonDocuments = await CourseLesson.find({ moduleId: { $in: modules.map((module) => module._id) } })
+      .sort({ moduleId: 1, order: 1, createdAt: 1 });
+    const lessons = modules.flatMap((module) =>
+      lessonDocuments.filter((lesson) => lesson.moduleId.toString() === module._id.toString())
+    );
 
     return {
       course: { courseId: course._id.toString(), title: course.title, description: course.description },

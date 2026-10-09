@@ -3,7 +3,6 @@ import { handleRouteError, jsonOk, Errors } from "@/lib/api";
 import { requireUserId } from "@/lib/auth/session";
 import { connectDb } from "@/lib/db";
 import { importTasksSchema } from "@/modules/tasks/task.schemas";
-import { goalRepository } from "@/modules/goals/goal.repository";
 import { taskImportService } from "@/modules/tasks/task-import.service";
 
 const MAX_IMPORT_BYTES = 5 * 1024 * 1024;
@@ -40,15 +39,9 @@ export async function POST(req: NextRequest) {
       throw Errors.badRequest("File must be 5MB or smaller");
     }
 
-    const goal = await goalRepository.findByIdForUser(parsed.data.goalId, userId);
-    if (!goal) {
-      throw Errors.notFound("Goal");
-    }
-
-    if (form.get("replace") === "true" && goal.courseId) {
-      throw Errors.badRequest(
-        "Course Goal tasks cannot be replaced through Excel import because they are linked to Course lessons"
-      );
+    const replaceValue = form.get("replace");
+    if (replaceValue !== null && replaceValue !== "false") {
+      throw Errors.badRequest("Spreadsheet replacement is disabled; imports can only append tasks");
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());
@@ -56,7 +49,7 @@ export async function POST(req: NextRequest) {
       userId,
       goalId: parsed.data.goalId,
       fallbackScheduledDate: parsed.data.date,
-      replaceExisting: form.get("replace") === "true",
+      replaceExisting: false,
       file: buffer,
     });
 

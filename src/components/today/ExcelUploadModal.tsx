@@ -13,7 +13,7 @@ type Props = {
   isOpen: boolean;
   onClose: () => void;
   onImported: () => Promise<void>;
-  goals: Array<{ _id: string; title: string }>;
+  goals: Array<{ _id: string; title: string; spreadsheetImportEligible: boolean }>;
   defaultDate?: string;
 };
 
@@ -112,7 +112,7 @@ export default function ExcelUploadModal({
               disabled={loading}
             >
               <option value="">Select a goal...</option>
-              {goals.map((goal) => (
+              {goals.filter((goal) => goal.spreadsheetImportEligible).map((goal) => (
                 <option key={goal._id} value={goal._id}>
                   {goal.title}
                 </option>

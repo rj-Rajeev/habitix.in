@@ -24,6 +24,13 @@ export type TaskLean = {
   goalTitle?: string;
 };
 
+export type RoadmapSyncTask = {
+  _id: Types.ObjectId;
+  status: TaskStatus;
+  source: ITask["source"];
+  metadata?: ITask["metadata"];
+};
+
 type TaskDocLike = {
   _id: Types.ObjectId;
   userId: Types.ObjectId;
@@ -177,6 +184,16 @@ export const taskRepository = {
     return docs.map(mapPopulatedTask);
   },
 
+  async findRoadmapSyncTasks(goalId: string, userId: string) {
+    return Task.find({
+      goalId: new Types.ObjectId(goalId),
+      userId: new Types.ObjectId(userId),
+      "source.type": "roadmap_sync",
+    })
+      .select("_id status source metadata")
+      .lean<RoadmapSyncTask[]>();
+  },
+
   async countByStatus(userId: string, status: TaskStatus) {
     return Task.countDocuments({
       userId: new Types.ObjectId(userId),
@@ -318,5 +335,14 @@ export const taskRepository = {
       userId: new Types.ObjectId(userId),
     });
     return count > 0;
+  },
+
+  async hasManualTaskEvidence(goalId: string, userId: string) {
+    return Boolean(await Task.exists({
+      goalId: new Types.ObjectId(goalId),
+      userId: new Types.ObjectId(userId),
+      type: "execution",
+      "source.type": { $in: ["manual", "import"] },
+    }));
   },
 };

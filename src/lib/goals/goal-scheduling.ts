@@ -10,14 +10,14 @@ export type ScheduledRoadmapDay<T> = {
   tasks: T[];
 };
 
-type StudyDateOptions = {
+export type StudyDateOptions = {
   targetDate: string;
   daysPerWeek: number;
   timezone: string;
   now?: Date;
 };
 
-function parseDateKey(dateKey: string): Date | null {
+export function parseGoalDateKey(dateKey: string): Date | null {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(dateKey)) return null;
   const [year, month, day] = dateKey.split("-").map(Number);
   const date = new Date(Date.UTC(year, month - 1, day));
@@ -29,6 +29,15 @@ function parseDateKey(dateKey: string): Date | null {
     return null;
   }
   return date;
+}
+
+export function isValidGoalTimezone(timezone: string): boolean {
+  try {
+    new Intl.DateTimeFormat("en-US", { timeZone: timezone });
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 function formatDateKey(date: Date) {
@@ -50,8 +59,8 @@ export function getAvailableStudyDates({
   timezone,
   now = new Date(),
 }: StudyDateOptions): string[] {
-  const startDate = parseDateKey(dateKeyInTimezone(now, timezone));
-  const endDate = parseDateKey(targetDate);
+  const startDate = parseGoalDateKey(dateKeyInTimezone(now, timezone));
+  const endDate = parseGoalDateKey(targetDate);
   if (!startDate || !endDate || endDate < startDate) return [];
 
   const frequency = Math.max(1, Math.min(7, Math.floor(daysPerWeek)));
@@ -65,6 +74,42 @@ export function getAvailableStudyDates({
   }
 
   return studyDates;
+}
+
+/** Validate a submitted roadmap against the same date rules used by the scheduler. */
+export function validateRoadmapSchedule(
+  roadmap: Array<{ dayNumber: number; dayDate: string; tasks: unknown[] }>,
+  options: StudyDateOptions,
+  now = new Date()
+): string[] {
+  if (!isValidGoalTimezone(options.timezone)) return ["Goal timezone must be a valid IANA timezone"];
+  if (!Number.isInteger(options.daysPerWeek) || options.daysPerWeek < 1 || options.daysPerWeek > 7) {
+    return ["Days per week must be a whole number from 1 to 7"];
+  }
+  if (!parseGoalDateKey(options.targetDate)) return ["Target date must be a valid YYYY-MM-DD calendar date"];
+
+  const today = dateKeyInTimezone(now, options.timezone);
+  const todayDate = parseGoalDateKey(today);
+  const targetDate = parseGoalDateKey(options.targetDate);
+  if (!todayDate || !targetDate || targetDate < todayDate) return ["Target date must be today or later in the Goal timezone"];
+  const allowedDates = new Set(getAvailableStudyDates({ ...options, now }));
+
+  const errors: string[] = [];
+  let previousDate: Date | undefined;
+  for (const [index, day] of roadmap.entries()) {
+    const dayDate = parseGoalDateKey(day.dayDate);
+    if (!dayDate) {
+      errors.push(`Roadmap day ${index + 1} must use a valid YYYY-MM-DD date`);
+      continue;
+    }
+    if (day.dayNumber !== index + 1) errors.push("Roadmap day numbers must be sequential starting at 1");
+    if (!day.tasks.length) errors.push(`Roadmap day ${index + 1} must contain at least one task`);
+    if (dayDate < todayDate || dayDate > targetDate) errors.push(`Roadmap day ${index + 1} is outside the Goal date window`);
+    if (!allowedDates.has(day.dayDate)) errors.push(`Roadmap day ${index + 1} is not an available study date`);
+    if (previousDate && dayDate <= previousDate) errors.push("Roadmap dates must be strictly increasing");
+    previousDate = dayDate;
+  }
+  return errors;
 }
 
 /**

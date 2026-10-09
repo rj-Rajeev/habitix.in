@@ -4,6 +4,7 @@ import type React from "react";
 
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { dateKeyInTimezone, scheduleRoadmapTasks } from "@/lib/goals/goal-scheduling";
 import {
   Send,
   Target,
@@ -30,6 +31,21 @@ interface GoalData {
   daysPerWeek: number;
   preferredTime: string;
   motivation: string;
+}
+
+function durationToDays(value: string): number | null {
+  const match = value.trim().match(/^(\d+(?:\.\d+)?)\s*(days?|d|weeks?|w|months?|years?)$/i);
+  if (!match) return null;
+  const amount = Number(match[1]);
+  const unit = match[2].toLowerCase();
+  const multiplier = unit.startsWith("w") ? 7 : unit.startsWith("month") ? 30 : unit.startsWith("year") ? 365 : 1;
+  return Math.max(1, Math.ceil(amount * multiplier));
+}
+
+function addDaysToDateKey(dateKey: string, days: number) {
+  const date = new Date(`${dateKey}T00:00:00Z`);
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
 }
 
 const questions = [
@@ -155,14 +171,16 @@ export default function GoalChatPage() {
 
       const { roadmap } = await roadmapRes.json();
 
-      const roadmapWithDates = roadmap.map((dayData: { dayNumber: number; tasks: unknown[]; unlocked?: boolean; completed?: boolean }, index: number) => {
-        const date = new Date();
-        date.setDate(date.getDate() + index);
-        return {
-          ...dayData,
-          dayDate: date.toISOString().slice(0, 10),
-        };
-      });
+      const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+      const durationDays = durationToDays(goalData.duration);
+      if (!durationDays) throw new Error("Enter duration as days, weeks, months, or years (for example, 6 weeks).");
+      const now = new Date();
+      const targetDate = addDaysToDateKey(dateKeyInTimezone(now, timezone), durationDays - 1);
+      const roadmapWithDates = scheduleRoadmapTasks(
+        roadmap as Array<{ tasks: Array<{ title: string; isCompleted?: boolean; createdAt?: Date }> }>,
+        { targetDate, daysPerWeek: goalData.daysPerWeek, timezone, now }
+      );
+      if (roadmapWithDates.length === 0) throw new Error("The duration has no available study dates. Choose a longer duration or more study days.");
 
       const fullGoal = {
         planSource: "ai",
@@ -172,7 +190,8 @@ export default function GoalChatPage() {
         daysPerWeek: goalData.daysPerWeek,
         preferredTime: goalData.preferredTime,
         motivation: goalData.motivation,
-        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        timezone,
+        targetDate,
         roadmap: roadmapWithDates,
       };
 

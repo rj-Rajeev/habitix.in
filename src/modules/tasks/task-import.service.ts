@@ -1,12 +1,12 @@
 import * as XLSX from "xlsx";
-import { Types } from "mongoose";
 import { Errors } from "@/lib/api";
 import { toDateKey } from "@/lib/dates";
 import { taskRepository } from "./task.repository";
 import { TASK_SPREADSHEET_REQUIRED_HEADERS } from "./task-spreadsheet";
 import { goalCompletionService } from "@/modules/goals/goal-completion.service";
-import { goalRepository } from "@/modules/goals/goal.repository";
+import { goalRepository, isManualGoalRecord } from "@/modules/goals/goal.repository";
 import { taskCompletionService } from "./task-completion.service";
+import { parseGoalDateKey } from "@/lib/goals/goal-scheduling";
 
 type Row = Record<string, unknown>;
 
@@ -46,10 +46,16 @@ function pick(row: Row, keys: string[]) {
 }
 
 function toDateValue(value: string, fallback: string) {
-  if (!value) return fallback;
-  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+  if (!value) {
+    if (!parseGoalDateKey(fallback)) throw Errors.badRequest("Import fallback date must be a valid YYYY-MM-DD calendar date");
+    return fallback;
+  }
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    if (!parseGoalDateKey(value)) throw Errors.badRequest(`Invalid task date: ${value}`);
+    return value;
+  }
   const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) return fallback;
+  if (Number.isNaN(parsed.getTime())) throw Errors.badRequest(`Invalid task date: ${value}`);
   return toDateKey(parsed);
 }
 
@@ -126,12 +132,14 @@ export const taskImportService = {
     file,
   }: ImportParams) {
     if (replaceExisting) {
-      const goal = await goalRepository.findByIdForUser(goalId, userId);
-      if (goal?.courseId) {
-        throw Errors.badRequest(
-          "Course Goal tasks cannot be replaced through Excel import because they are linked to Course lessons"
-        );
-      }
+      throw Errors.badRequest("Spreadsheet replacement is disabled; imports can only append tasks");
+    }
+
+    const goal = await goalRepository.findByIdForUser(goalId, userId);
+    if (!goal) throw Errors.notFound("Goal");
+    const hasManualTaskEvidence = await taskRepository.hasManualTaskEvidence(goalId, userId);
+    if (!isManualGoalRecord(goal, hasManualTaskEvidence)) {
+      throw Errors.badRequest("Spreadsheet imports are available for Manual Goals only");
     }
 
     const workbook = XLSX.read(file, {
@@ -141,6 +149,7 @@ export const taskImportService = {
     assertRequiredHeaders(workbook);
 
     const fallbackDate = fallbackScheduledDate ?? toDateKey();
+    if (!parseGoalDateKey(fallbackDate)) throw Errors.badRequest("Import date must be a valid YYYY-MM-DD calendar date");
     const rows = workbook.SheetNames.flatMap((sheetName) => {
       const sheet = workbook.Sheets[sheetName];
       return XLSX.utils.sheet_to_json<Row>(sheet, { defval: "" });
@@ -177,46 +186,11 @@ export const taskImportService = {
       return { imported: 0, skipped: rows.length };
     }
 
-    const previousTaskIds = replaceExisting
-      ? (await taskRepository.findByGoalForUser(goalId, userId)).map((task) => task._id)
-      : [];
-
     const tasksToCreate = tasks.map((task) => ({
       ...task,
       status: task.status === "completed" ? "pending" as const : task.status,
     }));
-    const replacementIds = replaceExisting
-      ? tasksToCreate.map(() => new Types.ObjectId().toString())
-      : [];
-    const tasksToStage = tasksToCreate.map((task, index) => ({
-      ...task,
-      ...(replaceExisting ? { _id: replacementIds[index] } : {}),
-    }));
-    let createdTasks;
-    try {
-      createdTasks = await taskRepository.createMany(tasksToStage);
-    } catch (error) {
-      if (replaceExisting) {
-        try {
-          await taskRepository.deleteByIdsForGoal(replacementIds, goalId, userId);
-        } catch {
-          // Keep the original creation error; old tasks have not been deleted.
-        }
-      }
-      throw error;
-    }
-    if (replaceExisting) {
-      try {
-        await taskRepository.deleteByIdsForGoal(previousTaskIds, goalId, userId);
-      } catch (error) {
-        try {
-          await taskRepository.deleteByIdsForGoal(replacementIds, goalId, userId);
-        } catch {
-          // Preserve the deletion error; cleanup is scoped to staged replacement IDs.
-        }
-        throw error;
-      }
-    }
+    const createdTasks = await taskRepository.createMany(tasksToCreate);
     for (const [index, task] of tasks.entries()) {
       if (task.status === "completed") {
         await taskCompletionService.complete(createdTasks[index]._id.toString(), userId, {

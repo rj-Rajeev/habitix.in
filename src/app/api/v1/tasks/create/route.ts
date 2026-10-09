@@ -4,7 +4,7 @@ import { requireUserId } from "@/lib/auth/session";
 import { connectDb } from "@/lib/db";
 import { createManualTaskSchema } from "@/modules/tasks/task.schemas";
 import { taskRepository } from "@/modules/tasks/task.repository";
-import { goalRepository } from "@/modules/goals/goal.repository";
+import { goalRepository, isCourseGoalRecord } from "@/modules/goals/goal.repository";
 import { goalCompletionService } from "@/modules/goals/goal-completion.service";
 import { taskCompletionService } from "@/modules/tasks/task-completion.service";
 
@@ -25,6 +25,9 @@ export async function POST(req: NextRequest) {
     );
     if (!goal) {
       throw Errors.notFound("Goal");
+    }
+    if (isCourseGoalRecord(goal)) {
+      throw Errors.badRequest("Course Goals are curriculum-only and cannot accept manually created tasks");
     }
 
     const [task] = await taskRepository.createMany([

@@ -134,13 +134,7 @@ Example:
     const selectedFocusAreas = input.focusAreas?.map(
       (moduleId) => allowedModules.get(moduleId) as string
     );
-    const selectedModuleIds = new Set(input.focusAreas ?? []);
-    const planLessons = selectedModuleIds.size
-      ? lessons.filter((lesson) => selectedModuleIds.has(lesson.moduleId))
-      : lessons;
-    if (planLessons.length === 0) {
-      throw Errors.badRequest("The selected course focus has no lessons to plan");
-    }
+    const planLessons = lessons;
     const allowedLessonIds = new Set(planLessons.map((lesson) => lesson.lessonId));
 
     const prompt = `You're a learning coach. Create personalized, ordered work for the goal and planning window below. Habitix, not you, assigns calendar dates.
@@ -190,14 +184,9 @@ Example:
         if (!generatedTitles.has(task.lessonId)) generatedTitles.set(task.lessonId, task.title);
       }
 
-      // Preserve AI ordering for matched lessons, then include any omitted real
-      // lessons in course order using their real lesson title as the fallback.
-      const orderedLessonIds = [
-        ...generatedTitles.keys(),
-        ...planLessons
-          .map((lesson) => lesson.lessonId)
-          .filter((lessonId) => !generatedTitles.has(lessonId)),
-      ];
+      // Curriculum order is authoritative; AI may personalize titles but cannot
+      // reorder, omit, duplicate, or invent course lessons.
+      const orderedLessonIds = planLessons.map((lesson) => lesson.lessonId);
       const lessonById = new Map(planLessons.map((lesson) => [lesson.lessonId, lesson]));
       return [{
         dayNumber: 1,
