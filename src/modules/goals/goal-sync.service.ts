@@ -45,7 +45,7 @@ export const goalSyncService = {
 
     for (const [index, task] of tasks.entries()) {
       const existingTask = matches[index];
-      if (task.initiallyCompleted) {
+      if (!goal.tasksSyncedAt && task.initiallyCompleted) {
         if (!existingTask) {
           throw new Error("Goal roadmap Task was not present after reconciliation");
         }

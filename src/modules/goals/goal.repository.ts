@@ -1,4 +1,4 @@
-import { Goal, IGoal, IRoadmapDay } from "./goal.model";
+import { Goal, IGoal, IRoadmapDay, IRoadmapTask } from "./goal.model";
 
 /** Determine Course Goal policy from the persisted Goal record, including legacy roadmap markers. */
 type GoalRecordPolicyFields = Pick<IGoal, "planSource" | "courseId" | "roadmap"> & {
@@ -74,6 +74,128 @@ export const goalRepository = {
       { _id: goalId, userId },
       { tasksSyncedAt: new Date() },
       { new: true }
+    );
+  },
+
+  async mirrorRoadmapTaskCompletion(
+    goalId: string,
+    userId: string,
+    dayNumber: number,
+    legacyTaskId: string,
+    isCompleted: boolean
+  ) {
+    const goal = await Goal.findOne({ _id: goalId, userId })
+      .select("roadmap")
+      .lean<{ roadmap?: IRoadmapDay[] }>();
+    const matchingEntries = goal?.roadmap?.flatMap((day: IRoadmapDay) =>
+      day.dayNumber === dayNumber
+        ? day.tasks.filter((task: IRoadmapTask) => task._id?.toString() === legacyTaskId)
+        : []
+    ) ?? [];
+    if (matchingEntries.length !== 1) return { matchedCount: 0 };
+
+    return Goal.updateOne(
+      {
+        _id: goalId,
+        userId,
+        roadmap: {
+          $elemMatch: {
+            dayNumber,
+            tasks: { $elemMatch: { _id: legacyTaskId } },
+          },
+        },
+      },
+      [
+        {
+          $set: {
+            roadmap: {
+              $map: {
+                input: "$roadmap",
+                as: "day",
+                in: {
+                  $cond: [
+                    { $eq: ["$$day.dayNumber", dayNumber] },
+                    {
+                      $mergeObjects: ["$$day", {
+                        tasks: {
+                          $map: {
+                            input: "$$day.tasks",
+                            as: "task",
+                            in: {
+                              $cond: [
+                                { $eq: [{ $toString: "$$task._id" }, legacyTaskId] },
+                                { $mergeObjects: ["$$task", { isCompleted }] },
+                                "$$task",
+                              ],
+                            },
+                          },
+                        },
+                      }],
+                    },
+                    "$$day",
+                  ],
+                },
+              },
+            },
+          },
+        },
+        {
+          $set: {
+            roadmap: {
+              $map: {
+                input: "$roadmap",
+                as: "day",
+                in: {
+                  $cond: [
+                    { $eq: ["$$day.dayNumber", dayNumber] },
+                    {
+                      $mergeObjects: ["$$day", {
+                        completed: { $allElementsTrue: ["$$day.tasks.isCompleted"] },
+                      }],
+                    },
+                    "$$day",
+                  ],
+                },
+              },
+            },
+          },
+        },
+        {
+          $set: {
+            roadmap: {
+              $map: {
+                input: "$roadmap",
+                as: "day",
+                in: {
+                  $cond: [
+                    {
+                      $and: [
+                        { $eq: ["$$day.dayNumber", dayNumber + 1] },
+                        {
+                          $anyElementTrue: {
+                            $map: {
+                              input: "$roadmap",
+                              as: "completedDay",
+                              in: {
+                                $and: [
+                                  { $eq: ["$$completedDay.dayNumber", dayNumber] },
+                                  "$$completedDay.completed",
+                                ],
+                              },
+                            },
+                          },
+                        },
+                      ],
+                    },
+                    { $mergeObjects: ["$$day", { unlocked: true }] },
+                    "$$day",
+                  ],
+                },
+              },
+            },
+          },
+        },
+      ]
     );
   },
 

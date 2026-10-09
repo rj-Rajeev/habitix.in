@@ -1115,7 +1115,7 @@ export function GoalDetailView({ goalId, initialTab }: { goalId: string; initial
                                     ? "Hide"
                                     : "Revision"}
                                 </button>
-                                {task.source === "task" && <button type="button" onClick={() => setConfirmDeleteTaskId(current => current === task.id ? null : task.id)} className="inline-flex min-h-10 items-center justify-center rounded-xl px-3 text-xs font-semibold text-text-muted hover:bg-error/5 hover:text-error">Delete</button>}
+                                {task.source === "task" && !(goal.planSource === "course" && task.type === "execution") && <button type="button" onClick={() => setConfirmDeleteTaskId(current => current === task.id ? null : task.id)} className="inline-flex min-h-10 items-center justify-center rounded-xl px-3 text-xs font-semibold text-text-muted hover:bg-error/5 hover:text-error">Delete</button>}
                                 {task.source === "task" && (task.status === "skipped" || task.status === "cancelled") && <button type="button" disabled={busyTaskId === task.id} onClick={() => void returnTaskToPending(task.id)} className="inline-flex min-h-10 items-center justify-center rounded-xl border border-border-strong bg-white px-3 text-xs font-semibold text-text-secondary hover:bg-surface-subtle disabled:opacity-60">Return to pending</button>}
                               </div>
                             </div>

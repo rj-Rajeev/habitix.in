@@ -22,6 +22,7 @@ export const taskCompletionService = {
     if (!task) throw Errors.notFound("Task");
 
     if (task.status === "completed") {
+      await mirrorRoadmapCompletion(task, userId, true);
       return { taskId, alreadyCompleted: true };
     }
 
@@ -63,7 +64,11 @@ export const taskCompletionService = {
       now,
       input.note ?? task.notes
     );
-    if (!claimedTask) return { taskId, alreadyCompleted: true };
+    if (!claimedTask) {
+      await mirrorRoadmapCompletion(task, userId, true);
+      return { taskId, alreadyCompleted: true };
+    }
+    await mirrorRoadmapCompletion(task, userId, true);
     await goalCompletionService.evaluateGoalCompletion(task.goalId.toString(), userId);
 
     if (task.type === "revision") {
@@ -113,6 +118,7 @@ export const taskCompletionService = {
       skippedAt: new Date(),
       completedAt: undefined,
     });
+    await mirrorRoadmapCompletion(task, userId, false);
     if (task.type === "revision") {
       await revisionRepository.markCancelledByRevisionTaskId(taskId, userId);
     }
@@ -138,6 +144,7 @@ export const taskCompletionService = {
       completedAt: undefined,
       skippedAt: undefined,
     });
+    await mirrorRoadmapCompletion(task, userId, false);
     if (task.type === "revision") {
       const goal = await goalRepository.findByIdForUser(task.goalId.toString(), userId);
       const fromKey = toDateKeyInTimezone(new Date(), goal?.timezone || "UTC");
@@ -181,6 +188,7 @@ export const taskCompletionService = {
       completedAt: undefined,
       skippedAt: undefined,
     });
+    await mirrorRoadmapCompletion(task, userId, false);
     if (task.type === "revision") {
       const goal = await goalRepository.findByIdForUser(task.goalId.toString(), userId);
       const fromKey = toDateKeyInTimezone(new Date(), goal?.timezone || "UTC");
@@ -208,3 +216,19 @@ export const taskCompletionService = {
     return { taskId, scheduledDate };
   },
 };
+
+async function mirrorRoadmapCompletion(
+  task: Awaited<ReturnType<typeof taskRepository.findByIdForUser>>,
+  userId: string,
+  isCompleted: boolean
+) {
+  if (!task || task.source?.type !== "roadmap_sync" ||
+      !task.source.roadmapDayNumber || !task.source.legacyTaskId) return;
+  await goalRepository.mirrorRoadmapTaskCompletion(
+    task.goalId.toString(),
+    userId,
+    task.source.roadmapDayNumber,
+    task.source.legacyTaskId,
+    isCompleted
+  );
+}
