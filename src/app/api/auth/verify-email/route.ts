@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import connectDb from "@/lib/db";
-import { verifyEmailToken } from "@/modules/auth/verification.service";
+import { verifyEmailToken } from "@/modules/auth/services/verification.service";
 
 export async function POST(request: Request) {
   try {

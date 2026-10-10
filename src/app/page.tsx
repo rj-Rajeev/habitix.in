@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { getServerSession } from "next-auth";
 import { ArrowRight, Check, CheckCircle2, Compass, ListChecks, Sparkles, Target, TrendingUp } from "lucide-react";
-import { authOptions } from "@/lib/authOptions";
+import { authOptions } from "@/modules/auth/config/next-auth-options";
 import AutoNotificationPrompt from "@/components/notifications/AutoNotificationPrompt";
 import CourseDiscovery from "@/components/courses/CourseDiscovery";
 import { Badge, Card } from "@/components/ui";

@@ -34,6 +34,7 @@ export async function issueVerificationEmail(user: IUser) {
   try {
     await sendEmail({ to: user.email, ...verificationEmail(url.toString()) });
   } catch (error) {
+    console.error("[auth] Verification email delivery failed");
     await User.updateOne(
       { _id: user._id, pendingVerificationTokenHash: tokenHash },
       { $unset: { pendingVerificationTokenHash: 1, pendingVerificationTokenExpiresAt: 1 } }

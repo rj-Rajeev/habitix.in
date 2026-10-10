@@ -1,4 +1,4 @@
-// lib/registerUser.ts
+// Persist a new local or OAuth account.
 import User, { IUser } from "@/models/User";
 
 export interface UserDetails {

@@ -3,6 +3,12 @@
 import { type FormEvent, useState } from "react";
 import { Eye, EyeOff, KeyRound, Loader2 } from "lucide-react";
 import { Feedback, readResponse } from "@/components/profile/profile-utils";
+import {
+  isPasswordPolicyValid,
+  MAX_PASSWORD_BYTES,
+  MIN_PASSWORD_LENGTH,
+  PASSWORD_POLICY_MESSAGE,
+} from "@/modules/auth/validation/password-policy";
 
 export default function ChangePasswordForm({ userId }: { userId: string }) {
   const [currentPassword, setCurrentPassword] = useState("");
@@ -25,8 +31,8 @@ export default function ChangePasswordForm({ userId }: { userId: string }) {
       return;
     }
 
-    if (newPassword.length < 6) {
-      setError("New password must be at least 6 characters.");
+    if (!isPasswordPolicyValid(newPassword)) {
+      setError(PASSWORD_POLICY_MESSAGE);
       return;
     }
 
@@ -94,6 +100,8 @@ export default function ChangePasswordForm({ userId }: { userId: string }) {
           onToggleVisibility={() => setShowNewPassword((visible) => !visible)}
           autoComplete="new-password"
           disabled={isSaving}
+          minLength={MIN_PASSWORD_LENGTH}
+          maxLength={MAX_PASSWORD_BYTES}
         />
         <PasswordField
           id="confirm-password"
@@ -104,6 +112,8 @@ export default function ChangePasswordForm({ userId }: { userId: string }) {
           onToggleVisibility={() => setShowConfirmPassword((visible) => !visible)}
           autoComplete="new-password"
           disabled={isSaving}
+          minLength={MIN_PASSWORD_LENGTH}
+          maxLength={MAX_PASSWORD_BYTES}
         />
         <button
           type="submit"
@@ -130,6 +140,8 @@ function PasswordField({
   onToggleVisibility,
   autoComplete,
   disabled,
+  minLength,
+  maxLength,
 }: {
   id: string;
   label: string;
@@ -139,6 +151,8 @@ function PasswordField({
   onToggleVisibility: () => void;
   autoComplete: string;
   disabled: boolean;
+  minLength?: number;
+  maxLength?: number;
 }) {
   return (
     <label className="block">
@@ -150,6 +164,8 @@ function PasswordField({
           value={value}
           onChange={(event) => onChange(event.target.value)}
           autoComplete={autoComplete}
+          minLength={minLength}
+          maxLength={maxLength}
           disabled={disabled}
           className="w-full rounded-xl border border-slate-300 px-3 py-3 pr-12 text-slate-950 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 disabled:bg-slate-50"
         />

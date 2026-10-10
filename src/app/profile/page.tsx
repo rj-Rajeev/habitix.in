@@ -1,6 +1,6 @@
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
-import { authOptions } from "@/lib/authOptions";
+import { authOptions } from "@/modules/auth/config/next-auth-options";
 import ProfilePage from "@/components/profile/profile-page";
 
 export const metadata = {

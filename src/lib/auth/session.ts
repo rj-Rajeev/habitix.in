@@ -1,5 +1,5 @@
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/authOptions";
+import { authOptions } from "@/modules/auth/config/next-auth-options";
 import { Errors } from "@/lib/api";
 
 export async function requireUserId(): Promise<string> {

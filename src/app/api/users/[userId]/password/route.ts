@@ -4,6 +4,10 @@ import User from "@/models/User";
 import { requireUserId } from "@/lib/auth/session";
 import { Errors } from "@/lib/api/errors";
 import { handleRouteError } from "@/lib/api/handle-route";
+import {
+  isPasswordPolicyValid,
+  PASSWORD_POLICY_MESSAGE,
+} from "@/modules/auth/validation/password-policy";
 
 export async function PATCH(
   req: Request,
@@ -32,8 +36,8 @@ export async function PATCH(
       throw Errors.badRequest("Current password and new password are required");
     }
 
-    if (newPassword.length < 6) {
-      throw Errors.badRequest("New password must be at least 6 characters long");
+    if (!isPasswordPolicyValid(newPassword)) {
+      throw Errors.badRequest(PASSWORD_POLICY_MESSAGE);
     }
 
     const user = await User.findById(userId);

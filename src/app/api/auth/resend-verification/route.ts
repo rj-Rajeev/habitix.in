@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import connectDb from "@/lib/db";
-import { resendVerificationEmail } from "@/modules/auth/verification.service";
+import { resendVerificationEmail } from "@/modules/auth/services/verification.service";
 
 export async function POST(request: Request) {
   try {

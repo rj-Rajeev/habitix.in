@@ -1,5 +1,9 @@
-import registerUser from "@/lib/registerUser";
-import { issueVerificationEmail } from "@/modules/auth/verification.service";
+import registerUser from "@/modules/auth/repositories/account.repository";
+import {
+  isPasswordPolicyValid,
+  PASSWORD_POLICY_MESSAGE,
+} from "@/modules/auth/validation/password-policy";
+import { issueVerificationEmail } from "@/modules/auth/services/verification.service";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -18,8 +22,8 @@ export async function registerLocalUser(input: {
   if (!EMAIL_PATTERN.test(email) || email.length > 254) {
     throw Object.assign(new Error("Enter a valid email address."), { cause: "VALIDATION" });
   }
-  if (!password || password.length < 6) {
-    throw Object.assign(new Error("Password must be at least 6 characters long."), { cause: "VALIDATION" });
+  if (!isPasswordPolicyValid(password)) {
+    throw Object.assign(new Error(PASSWORD_POLICY_MESSAGE), { cause: "VALIDATION" });
   }
 
   const user = await registerUser({ fullname, email, password, emailVerified: false });

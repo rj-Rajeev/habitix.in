@@ -1,32 +1,40 @@
 import { NextResponse } from "next/server";
 import connectDb from "@/lib/db";
-import { registerLocalUser } from "@/modules/auth/registration.service";
+import { registerLocalUser } from "@/modules/auth/services/registration.service";
 
 export async function POST(req: Request) {
+  let submittedUser: { fullname?: unknown; email?: unknown } = {};
   try {
-    await connectDb();
+    let body: unknown;
+    try {
+      body = await req.json();
+    } catch {
+      return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+    }
 
-    const body = await req.json();
-    const user = await registerLocalUser(body ?? {});
+    await connectDb();
+    const registrationInput = body && typeof body === "object" && !Array.isArray(body)
+      ? body as { fullname?: unknown; email?: unknown; password?: unknown }
+      : {};
+    submittedUser = registrationInput;
+    await registerLocalUser({
+      fullname: registrationInput.fullname,
+      email: registrationInput.email,
+      password: registrationInput.password,
+    });
 
     return NextResponse.json(
       {
         user: {
-          fullname: user.fullname,
-          email: user.email,
+          fullname: typeof submittedUser.fullname === "string" ? submittedUser.fullname.trim() : "",
+          email: typeof submittedUser.email === "string" ? submittedUser.email.trim().toLowerCase() : "",
         },
+        message: "If this email can be registered, check your inbox for next steps.",
       },
-      { status: 201 }
+      { status: 202 }
     );
   } catch (error: unknown) {
     const registrationError = error as { cause?: string; message?: string; code?: number };
-    if (registrationError.cause === "CONFLICT") {
-      return NextResponse.json(
-        { error: "An account with this email already exists" },
-        { status: 409 }
-      );
-    }
-
     if (registrationError.cause === "VALIDATION") {
       return NextResponse.json(
         { error: registrationError.message },
@@ -34,10 +42,16 @@ export async function POST(req: Request) {
       );
     }
 
-    if (registrationError.code === 11000) {
+    if (registrationError.cause === "CONFLICT" || registrationError.code === 11000) {
       return NextResponse.json(
-        { error: "An account with this email already exists" },
-        { status: 409 }
+        {
+          user: {
+            fullname: typeof submittedUser.fullname === "string" ? submittedUser.fullname.trim() : "",
+            email: typeof submittedUser.email === "string" ? submittedUser.email.trim().toLowerCase() : "",
+          },
+          message: "If this email can be registered, check your inbox for next steps.",
+        },
+        { status: 202 }
       );
     }
 
