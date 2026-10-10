@@ -5,7 +5,7 @@ import {
   type RevisionPreset,
 } from "@/lib/dates";
 import { differenceInCalendarDays } from "date-fns";
-import { Types } from "mongoose";
+import { ClientSession, Types } from "mongoose";
 import { taskRepository } from "@/modules/tasks/task.repository";
 import { revisionRepository } from "./revision.repository";
 import { TaskHistory } from "@/modules/tasks/task-history.model";
@@ -19,8 +19,10 @@ export const revisionService = {
     preset: RevisionPreset;
     customRevisionDate?: string;
     timezone: string;
+    session?: ClientSession;
+    completedAt?: Date;
   }) {
-    const fromKey = toDateKeyInTimezone(new Date(), params.timezone);
+    const fromKey = toDateKeyInTimezone(params.completedAt ?? new Date(), params.timezone);
     const dueDate = resolveRevisionDateKey(
       params.preset,
       fromKey,
@@ -46,7 +48,7 @@ export const revisionService = {
         estimatedMinutes: 20,
         scheduledOrder: 0,
       },
-    ]);
+    ], params.session);
 
     await revisionRepository.create({
       userId: params.userId,
@@ -54,15 +56,16 @@ export const revisionService = {
       revisionTaskId: revisionTask._id.toString(),
       intervalDays,
       dueDate,
+      session: params.session,
     });
 
-    await TaskHistory.create({
+    await new TaskHistory({
       userId: new Types.ObjectId(params.userId),
       taskId: new Types.ObjectId(params.sourceTaskId),
       goalId: new Types.ObjectId(params.goalId),
       event: "revision_scheduled",
       payload: { dueDate, preset: params.preset },
-    });
+    }).save(params.session ? { session: params.session } : undefined);
 
     return revisionTask;
   },

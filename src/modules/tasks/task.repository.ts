@@ -1,4 +1,4 @@
-import { Types } from "mongoose";
+import { ClientSession, Types } from "mongoose";
 import { Task, ITask, TaskStatus } from "./task.model";
 
 export type TaskLean = {
@@ -121,11 +121,13 @@ function mapPopulatedTask(doc: any): TaskLean {
 }
 
 export const taskRepository = {
-  async findByIdForUser(taskId: string, userId: string) {
-    return Task.findOne({
+  async findByIdForUser(taskId: string, userId: string, session?: ClientSession) {
+    const query = Task.findOne({
       _id: new Types.ObjectId(taskId),
       userId: new Types.ObjectId(userId),
     });
+    if (session) query.session(session);
+    return query;
   },
 
   async findScheduledForDate(userId: string, dateKey: string) {
@@ -221,7 +223,8 @@ export const taskRepository = {
       estimatedMinutes?: number;
       revisionOfTaskId?: string;
       metadata?: ITask["metadata"];
-    }>
+    }>,
+    session?: ClientSession
   ) {
     if (tasks.length === 0) return [];
     if (tasks.some((task) => task.status === "completed")) {
@@ -240,7 +243,8 @@ export const taskRepository = {
         revisionOfTaskId: t.revisionOfTaskId
           ? new Types.ObjectId(t.revisionOfTaskId)
           : undefined,
-      }))
+      })),
+      session ? { session } : {}
     );
     return docs;
   },
@@ -289,17 +293,19 @@ export const taskRepository = {
     );
   },
 
-  async markCompletedIfNotCompleted(
+  async markCompletedIfStatusMatches(
     taskId: string,
     userId: string,
+    expectedStatus: TaskStatus,
     completedAt: Date,
-    notes?: string
+    notes: string | undefined,
+    session: ClientSession
   ) {
     return Task.findOneAndUpdate(
       {
         _id: new Types.ObjectId(taskId),
         userId: new Types.ObjectId(userId),
-        status: { $ne: "completed" },
+        status: expectedStatus,
       },
       {
         $set: {
@@ -309,7 +315,27 @@ export const taskRepository = {
         },
         $unset: { skippedAt: 1 },
       },
-      { new: true }
+      { new: true, session }
+    );
+  },
+
+  async markPendingIfStatusMatches(
+    taskId: string,
+    userId: string,
+    expectedStatus: TaskStatus,
+    session: ClientSession
+  ) {
+    return Task.findOneAndUpdate(
+      {
+        _id: new Types.ObjectId(taskId),
+        userId: new Types.ObjectId(userId),
+        status: expectedStatus,
+      },
+      {
+        $set: { status: "pending" },
+        $unset: { completedAt: 1, skippedAt: 1 },
+      },
+      { new: true, session }
     );
   },
 

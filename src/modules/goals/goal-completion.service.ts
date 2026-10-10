@@ -1,12 +1,12 @@
-import { Types } from "mongoose";
+import { ClientSession, Types } from "mongoose";
 import { Errors } from "@/lib/api";
 import Goal from "./goal.model";
 import { Task } from "@/modules/tasks/task.model";
 
 type ExecutionTaskCounts = { taskCount: number; completedCount: number };
 
-async function getExecutionTaskCounts(goalId: string, userId: string) {
-  const [counts] = await Task.aggregate<ExecutionTaskCounts>([
+async function getExecutionTaskCounts(goalId: string, userId: string, session?: ClientSession) {
+  let aggregate = Task.aggregate<ExecutionTaskCounts>([
     {
       $match: {
         goalId: new Types.ObjectId(goalId),
@@ -22,6 +22,8 @@ async function getExecutionTaskCounts(goalId: string, userId: string) {
       },
     },
   ]);
+  if (session) aggregate = aggregate.session(session);
+  const [counts] = await aggregate;
 
   return {
     taskCount: counts?.taskCount ?? 0,
@@ -42,14 +44,14 @@ export const goalCompletionService = {
     };
   },
 
-  async evaluateGoalCompletion(goalId: string, userId: string) {
+  async evaluateGoalCompletion(goalId: string, userId: string, session?: ClientSession) {
     const { taskCount: executableTaskCount, completedCount } =
-      await getExecutionTaskCounts(goalId, userId);
+      await getExecutionTaskCounts(goalId, userId, session);
     const completed = executableTaskCount > 0 && completedCount === executableTaskCount;
     const goal = await Goal.findOneAndUpdate(
       { _id: goalId, userId },
       { completed, status: completed ? "completed" : "active" },
-      { new: true, projection: { _id: 1 } }
+      { new: true, projection: { _id: 1 }, ...(session ? { session } : {}) }
     );
     if (!goal) throw Errors.notFound("Goal");
 

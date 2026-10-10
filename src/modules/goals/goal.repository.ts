@@ -1,3 +1,4 @@
+import { ClientSession } from "mongoose";
 import { Goal, IGoal, IRoadmapDay, IRoadmapTask } from "./goal.model";
 
 /** Determine Course Goal policy from the persisted Goal record, including legacy roadmap markers. */
@@ -31,8 +32,10 @@ export function isManualGoalRecord(
 
 export const goalRepository = {
 
-  async findByIdForUser(id: string, userId: string) {
-    return Goal.findOne({ _id: id, userId });
+  async findByIdForUser(id: string, userId: string, session?: ClientSession) {
+    const query = Goal.findOne({ _id: id, userId });
+    if (session) query.session(session);
+    return query;
   },
 
   async findActiveByUser(userId: string) {
@@ -82,11 +85,12 @@ export const goalRepository = {
     userId: string,
     dayNumber: number,
     legacyTaskId: string,
-    isCompleted: boolean
+    isCompleted: boolean,
+    session?: ClientSession
   ) {
-    const goal = await Goal.findOne({ _id: goalId, userId })
-      .select("roadmap")
-      .lean<{ roadmap?: IRoadmapDay[] }>();
+    const query = Goal.findOne({ _id: goalId, userId }).select("roadmap");
+    if (session) query.session(session);
+    const goal = await query.lean<{ roadmap?: IRoadmapDay[] }>();
     const matchingEntries = goal?.roadmap?.flatMap((day: IRoadmapDay) =>
       day.dayNumber === dayNumber
         ? day.tasks.filter((task: IRoadmapTask) => task._id?.toString() === legacyTaskId)
@@ -195,7 +199,8 @@ export const goalRepository = {
             },
           },
         },
-      ]
+      ],
+      session ? { session } : {}
     );
   },
 

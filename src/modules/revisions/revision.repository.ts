@@ -1,4 +1,4 @@
-import { Types } from "mongoose";
+import { ClientSession, Types } from "mongoose";
 import { Revision } from "./revision.model";
 
 export const revisionRepository = {
@@ -8,8 +8,9 @@ export const revisionRepository = {
     revisionTaskId: string;
     intervalDays: number;
     dueDate: string;
+    session?: ClientSession;
   }) {
-    return Revision.create({
+    const revision = new Revision({
       userId: new Types.ObjectId(data.userId),
       sourceTaskId: new Types.ObjectId(data.sourceTaskId),
       revisionTaskId: new Types.ObjectId(data.revisionTaskId),
@@ -17,13 +18,14 @@ export const revisionRepository = {
       dueDate: data.dueDate,
       status: "scheduled",
     });
+    return revision.save(data.session ? { session: data.session } : undefined);
   },
 
-  async markCompletedByRevisionTaskId(revisionTaskId: string) {
+  async markCompletedByRevisionTaskId(revisionTaskId: string, session?: ClientSession) {
     return Revision.findOneAndUpdate(
       { revisionTaskId: new Types.ObjectId(revisionTaskId) },
       { status: "completed", completedAt: new Date() },
-      { new: true }
+      { new: true, ...(session ? { session } : {}) }
     );
   },
 
@@ -31,7 +33,8 @@ export const revisionRepository = {
     revisionTaskId: string,
     userId: string,
     dueDate: string,
-    intervalDays: number
+    intervalDays: number,
+    session?: ClientSession
   ) {
     return Revision.findOneAndUpdate(
       {
@@ -46,18 +49,18 @@ export const revisionRepository = {
         },
         $unset: { completedAt: 1 },
       },
-      { new: true }
+      { new: true, ...(session ? { session } : {}) }
     );
   },
 
-  async markCancelledByRevisionTaskId(revisionTaskId: string, userId: string) {
+  async markCancelledByRevisionTaskId(revisionTaskId: string, userId: string, session?: ClientSession) {
     return Revision.findOneAndUpdate(
       {
         revisionTaskId: new Types.ObjectId(revisionTaskId),
         userId: new Types.ObjectId(userId),
       },
       { $set: { status: "cancelled" }, $unset: { completedAt: 1 } },
-      { new: true }
+      { new: true, ...(session ? { session } : {}) }
     );
   },
 };

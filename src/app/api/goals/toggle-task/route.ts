@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getOptionalUserId } from "@/lib/auth/session";
+import { AppError } from "@/lib/api/errors";
+import { handleRouteError } from "@/lib/api/handle-route";
 import { connectDb } from "@/lib/db";
 import Goal, { type IRoadmapDay } from "@/models/Goal";
 import { goalSyncService } from "@/modules/goals/goal-sync.service";
@@ -124,6 +126,10 @@ export async function PATCH(req: NextRequest) {
 
     return NextResponse.json({ success: true }, { status: 200 });
   } catch (error) {
+    if (error instanceof AppError && error.code === "CONFLICT") {
+      return handleRouteError(error);
+    }
+
     console.error("Toggle task error:", error);
     return NextResponse.json(
       { error: "Internal server error" },

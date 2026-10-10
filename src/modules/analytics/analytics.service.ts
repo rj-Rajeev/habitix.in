@@ -1,3 +1,4 @@
+import { ClientSession } from "mongoose";
 import { addDaysToKey } from "@/lib/dates";
 import { UserAnalytics } from "./user-analytics.model";
 
@@ -19,10 +20,13 @@ export const analyticsService = {
     };
   },
 
-  async recordTaskCompletion(userId: string, dateKey: string) {
-    let analytics = await UserAnalytics.findOne({ userId });
+  async recordTaskCompletion(userId: string, dateKey: string, session?: ClientSession) {
+    const query = UserAnalytics.findOne({ userId });
+    if (session) query.session(session);
+    let analytics = await query;
     if (!analytics) {
-      analytics = await UserAnalytics.create({ userId });
+      analytics = new UserAnalytics({ userId });
+      await analytics.save(session ? { session } : undefined);
     }
 
     analytics.totalTasksCompleted += 1;
@@ -51,6 +55,6 @@ export const analyticsService = {
       analytics.currentStreak * 5 + analytics.totalTasksCompleted
     );
 
-    await analytics.save();
+    await analytics.save(session ? { session } : undefined);
   },
 };
