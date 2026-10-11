@@ -4,7 +4,7 @@ import { Errors } from "@/lib/api";
 import { goalRepository } from "./goal.repository";
 import { taskRepository } from "@/modules/tasks/task.repository";
 import type { IRoadmapDay } from "./goal.model";
-import { courseLearningService } from "@/modules/courses/course-learning.service";
+import { courseLearningService } from "@/modules/courses/services/course-learning.service";
 import { goalCompletionService } from "./goal-completion.service";
 import { taskCompletionService } from "@/modules/tasks/task-completion.service";
 

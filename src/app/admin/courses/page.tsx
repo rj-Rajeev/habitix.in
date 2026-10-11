@@ -1,4 +1,4 @@
-import CourseManagement from "@/components/admin/CourseManagement";
+import CourseManagement from "@/modules/courses/components/admin/CourseManagement";
 
 export const metadata = {
   title: "Courses | Habitix Admin",

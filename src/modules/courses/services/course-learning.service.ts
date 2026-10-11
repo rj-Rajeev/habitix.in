@@ -1,8 +1,7 @@
 import { Types } from "mongoose";
 import { Errors } from "@/lib/api";
-import Course from "@/models/Course";
-import CourseLesson from "@/models/CourseLesson";
-import CourseModule from "@/models/CourseModule";
+import { courseRepository } from "../repositories/course.repository";
+import { courseContentRepository } from "../repositories/course-content.repository";
 
 export type CourseLearningLesson = {
   lessonId: string;
@@ -14,12 +13,11 @@ export type CourseLearningLesson = {
 export const courseLearningService = {
   async loadPublishedCourseContent(courseId: string) {
     if (!Types.ObjectId.isValid(courseId)) throw Errors.notFound("Course");
-    const course = await Course.findOne({ _id: courseId, status: "published", delete: { $ne: true } }).select("_id title description");
+    const course = await courseRepository.findPublishedById(courseId);
     if (!course) throw Errors.notFound("Course");
 
-    const modules = await CourseModule.find({ courseId: course._id }).sort({ order: 1, createdAt: 1 });
-    const lessonDocuments = await CourseLesson.find({ moduleId: { $in: modules.map((module) => module._id) } })
-      .sort({ moduleId: 1, order: 1, createdAt: 1 });
+    const modules = await courseContentRepository.findModulesByCourse(course._id);
+    const lessonDocuments = await courseContentRepository.findLessonsByModuleIds(modules.map((module) => module._id));
     const lessons = modules.flatMap((module) =>
       lessonDocuments.filter((lesson) => lesson.moduleId.toString() === module._id.toString())
     );

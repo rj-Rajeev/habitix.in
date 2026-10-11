@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Alert, Button, Card } from "@/components/ui";
-import { COURSE_CSV_HEADERS, validateCourseCsv, type CourseCsvIssue, type CourseImportData } from "@/lib/course-csv";
+import { COURSE_CSV_HEADERS, validateCourseCsv, type CourseCsvIssue, type CourseImportData } from "@/modules/courses/validation/course-csv";
 
 type ImportedCourse = { _id: string; title: string };
 type ImportResult = { course: ImportedCourse; moduleCount: number; lessonCount: number; freeLessonCount: number };

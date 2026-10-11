@@ -2,19 +2,13 @@ import { NextRequest } from "next/server";
 import { handleRouteError, jsonOk, Errors } from "@/lib/api";
 import { requireAdminUser } from "@/lib/auth/admin";
 import { connectDb } from "@/lib/db";
-import { isObjectId, moduleSchema } from "@/lib/courses";
-import Course from "@/models/Course";
-import CourseModule from "@/models/CourseModule";
+import { isObjectId, moduleSchema } from "@/modules/courses/validation/course.schemas";
+import { courseAdminService } from "@/modules/courses/services/course-admin.service";
 
 async function getCourseId(params: Promise<{ courseId: string }>) {
   const { courseId } = await params;
   if (!isObjectId(courseId)) throw Errors.notFound("Course");
   return courseId;
-}
-
-async function requireCourse(courseId: string) {
-  const course = await Course.findOne({ _id: courseId, delete: { $ne: true } }).select("_id");
-  if (!course) throw Errors.notFound("Course");
 }
 
 export async function GET(
@@ -25,8 +19,7 @@ export async function GET(
     await requireAdminUser();
     await connectDb();
     const courseId = await getCourseId(params);
-    await requireCourse(courseId);
-    const modules = await CourseModule.find({ courseId }).sort({ order: 1, createdAt: 1 });
+    const modules = await courseAdminService.listModules(courseId);
     return jsonOk(modules);
   } catch (error) {
     return handleRouteError(error);
@@ -41,10 +34,9 @@ export async function POST(
     await requireAdminUser();
     await connectDb();
     const courseId = await getCourseId(params);
-    await requireCourse(courseId);
     const parsed = moduleSchema.safeParse(await request.json());
     if (!parsed.success) throw Errors.badRequest("Invalid module data", parsed.error.flatten());
-    const courseModule = await CourseModule.create({ ...parsed.data, courseId });
+    const courseModule = await courseAdminService.createModule(courseId, parsed.data);
     return jsonOk(courseModule, { status: 201 });
   } catch (error) {
     return handleRouteError(error);

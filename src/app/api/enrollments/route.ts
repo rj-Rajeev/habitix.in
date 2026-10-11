@@ -1,19 +1,13 @@
 import { handleRouteError, jsonOk } from "@/lib/api";
 import { requireUserId } from "@/lib/auth/session";
 import { connectDb } from "@/lib/db";
-import Enrollment from "@/models/Enrollment";
+import { courseEnrollmentService } from "@/modules/courses/services/course-enrollment.service";
 
 export async function GET() {
   try {
     const userId = await requireUserId();
     await connectDb();
-    const enrollments = await Enrollment.find({ userId })
-      .populate({
-        path: "courseId",
-        select: "title slug thumbnail price",
-        match: { status: "published", delete: { $ne: true } },
-      })
-      .sort({ enrolledAt: -1 });
+    const enrollments = await courseEnrollmentService.listForUser(userId);
     return jsonOk(enrollments);
   } catch (error) {
     return handleRouteError(error);

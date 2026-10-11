@@ -1,13 +1,11 @@
 import { handleRouteError, jsonOk } from "@/lib/api";
 import { connectDb } from "@/lib/db";
-import Course from "@/models/Course";
+import { courseCatalogService } from "@/modules/courses/services/course-catalog.service";
 
 export async function GET() {
   try {
     await connectDb();
-    const courses = await Course.find({ status: "published", delete: { $ne: true } })
-      .select("title slug shortDescription thumbnail price status")
-      .sort({ createdAt: -1 });
+    const courses = await courseCatalogService.listPublished();
     return jsonOk(courses);
   } catch (error) {
     return handleRouteError(error);

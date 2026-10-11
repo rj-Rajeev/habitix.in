@@ -3,16 +3,13 @@ import { z } from "zod";
 import { Errors, handleRouteError, jsonOk } from "@/lib/api";
 import { requireUserId } from "@/lib/auth/session";
 import { connectDb } from "@/lib/db";
-import { normalizeSlug } from "@/lib/courses";
-import Course from "@/models/Course";
-import { courseProgressService } from "@/modules/courses/course-progress.service";
+import { courseCatalogService } from "@/modules/courses/services/course-catalog.service";
+import { courseProgressService } from "@/modules/courses/services/course-progress.service";
 
 const completeLessonSchema = z.object({ lessonId: z.string().regex(/^[a-f\d]{24}$/i) });
 
 async function resolvePublishedCourseId(identifier: string) {
-    const course = await Course.findOne({ slug: normalizeSlug(identifier), status: "published", delete: { $ne: true } }).select("_id");
-  if (!course) throw Errors.notFound("Course");
-  return course._id.toString();
+  return courseCatalogService.resolvePublishedCourseId(identifier);
 }
 
 export async function GET(

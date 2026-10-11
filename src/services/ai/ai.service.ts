@@ -1,8 +1,8 @@
 import { z } from "zod";
 import { Errors } from "@/lib/api";
-import { requireCourseAccess } from "@/lib/enrollments/access";
+import { requireCourseAccess } from "@/modules/courses/services/course-access.service";
 import type { GenerateRoadmapInput } from "@/modules/tasks/task.schemas";
-import { courseLearningService } from "@/modules/courses/course-learning.service";
+import { courseLearningService } from "@/modules/courses/services/course-learning.service";
 import OpenAI from "openai";
 
 const roadmapDaySchema = z.object({

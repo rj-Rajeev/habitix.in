@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { ArrowRight, Check, CheckCircle2, Compass, ListChecks, Sparkles, Target, TrendingUp } from "lucide-react";
 import { authOptions } from "@/modules/auth/config/next-auth-options";
 import AutoNotificationPrompt from "@/components/notifications/AutoNotificationPrompt";
-import CourseDiscovery from "@/components/courses/CourseDiscovery";
+import CourseDiscovery from "@/modules/courses/components/CourseDiscovery";
 import { Badge, Card } from "@/components/ui";
 import { Container, SectionHeader } from "@/components/layout";
 

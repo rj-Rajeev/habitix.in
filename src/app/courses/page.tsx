@@ -1,4 +1,4 @@
-import CourseCatalog from "@/components/courses/CourseCatalog";
+import CourseCatalog from "@/modules/courses/components/CourseCatalog";
 
 export const metadata = {
   title: "Courses | Habitix",

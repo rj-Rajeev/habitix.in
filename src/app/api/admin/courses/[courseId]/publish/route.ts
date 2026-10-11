@@ -2,8 +2,8 @@ import { NextRequest } from "next/server";
 import { handleRouteError, jsonOk, Errors } from "@/lib/api";
 import { requireAdminUser } from "@/lib/auth/admin";
 import { connectDb } from "@/lib/db";
-import { isObjectId } from "@/lib/courses";
-import Course from "@/models/Course";
+import { isObjectId } from "@/modules/courses/validation/course.schemas";
+import { courseAdminService } from "@/modules/courses/services/course-admin.service";
 import { z } from "zod";
 
 const publishSchema = z.object({ status: z.enum(["draft", "published"]) }).strict();
@@ -23,12 +23,7 @@ export async function PATCH(
       throw Errors.badRequest("Status must be draft or published", parsed.error.flatten());
     }
 
-    const course = await Course.findOneAndUpdate(
-      { _id: courseId, delete: { $ne: true } },
-      { status: parsed.data.status },
-      { new: true, runValidators: true }
-    );
-    if (!course) throw Errors.notFound("Course");
+    const course = await courseAdminService.setCourseStatus(courseId, parsed.data.status);
     return jsonOk(course);
   } catch (error) {
     return handleRouteError(error);

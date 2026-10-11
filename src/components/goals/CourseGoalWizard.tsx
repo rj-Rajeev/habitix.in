@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import type React from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, BookOpen, Check, LoaderCircle, LockKeyhole, Sparkles } from "lucide-react";
-import { enrollInCourse } from "@/lib/courses/enroll-client";
+import { enrollInCourse } from "@/modules/courses/client/enroll-client";
 import { dateKeyInTimezone, scheduleRoadmapTasks } from "@/lib/goals/goal-scheduling";
 
 type CourseSummary = {

@@ -2,23 +2,13 @@ import { NextRequest } from "next/server";
 import { handleRouteError, jsonOk, Errors } from "@/lib/api";
 import { requireAdminUser } from "@/lib/auth/admin";
 import { connectDb } from "@/lib/db";
-import { isObjectId, moduleUpdateSchema } from "@/lib/courses";
-import Course from "@/models/Course";
-import CourseModule from "@/models/CourseModule";
-import CourseLesson from "@/models/CourseLesson";
+import { isObjectId, moduleUpdateSchema } from "@/modules/courses/validation/course.schemas";
+import { courseAdminService } from "@/modules/courses/services/course-admin.service";
 
 async function getIds(params: Promise<{ courseId: string; moduleId: string }>) {
   const { courseId, moduleId } = await params;
   if (!isObjectId(courseId) || !isObjectId(moduleId)) throw Errors.notFound("Module");
   return { courseId, moduleId };
-}
-
-async function requireModule(courseId: string, moduleId: string) {
-  const course = await Course.findOne({ _id: courseId, delete: { $ne: true } }).select("_id");
-  if (!course) throw Errors.notFound("Course");
-  const courseModule = await CourseModule.findOne({ _id: moduleId, courseId });
-  if (!courseModule) throw Errors.notFound("Module");
-  return courseModule;
 }
 
 export async function PATCH(
@@ -29,15 +19,10 @@ export async function PATCH(
     await requireAdminUser();
     await connectDb();
     const { courseId, moduleId } = await getIds(params);
-    await requireModule(courseId, moduleId);
+    await courseAdminService.requireModule(courseId, moduleId);
     const parsed = moduleUpdateSchema.safeParse(await request.json());
     if (!parsed.success) throw Errors.badRequest("Invalid module data", parsed.error.flatten());
-    const courseModule = await CourseModule.findOneAndUpdate(
-      { _id: moduleId, courseId },
-      parsed.data,
-      { new: true, runValidators: true }
-    );
-    if (!courseModule) throw Errors.notFound("Module");
+    const courseModule = await courseAdminService.updateModule(courseId, moduleId, parsed.data);
     return jsonOk(courseModule);
   } catch (error) {
     return handleRouteError(error);
@@ -52,10 +37,7 @@ export async function DELETE(
     await requireAdminUser();
     await connectDb();
     const { courseId, moduleId } = await getIds(params);
-    await requireModule(courseId, moduleId);
-    await CourseLesson.deleteMany({ moduleId });
-    await CourseModule.deleteOne({ _id: moduleId, courseId });
-    return jsonOk({ deleted: true });
+    return jsonOk(await courseAdminService.deleteModule(courseId, moduleId));
   } catch (error) {
     return handleRouteError(error);
   }

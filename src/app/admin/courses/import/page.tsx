@@ -1,5 +1,5 @@
 import Link from "next/link";
-import CourseCsvImport from "@/components/admin/CourseCsvImport";
+import CourseCsvImport from "@/modules/courses/components/admin/CourseCsvImport";
 
 export const metadata = {
   title: "Import Course | Habitix Admin",

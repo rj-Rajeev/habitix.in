@@ -1,11 +1,11 @@
 import { Types } from "mongoose";
 import { Errors } from "@/lib/api";
-import { requireCourseAccess } from "@/lib/enrollments/access";
+import { requireCourseAccess } from "@/modules/courses/services/course-access.service";
 import type { CreateGoalInput } from "@/modules/tasks/task.schemas";
 import { goalRepository, isManualGoalRecord } from "./goal.repository";
 import { goalSyncService } from "./goal-sync.service";
 import type { IRoadmapDay } from "./goal.model";
-import { courseLearningService } from "@/modules/courses/course-learning.service";
+import { courseLearningService } from "@/modules/courses/services/course-learning.service";
 import { goalCompletionService } from "./goal-completion.service";
 import { taskRepository } from "@/modules/tasks/task.repository";
 import { dateKeyInTimezone, isValidGoalTimezone, parseGoalDateKey, validateRoadmapSchedule } from "@/lib/goals/goal-scheduling";

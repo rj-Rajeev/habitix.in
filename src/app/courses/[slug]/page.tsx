@@ -1,4 +1,4 @@
-import CourseDetail from "@/components/courses/CourseDetail";
+import CourseDetail from "@/modules/courses/components/CourseDetail";
 
 export const metadata = {
   title: "Course | Habitix",

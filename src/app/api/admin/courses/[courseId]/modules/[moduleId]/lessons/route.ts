@@ -2,22 +2,13 @@ import { NextRequest } from "next/server";
 import { handleRouteError, jsonOk, Errors } from "@/lib/api";
 import { requireAdminUser } from "@/lib/auth/admin";
 import { connectDb } from "@/lib/db";
-import { isObjectId, lessonSchema } from "@/lib/courses";
-import Course from "@/models/Course";
-import CourseModule from "@/models/CourseModule";
-import CourseLesson from "@/models/CourseLesson";
+import { isObjectId, lessonSchema } from "@/modules/courses/validation/course.schemas";
+import { courseAdminService } from "@/modules/courses/services/course-admin.service";
 
 async function getIds(params: Promise<{ courseId: string; moduleId: string }>) {
   const { courseId, moduleId } = await params;
   if (!isObjectId(courseId) || !isObjectId(moduleId)) throw Errors.notFound("Module");
   return { courseId, moduleId };
-}
-
-async function requireModule(courseId: string, moduleId: string) {
-  const course = await Course.findOne({ _id: courseId, delete: { $ne: true } }).select("_id");
-  if (!course) throw Errors.notFound("Course");
-  const courseModule = await CourseModule.findOne({ _id: moduleId, courseId }).select("_id");
-  if (!courseModule) throw Errors.notFound("Module");
 }
 
 export async function GET(
@@ -28,8 +19,7 @@ export async function GET(
     await requireAdminUser();
     await connectDb();
     const { courseId, moduleId } = await getIds(params);
-    await requireModule(courseId, moduleId);
-    const lessons = await CourseLesson.find({ moduleId }).sort({ order: 1, createdAt: 1 });
+    const lessons = await courseAdminService.listLessons(courseId, moduleId);
     return jsonOk(lessons);
   } catch (error) {
     return handleRouteError(error);
@@ -44,10 +34,9 @@ export async function POST(
     await requireAdminUser();
     await connectDb();
     const { courseId, moduleId } = await getIds(params);
-    await requireModule(courseId, moduleId);
     const parsed = lessonSchema.safeParse(await request.json());
     if (!parsed.success) throw Errors.badRequest("Invalid lesson data", parsed.error.flatten());
-    const lesson = await CourseLesson.create({ ...parsed.data, moduleId });
+    const lesson = await courseAdminService.createLesson(courseId, moduleId, parsed.data);
     return jsonOk(lesson, { status: 201 });
   } catch (error) {
     return handleRouteError(error);
