@@ -1,8 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/db";
 import { Types } from "mongoose";
-import Chat from "@/models/PeoplesChat/Chat";
 import { getOptionalUserId } from "@/lib/auth/session";
+import {
+  getOrCreateChat,
+  getUserConversations,
+} from "@/modules/people-chat/services/chat.service";
+
+export async function GET() {
+  await dbConnect();
+
+  const currentUserId = await getOptionalUserId();
+  if (!currentUserId) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  // Chat timestamps reflect creation time, not the time of the latest message.
+  const conversations = await getUserConversations(currentUserId);
+  return NextResponse.json(conversations);
+}
 
 export async function POST(req: NextRequest) {
   await dbConnect();
@@ -20,15 +36,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  let chat = await Chat.findOne({
-    participants: { $all: [currentUserId, userId] },
-  });
-
-  if (!chat) {
-    chat = await Chat.create({
-      participants: [currentUserId, userId],
-    });
-  }
+  const chat = await getOrCreateChat(currentUserId, userId);
 
   return NextResponse.json({ chatId: chat._id });
 }

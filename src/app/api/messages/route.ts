@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Types } from "mongoose";
 import dbConnect from "@/lib/db";
-import Chat from "@/models/PeoplesChat/Chat";
-import Message from "@/models/PeoplesChat/Message";
 import { requireUserId } from "@/lib/auth/session";
 import { Errors, handleRouteError } from "@/lib/api";
+import { sendChatMessage } from "@/modules/people-chat/services/message.service";
 
 export async function POST(req: NextRequest) {
   try {
@@ -18,14 +17,7 @@ export async function POST(req: NextRequest) {
     }
 
     await dbConnect();
-    const chat = await Chat.findById(chatId).select("participants");
-    if (!chat) throw Errors.notFound("Chat");
-    const isParticipant = chat.participants.some(
-      (participant: Types.ObjectId) => participant.toString() === userId
-    );
-    if (!isParticipant) throw Errors.forbidden();
-
-    const message = await Message.create({
+    const message = await sendChatMessage({
       chatId,
       senderId: userId,
       text: text.trim(),

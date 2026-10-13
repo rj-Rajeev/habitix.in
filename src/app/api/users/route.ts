@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import dbConnect from "@/lib/db";
-import User from "@/models/User";
 import { getOptionalUserId } from "@/lib/auth/session";
+import { getPeopleDirectory } from "@/modules/people-chat/services/people-directory.service";
 
 export async function GET() {
   try {
@@ -12,9 +12,7 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const users = await User.find({
-      _id: { $ne: currentUserId },
-    }).select("_id fullname");
+    const users = await getPeopleDirectory(currentUserId);
 
     return NextResponse.json(users);
 
