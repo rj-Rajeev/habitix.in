@@ -1,4 +1,4 @@
-import PushNotificationDashboard from "@/components/notifications/PushNotificationDashboard";
+import PushNotificationDashboard from "@/modules/notifications/components/PushNotificationDashboard";
 import React from "react";
 
 const Notification = () => {

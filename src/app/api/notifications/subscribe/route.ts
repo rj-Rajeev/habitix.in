@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import connectDb from "@/lib/db";
-import PushSubscription from "@/models/PushSubscription";
 import { requireUserId } from "@/lib/auth/session";
+import { pushSubscriptionService } from "@/modules/notifications/services/push-subscription.service";
 
 export async function POST(req: NextRequest) {
   try {
@@ -17,11 +17,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const result = await PushSubscription.findOneAndUpdate(
-      { "subscription.endpoint": subscription.endpoint, userId },
-      { subscription, categories, userId },
-      { upsert: true, new: true }
-    );
+    const result = await pushSubscriptionService.save({ userId, subscription, categories });
 
     return NextResponse.json({ success: true, data: result });
   } catch (err) {

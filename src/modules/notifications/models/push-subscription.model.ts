@@ -1,7 +1,7 @@
 import mongoose, { Schema, Document } from "mongoose";
 
 export interface IPushSubscription extends Document {
-  userId?: string; // Optional: null means anonymous or global
+  userId?: string;
   categories: string[];
   subscription: {
     endpoint: string;
@@ -28,5 +28,8 @@ const PushSubscriptionSchema = new Schema<IPushSubscription>({
   createdAt: { type: Date, default: Date.now },
 });
 
-export default mongoose.models.PushSubscription ||
+// Keep the existing model name so Mongoose continues using the same collection.
+const PushSubscription = mongoose.models.PushSubscription ||
   mongoose.model<IPushSubscription>("PushSubscription", PushSubscriptionSchema);
+
+export default PushSubscription;

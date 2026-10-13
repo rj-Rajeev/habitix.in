@@ -1,22 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import connectDb from "@/lib/db";
-import PushSubscription from "@/models/PushSubscription";
-import webpush from "web-push";
 import { requireUserId } from "@/lib/auth/session";
-
-function ensureVapid() {
-  const subject = process.env.VAPID_SUBJECT;
-  const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-  const privateKey = process.env.VAPID_PRIVATE_KEY;
-  if (!subject || !publicKey || !privateKey) {
-    throw new Error("Push notifications are not configured");
-  }
-  webpush.setVapidDetails(subject, publicKey, privateKey);
-}
+import { notificationService } from "@/modules/notifications/services/notification.service";
 
 export async function POST(req: NextRequest) {
   try {
-    ensureVapid();
+    notificationService.ensureConfigured();
   } catch {
     return NextResponse.json(
       { error: "Push notifications not configured" },
@@ -30,23 +19,16 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { message, title = "Habitix", category } = body;
 
-    const query: { userId: string; categories?: string } = { userId };
-    if (category) query.categories = category;
+    const result = await notificationService.sendToUser({
+      userId,
+      title,
+      body: message,
+      category,
+    });
 
-    const subs = await PushSubscription.find(query);
-    const payload = JSON.stringify({ title, body: message });
-
-    const results = await Promise.allSettled(
-      subs.map((sub) =>
-        webpush.sendNotification(sub.subscription, payload).catch((err) => {
-          if (err.statusCode === 410 || err.statusCode === 404) {
-            return PushSubscription.deleteOne({ _id: sub._id });
-          }
-        })
-      )
-    );
-
-    return NextResponse.json({ success: true, sent: results.length });
+    // Preserve the legacy response contract: this field counts selected
+    // subscriptions, not confirmed device deliveries.
+    return NextResponse.json({ success: true, sent: result.selected });
   } catch {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
