@@ -9,7 +9,7 @@ import { revisionRepository } from "@/modules/revisions/revision.repository";
 import { TaskHistory } from "./task-history.model";
 import { analyticsService } from "@/modules/analytics/analytics.service";
 import type { RevisionPreset } from "@/lib/dates";
-import { courseProgressService } from "@/modules/courses/services/course-progress.service";
+import { completeLesson } from "@/modules/courses/contracts";
 import { goalCompletionService } from "@/modules/goals/goal-completion.service";
 import { goalRepository } from "@/modules/goals/goal.repository";
 import { AppError } from "@/lib/api/errors";
@@ -36,7 +36,7 @@ export const taskCompletionService = {
         const learning = getLearningMetadata(task);
         if (learning) {
           try {
-            await courseProgressService.completeLesson(
+            await completeLesson(
               userId,
               learning.courseId,
               learning.lessonId,

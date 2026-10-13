@@ -4,7 +4,7 @@ import { Errors } from "@/lib/api";
 import { goalRepository } from "./goal.repository";
 import { taskRepository } from "@/modules/tasks/task.repository";
 import type { IRoadmapDay } from "./goal.model";
-import { courseLearningService } from "@/modules/courses/services/course-learning.service";
+import { loadPublishedCourseContent } from "@/modules/courses/contracts";
 import { goalCompletionService } from "./goal-completion.service";
 import { taskCompletionService } from "@/modules/tasks/task-completion.service";
 
@@ -87,7 +87,7 @@ async function flattenRoadmapToTasks(
     throw Errors.badRequest("Course lesson reference requires a course-linked goal");
   }
   const courseContent = hasLessonReferences && courseId
-    ? await courseLearningService.loadPublishedCourseContent(courseId)
+    ? await loadPublishedCourseContent(courseId)
     : undefined;
   const lessonsById = new Map(courseContent?.lessons.map((lesson) => [lesson.lessonId, lesson]));
 

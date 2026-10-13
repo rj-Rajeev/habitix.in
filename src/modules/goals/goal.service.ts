@@ -1,11 +1,10 @@
 import { Types } from "mongoose";
 import { Errors } from "@/lib/api";
-import { requireCourseAccess } from "@/modules/courses/services/course-access.service";
+import { loadPublishedCourseContent, requireCourseAccess } from "@/modules/courses/contracts";
 import type { CreateGoalInput } from "@/modules/tasks/task.schemas";
 import { goalRepository, isManualGoalRecord } from "./goal.repository";
 import { goalSyncService } from "./goal-sync.service";
 import type { IRoadmapDay } from "./goal.model";
-import { courseLearningService } from "@/modules/courses/services/course-learning.service";
 import { goalCompletionService } from "./goal-completion.service";
 import { taskRepository } from "@/modules/tasks/task.repository";
 import { dateKeyInTimezone, isValidGoalTimezone, parseGoalDateKey, validateRoadmapSchedule } from "@/lib/goals/goal-scheduling";
@@ -67,7 +66,7 @@ export const goalService = {
     if (scheduleErrors.length) throw Errors.badRequest("Invalid Goal schedule", { issues: scheduleErrors });
 
     if (input.courseId) {
-      const content = await courseLearningService.loadPublishedCourseContent(input.courseId);
+      const content = await loadPublishedCourseContent(input.courseId);
       await requireCourseAccess(userId, input.courseId);
       if (content.lessons.length === 0) throw Errors.badRequest("Course Goals require a course with at least one lesson");
       const courseTaskCount = input.roadmap?.reduce((total, day) => total + day.tasks.length, 0) ?? 0;

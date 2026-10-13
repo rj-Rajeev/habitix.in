@@ -1,8 +1,7 @@
 import { z } from "zod";
 import { Errors } from "@/lib/api";
-import { requireCourseAccess } from "@/modules/courses/services/course-access.service";
+import { loadPublishedCourseContent, requireCourseAccess } from "@/modules/courses/contracts";
 import type { GenerateRoadmapInput } from "@/modules/tasks/task.schemas";
-import { courseLearningService } from "@/modules/courses/services/course-learning.service";
 import OpenAI from "openai";
 
 const roadmapDaySchema = z.object({
@@ -111,7 +110,7 @@ Example:
     await requireCourseAccess(userId, courseId);
 
     const { course, modules, lessons } =
-      await courseLearningService.loadPublishedCourseContent(courseId);
+      await loadPublishedCourseContent(courseId);
 
     if (lessons.length === 0) {
       throw Errors.badRequest("This course does not have any lessons yet");
