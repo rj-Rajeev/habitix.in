@@ -30,14 +30,23 @@ export async function connectDb(): Promise<typeof mongoose> {
     return cached.conn;
   }
 
-  if (!cached.promise) {
-    cached.promise = mongoose.connect(MONGODB_URI, {
+  let connectionPromise = cached.promise;
+  if (!connectionPromise) {
+    connectionPromise = mongoose.connect(MONGODB_URI, {
       bufferCommands: false,
     });
+    cached.promise = connectionPromise;
   }
 
-  cached.conn = await cached.promise;
-  return cached.conn;
+  try {
+    cached.conn = await connectionPromise;
+    return cached.conn;
+  } catch (error) {
+    if (cached.promise === connectionPromise) {
+      cached.promise = null;
+    }
+    throw error;
+  }
 }
 
 export default connectDb;
