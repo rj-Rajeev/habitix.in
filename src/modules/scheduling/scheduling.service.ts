@@ -37,9 +37,12 @@ export const schedulingService = {
       while (!placed) {
         const bucket = buckets.get(cursor) ?? { minutes: 0, count: 0 };
         const taskMinutes = task.minutes ?? task.estimatedMinutes ?? 30;
+        // Always place the next task on an empty day, even when it exceeds
+        // the cap. This keeps oversized backlog tasks from advancing forever.
         const fits =
-          bucket.minutes + taskMinutes <= dailyCapMinutes &&
-          bucket.count < MAX_TASKS_PER_DAY;
+          bucket.count < MAX_TASKS_PER_DAY &&
+          (bucket.count === 0 ||
+            bucket.minutes + taskMinutes <= dailyCapMinutes);
 
         if (fits) {
           await Task.updateOne(
