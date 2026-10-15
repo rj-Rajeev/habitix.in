@@ -37,11 +37,4 @@ export const courseLearningService = {
     };
   },
 
-  async validateLessonForCourse(courseId: string, lessonId: string): Promise<CourseLearningLesson> {
-    if (!Types.ObjectId.isValid(lessonId)) throw Errors.notFound("Lesson");
-    const content = await this.loadPublishedCourseContent(courseId);
-    const lesson = content.lessons.find((item) => item.lessonId === lessonId);
-    if (!lesson) throw Errors.notFound("Lesson");
-    return lesson;
-  },
 };

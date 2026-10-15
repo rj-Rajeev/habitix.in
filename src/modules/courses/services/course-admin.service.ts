@@ -2,6 +2,7 @@ import { Errors } from "@/lib/api";
 import { normalizeSlug } from "../validation/course.schemas";
 import { courseRepository } from "../repositories/course.repository";
 import { courseContentRepository } from "../repositories/course-content.repository";
+import { courseLessonService } from "./course-lesson.service";
 
 export const courseAdminService = {
   listCourses() {
@@ -83,7 +84,7 @@ export const courseAdminService = {
 
   async createLesson(courseId: string, moduleId: string, data: Record<string, unknown>) {
     await this.requireModule(courseId, moduleId);
-    return courseContentRepository.createLesson({ ...data, moduleId });
+    return courseLessonService.createLesson(courseId, moduleId, data);
   },
 
   async updateLesson(courseId: string, moduleId: string, lessonId: string, data: Record<string, unknown>) {

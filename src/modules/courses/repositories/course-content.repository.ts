@@ -13,7 +13,9 @@ export const courseContentRepository = {
   },
 
   findLessonsForCoursePage(moduleIds: unknown[]) {
-    return CourseLesson.find({ moduleId: { $in: moduleIds } }).sort({ order: 1, createdAt: 1 });
+    return CourseLesson.find({ moduleId: { $in: moduleIds } })
+      .select("-courseId")
+      .sort({ order: 1, createdAt: 1 });
   },
 
   findModulesForProgress(courseId: unknown, session?: ClientSession) {
@@ -44,10 +46,6 @@ export const courseContentRepository = {
     return CourseModule.findOne({ _id: moduleId, courseId });
   },
 
-  findModuleId(courseId: string, moduleId: string) {
-    return CourseModule.findOne({ _id: moduleId, courseId }).select("_id");
-  },
-
   findModulesForAdmin(courseId: string) {
     return CourseModule.find({ courseId }).sort({ order: 1, createdAt: 1 });
   },
@@ -72,6 +70,12 @@ export const courseContentRepository = {
 
   findLesson(moduleId: string, lessonId: string) {
     return CourseLesson.findOne({ _id: lessonId, moduleId });
+  },
+
+  lessonSlugExists(courseId: unknown, lessonSlug: string, session?: ClientSession) {
+    const query = CourseLesson.exists({ courseId, lessonSlug });
+    if (session) query.session(session);
+    return query;
   },
 
   createLesson(data: Record<string, unknown>, session?: ClientSession) {

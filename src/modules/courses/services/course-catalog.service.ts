@@ -28,6 +28,7 @@ export const courseCatalogService = {
             : {
                 _id: lesson._id,
                 moduleId: lesson.moduleId,
+                lessonSlug: lesson.lessonSlug,
                 title: lesson.title,
                 description: lesson.description,
                 order: lesson.order,

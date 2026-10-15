@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import { Errors } from "@/lib/api";
 import { courseRepository } from "../repositories/course.repository";
 import { courseContentRepository } from "../repositories/course-content.repository";
+import { courseLessonService } from "./course-lesson.service";
 import { validateCourseCsv, type CourseImportData } from "../validation/course-csv";
 
 function isUnsupportedTransaction(error: unknown) {
@@ -35,8 +36,7 @@ async function createWithoutTransaction(data: CourseImportData) {
       });
       moduleIds.push(courseModule._id);
       for (const lesson of item.lessons) {
-        await courseContentRepository.createLesson({
-          moduleId: courseModule._id,
+        await courseLessonService.createLesson(course._id, courseModule._id, {
           title: lesson.title,
           description: lesson.description,
           order: lesson.order,
@@ -78,8 +78,7 @@ export const courseImportService = {
               order: item.order,
             }, session);
             for (const lesson of item.lessons) {
-              await courseContentRepository.createLesson({
-                moduleId: courseModule._id,
+              await courseLessonService.createLesson(course._id, courseModule._id, {
                 title: lesson.title,
                 description: lesson.description,
                 order: lesson.order,
