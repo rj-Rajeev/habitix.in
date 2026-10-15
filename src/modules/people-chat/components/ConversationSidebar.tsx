@@ -102,7 +102,7 @@ export default function ConversationSidebar({
         ) : conversations.length === 0 ? (
           <EmptyState
             title="No conversations yet"
-            description="Start a conversation with someone from New Chat."
+            description="Discover a learning partner and send a connection request. You can chat after they accept."
           />
         ) : (
           <ul className="space-y-2">

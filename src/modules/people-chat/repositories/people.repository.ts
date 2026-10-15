@@ -9,3 +9,7 @@ export function findOtherPeople(currentUserId: string) {
 export function findPeopleByIds(userIds: string[]) {
   return User.find({ _id: { $in: userIds } }).select("_id fullname");
 }
+
+export function findPersonById(userId: string) {
+  return User.findById(userId).select("_id fullname");
+}

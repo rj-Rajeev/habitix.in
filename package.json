@@ -24,6 +24,7 @@
     "date-fns": "^4.1.0",
     "framer-motion": "^12.19.1",
     "install": "^0.13.0",
+    "jose": "^4.15.9",
     "lucide-react": "^0.523.0",
     "mongoose": "^8.16.0",
     "next": "15.3.8",

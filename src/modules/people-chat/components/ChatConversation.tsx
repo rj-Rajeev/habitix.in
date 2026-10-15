@@ -5,13 +5,30 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { ArrowLeft, Send } from "lucide-react";
-import { io, Socket } from "socket.io-client";
+import type { Socket } from "socket.io-client";
 import { Alert, Button, Card, EmptyState, Skeleton } from "@/components/ui";
 import ConversationSidebar from "@/modules/people-chat/components/ConversationSidebar";
 import PeopleChatHeader from "@/modules/people-chat/components/PeopleChatHeader";
+import { createPeopleChatSocket } from "@/modules/people-chat/integrations/socket-client";
 
-type ChatMessage = { _id: string | number; text: string; senderId?: string };
-type ChatUser = { email?: string; fullname?: string };
+type ChatMessage = {
+  _id: string | number;
+  text: string;
+  senderId?: string;
+  chatId?: string;
+};
+type ChatParticipant = { displayName: string | null };
+
+function appendMessageOnce(current: ChatMessage[], message: ChatMessage) {
+  if (current.some((existing) => String(existing._id) === String(message._id))) {
+    return current;
+  }
+  return [...current, message];
+}
+
+function uniqueMessages(messages: ChatMessage[]) {
+  return messages.reduce<ChatMessage[]>(appendMessageOnce, []);
+}
 
 export default function ChatConversation() {
   const params = useParams();
@@ -24,14 +41,17 @@ export default function ChatConversation() {
   const [chatId, setChatId] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [text, setText] = useState("");
-  const [otherUser, setOtherUser] = useState<ChatUser | null>(null);
+  const [otherUser, setOtherUser] = useState<ChatParticipant | null>(null);
   const [isTyping, setIsTyping] = useState(false);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
   const [participantError, setParticipantError] = useState(false);
   const [sendError, setSendError] = useState("");
+  const [deliveryStatus, setDeliveryStatus] = useState("");
   const [sending, setSending] = useState(false);
+  const [socketError, setSocketError] = useState("");
   const [retryCount, setRetryCount] = useState(0);
+  const [activeConversationUserId, setActiveConversationUserId] = useState("");
 
   const socketRef = useRef<Socket | null>(null);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -39,14 +59,16 @@ export default function ChatConversation() {
   const bottomRef = useRef<HTMLLIElement>(null);
 
   useEffect(() => {
-    if (!userId) return;
+    if (!chatId) return;
     let active = true;
+    setOtherUser(null);
+    setParticipantError(false);
 
-    fetch(`/api/users/${userId}`)
+    fetch(`/api/chats/${chatId}/participant`)
       .then(async (response) => {
         const data = await response.json();
         if (!response.ok || data?.error) throw new Error("Participant unavailable");
-        return data as ChatUser;
+        return data as ChatParticipant;
       })
       .then((user) => {
         if (active) {
@@ -61,7 +83,7 @@ export default function ChatConversation() {
     return () => {
       active = false;
     };
-  }, [userId]);
+  }, [chatId]);
 
   useEffect(() => {
     if (!userId) {
@@ -74,6 +96,10 @@ export default function ChatConversation() {
     const init = async () => {
       setLoading(true);
       setLoadError("");
+      setChatId("");
+      setMessages([]);
+      setActiveConversationUserId("");
+      setIsTyping(false);
 
       try {
         const response = await fetch("/api/chats", {
@@ -86,7 +112,10 @@ export default function ChatConversation() {
           throw new Error("Conversation unavailable");
         }
 
-        if (active) setChatId(chatData.chatId);
+        if (active) {
+          setChatId(chatData.chatId);
+          setActiveConversationUserId(typeof userId === "string" ? userId : "");
+        }
 
         const historyResponse = await fetch(`/api/chats/${chatData.chatId}`);
         const history = await historyResponse.json();
@@ -94,7 +123,7 @@ export default function ChatConversation() {
           throw new Error("Message history unavailable");
         }
 
-        if (active) setMessages(history);
+        if (active) setMessages(uniqueMessages(history));
       } catch {
         if (active) setLoadError("This conversation could not be loaded. Please try again.");
       } finally {
@@ -109,30 +138,107 @@ export default function ChatConversation() {
   }, [userId, retryCount]);
 
   useEffect(() => {
-    if (!currentUserId || !userId) return;
+    if (
+      !currentUserId ||
+      !userId ||
+      !chatId ||
+      activeConversationUserId !== userId ||
+      loading ||
+      loadError
+    ) {
+      return;
+    }
 
-    const socket: Socket = io(process.env.NEXT_PUBLIC_SOCKET_URL!, {
-      auth: { userId: currentUserId },
-    });
+    let active = true;
+    let connection: Awaited<ReturnType<typeof createPeopleChatSocket>> | null = null;
+    setSocketError("");
 
-    socketRef.current = socket;
+    void createPeopleChatSocket()
+      .then((createdConnection) => {
+        if (!active) {
+          createdConnection.disconnect();
+          return;
+        }
 
-    socket.on("receiveMessage", (msg) => {
-      setMessages((prev) => [...prev, msg]);
-    });
+        connection = createdConnection;
+        const socket = createdConnection.socket;
+        socketRef.current = socket;
 
-    socket.on("typing", ({ senderId }) => {
-      if (senderId?.toString() !== userId.toString()) return;
+        const refreshHistory = async () => {
+          try {
+            const response = await fetch(`/api/chats/${chatId}`);
+            const history = await response.json();
+            if (active && response.ok && Array.isArray(history)) {
+              setMessages((previous) => uniqueMessages([...history, ...previous]));
+            }
+          } catch {
+            // Existing message history remains visible if a live refresh fails.
+          }
+        };
 
-      setIsTyping(true);
-      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
-      typingTimeoutRef.current = setTimeout(() => setIsTyping(false), 2000);
-    });
+        socket.on("connect", () => {
+          if (active) setSocketError("");
+          void refreshHistory();
+        });
+        socket.on("connect_error", () => {
+          if (active) {
+            setSocketError("Live chat is unavailable. Messages can still be saved.");
+          }
+        });
+        socket.on(
+          "receiveMessage",
+          (message: Partial<ChatMessage> & { messageId?: string }) => {
+            if (
+              !active ||
+              message.chatId !== chatId ||
+              typeof message.messageId !== "string" ||
+              !/^[a-f\d]{24}$/i.test(message.messageId) ||
+              typeof message.text !== "string" ||
+              typeof message.senderId !== "string"
+            ) {
+              return;
+            }
+
+            const receivedMessage: ChatMessage = {
+              _id: message.messageId.toLowerCase(),
+              chatId,
+              text: message.text,
+              senderId: message.senderId,
+            };
+            setMessages((previous) => appendMessageOnce(previous, receivedMessage));
+          }
+        );
+
+        socket.on("typing", ({ senderId }: { senderId?: string }) => {
+          if (!active || senderId?.toString() !== userId.toString()) return;
+
+          setIsTyping(true);
+          if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+          typingTimeoutRef.current = setTimeout(() => setIsTyping(false), 2000);
+        });
+
+        createdConnection.connect();
+      })
+      .catch(() => {
+        if (active) {
+          setSocketError("Live chat is unavailable. Messages can still be saved.");
+        }
+      });
 
     return () => {
-      socket.disconnect();
+      active = false;
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+      if (socketRef.current === connection?.socket) socketRef.current = null;
+      connection?.disconnect();
     };
-  }, [currentUserId, userId]);
+  }, [
+    activeConversationUserId,
+    chatId,
+    currentUserId,
+    loadError,
+    loading,
+    userId,
+  ]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -141,32 +247,70 @@ export default function ChatConversation() {
   const handleSend = async () => {
     if (!text.trim() || !chatId || loading || loadError || sendingRef.current) return;
 
-    const newMsg = {
-      _id: Date.now(),
-      text,
-      senderId: currentUserId,
-    };
-
+    const messageText = text;
     sendingRef.current = true;
     setSending(true);
     setSendError("");
-    setMessages((prev) => [...prev, newMsg]);
+    setDeliveryStatus("");
     setText("");
 
     try {
-      await fetch("/api/messages", {
+      const response = await fetch("/api/messages", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ chatId, text }),
+        body: JSON.stringify({ chatId, text: messageText }),
       });
+      const persistedMessage = await response.json();
+      if (
+        !response.ok ||
+        !persistedMessage ||
+        typeof persistedMessage._id !== "string" ||
+        typeof persistedMessage.text !== "string"
+      ) {
+        throw new Error("Message persistence failed");
+      }
 
-      socketRef.current?.emit("sendMessage", {
+      const savedMessage: ChatMessage = {
+        _id: persistedMessage._id,
         chatId,
-        text,
-        receiverId: userId,
-      });
+        text: persistedMessage.text,
+        senderId:
+          typeof persistedMessage.senderId === "string"
+            ? persistedMessage.senderId
+            : currentUserId,
+      };
+      setMessages((previous) => appendMessageOnce(previous, savedMessage));
+
+      const socket = socketRef.current;
+      if (socket?.connected) {
+        socket.volatile.timeout(5000).emit("sendMessage", {
+          chatId,
+          messageId: savedMessage._id,
+          text: savedMessage.text,
+        }, (error: Error | null, acknowledgement?: unknown) => {
+          if (error || !acknowledgement || typeof acknowledgement !== "object") {
+            setDeliveryStatus("Message saved, but live delivery could not be confirmed.");
+            return;
+          }
+
+          const status = (acknowledgement as { status?: unknown }).status;
+          if (status === "emitted") {
+            setDeliveryStatus("");
+          } else if (status === "authorization_denied" || status === "authorization_unavailable") {
+            setDeliveryStatus("Message saved, but live delivery could not be completed.");
+          } else if (status === "invalid_message") {
+            setDeliveryStatus("Message saved, but its live update could not be sent.");
+          } else if (status === "emission_failed") {
+            setDeliveryStatus("Message saved, but its live update could not be completed.");
+          } else {
+            setDeliveryStatus("Message saved, but live delivery could not be confirmed.");
+          }
+        });
+      } else {
+        setDeliveryStatus("Message saved. Live updates may be delayed while chat is disconnected.");
+      }
     } catch {
       setSendError("The message could not be sent. Please check your connection.");
     } finally {
@@ -179,12 +323,12 @@ export default function ChatConversation() {
     setText(value);
     setSendError("");
 
-    socketRef.current?.emit("typing", {
-      receiverId: userId,
-    });
+    if (chatId && !loading && !loadError && socketRef.current?.connected) {
+      socketRef.current.emit("typing", { chatId });
+    }
   };
 
-  const participantName = otherUser?.fullname || otherUser?.email || "Conversation";
+  const participantName = otherUser?.displayName || "Conversation";
   const participantInitial = participantName.trim().charAt(0).toUpperCase() || "P";
 
   return (
@@ -233,6 +377,12 @@ export default function ChatConversation() {
             </div>
           </div>
         </header>
+
+        {socketError && (
+          <Alert tone="error" className="shrink-0 rounded-none border-x-0 border-t-0">
+            {socketError}
+          </Alert>
+        )}
 
         <div
           className="min-h-0 flex-1 overflow-y-auto bg-surface-subtle px-3 py-4 sm:px-6 sm:py-6"
@@ -299,6 +449,11 @@ export default function ChatConversation() {
             <Alert tone="error" className="mb-3">
               {sendError}
             </Alert>
+          )}
+          {deliveryStatus && (
+            <p role="status" className="mx-auto mb-3 max-w-2xl text-sm text-text-secondary">
+              {deliveryStatus}
+            </p>
           )}
           <form
             className="mx-auto flex max-w-2xl items-end gap-2"

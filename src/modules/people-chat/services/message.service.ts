@@ -1,4 +1,4 @@
-import { requireChatParticipant } from "@/modules/people-chat/services/chat.service";
+import { requireChatAccess } from "@/modules/people-chat/services/chat-access.service";
 import {
   createChatMessage,
   findMessagesForChat,
@@ -6,11 +6,11 @@ import {
 import type { CreatePeopleChatMessage } from "@/modules/people-chat/types/people-chat";
 
 export async function getChatHistory(chatId: string, userId: string) {
-  await requireChatParticipant(chatId, userId);
+  await requireChatAccess(chatId, userId);
   return findMessagesForChat(chatId);
 }
 
 export async function sendChatMessage(message: CreatePeopleChatMessage) {
-  await requireChatParticipant(message.chatId, message.senderId);
+  await requireChatAccess(message.chatId, message.senderId);
   return createChatMessage(message);
 }

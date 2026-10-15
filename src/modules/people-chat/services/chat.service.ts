@@ -1,29 +1,44 @@
 import { Types } from "mongoose";
 import { Errors } from "@/lib/api";
 import {
-  createChatForParticipants,
   findChatForParticipants,
   findChatsForUser,
-  findChatParticipants,
 } from "@/modules/people-chat/repositories/chat.repository";
 import { findPeopleByIds } from "@/modules/people-chat/repositories/people.repository";
+import { requireChatAccess, filterAccessibleChatsForUser } from "@/modules/people-chat/services/chat-access.service";
 import type { PeopleConversationSummary } from "@/modules/people-chat/types/people-chat";
 
-export async function getOrCreateChat(currentUserId: string, userId: string) {
-  let chat = await findChatForParticipants(currentUserId, userId);
-
-  if (!chat) {
-    chat = await createChatForParticipants(currentUserId, userId);
+export async function getExistingChatForPair(currentUserId: string, userId: string) {
+  const chat = await findChatForParticipants(currentUserId, userId);
+  if (chat) {
+    const participants = chat.participants.map((participant: Types.ObjectId) => participant.toString().toLowerCase()).sort();
+    const expectedParticipants = [currentUserId, userId].map((id) => id.toLowerCase()).sort();
+    if (
+      participants.length === 2 &&
+      participants[0] === expectedParticipants[0] &&
+      participants[1] === expectedParticipants[1]
+    ) {
+      try {
+        return await requireChatAccess(chat._id.toString(), currentUserId);
+      } catch (error) {
+        if (error instanceof Error && "status" in error && error.status === 403) {
+          throw Errors.conflict("This connection is not accepted");
+        }
+        throw error;
+      }
+    }
+    throw Errors.conflict("This connection is not accepted");
   }
 
-  return chat;
+  throw Errors.conflict("A connection request must be accepted before a chat is available");
 }
 
 export async function getUserConversations(
   currentUserId: string
 ): Promise<PeopleConversationSummary[]> {
   const chats = await findChatsForUser(currentUserId);
-  const conversations = chats
+  const eligibleChats = await filterAccessibleChatsForUser(chats, currentUserId);
+  const conversations = eligibleChats
     .map((chat) => ({
       chat,
       participantId: chat.participants
@@ -63,13 +78,17 @@ export async function getUserConversations(
   });
 }
 
-export async function requireChatParticipant(chatId: string, userId: string) {
-  const chat = await findChatParticipants(chatId);
-  if (!chat) throw Errors.notFound("Chat");
-  const isParticipant = chat.participants.some(
-    (participant: Types.ObjectId) => participant.toString() === userId
-  );
-  if (!isParticipant) throw Errors.forbidden();
+export async function getOtherParticipantDisplayName(
+  chatId: string,
+  currentUserId: string
+): Promise<{ displayName: string | null }> {
+  const chat = await requireChatAccess(chatId, currentUserId);
+  const otherParticipantId = chat.participants.find(
+    (participant: Types.ObjectId) => participant.toString() !== currentUserId
+  )?.toString();
 
-  return chat;
+  if (!otherParticipantId) return { displayName: null };
+
+  const [profile] = await findPeopleByIds([otherParticipantId]);
+  return { displayName: profile?.fullname || null };
 }
