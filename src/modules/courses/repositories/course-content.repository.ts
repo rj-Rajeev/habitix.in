@@ -1,8 +1,23 @@
-import type { ClientSession } from "mongoose";
+import type { ClientSession, Types } from "mongoose";
 import CourseLesson from "../models/course-lesson.model";
 import CourseModule from "../models/course-module.model";
 
 export const courseContentRepository = {
+  findModulesForSitemap(courseIds: unknown[]) {
+    return CourseModule.find({ courseId: { $in: courseIds } })
+      .select("_id courseId")
+      .lean<Array<{ _id: Types.ObjectId; courseId: Types.ObjectId }>>();
+  },
+
+  findLessonSlugsForSitemap(moduleIds: unknown[]) {
+    return CourseLesson.find({
+      moduleId: { $in: moduleIds },
+      lessonSlug: { $type: "string", $ne: "" },
+    })
+      .select("moduleId lessonSlug")
+      .lean<Array<{ moduleId: Types.ObjectId; lessonSlug?: string }>>();
+  },
+
   findModulesByCourse(courseId: unknown) {
     return CourseModule.find({ courseId }).sort({ order: 1, createdAt: 1 });
   },
