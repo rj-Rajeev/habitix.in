@@ -1,6 +1,8 @@
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { authOptions } from "@/modules/auth/config/next-auth-options";
+import AppSidebarPreferenceProvider from "@/components/app/AppSidebarPreferenceProvider";
+import { readInitialSidebarCollapsed } from "@/components/app/sidebar-preference.server";
 
 export default async function AppLayout({
   children,
@@ -12,5 +14,11 @@ export default async function AppLayout({
     redirect("/signin?callbackUrl=/dashboard");
   }
 
-  return <>{children}</>;
+  const initialCollapsed = await readInitialSidebarCollapsed();
+
+  return (
+    <AppSidebarPreferenceProvider initialCollapsed={initialCollapsed}>
+      {children}
+    </AppSidebarPreferenceProvider>
+  );
 }

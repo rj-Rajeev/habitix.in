@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { requireAdminUser } from "@/lib/auth/admin";
+import AdminShell from "@/components/admin/AdminShell";
 
 export default async function AdminLayout({
   children,
@@ -12,5 +13,5 @@ export default async function AdminLayout({
     redirect("/signin?callbackUrl=/admin/courses");
   }
 
-  return children;
+  return <AdminShell>{children}</AdminShell>;
 }

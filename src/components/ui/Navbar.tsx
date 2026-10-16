@@ -52,6 +52,7 @@ export default function Navbar() {
     <>
       <AppBar
         position="fixed"
+        data-public-navbar
         sx={{
           bgcolor: "var(--background)",
           boxShadow: "0 1px 0 var(--border)",

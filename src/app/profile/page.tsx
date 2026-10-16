@@ -2,6 +2,8 @@ import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { authOptions } from "@/modules/auth/config/next-auth-options";
 import ProfilePage from "@/components/profile/profile-page";
+import AppSidebarPreferenceProvider from "@/components/app/AppSidebarPreferenceProvider";
+import { readInitialSidebarCollapsed } from "@/components/app/sidebar-preference.server";
 
 export const metadata = {
   title: "Profile | Habitix",
@@ -15,5 +17,11 @@ export default async function ProfileRoute() {
     redirect("/signin?callbackUrl=/profile");
   }
 
-  return <ProfilePage userId={session.user.id} />;
+  const initialCollapsed = await readInitialSidebarCollapsed();
+
+  return (
+    <AppSidebarPreferenceProvider initialCollapsed={initialCollapsed}>
+      <ProfilePage userId={session.user.id} />
+    </AppSidebarPreferenceProvider>
+  );
 }
