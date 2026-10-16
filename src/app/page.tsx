@@ -1,9 +1,12 @@
 import Link from "next/link";
 import { getServerSession } from "next-auth";
 import { ArrowRight, Check, CheckCircle2, Compass, ListChecks, Sparkles, Target, TrendingUp } from "lucide-react";
+import { connectDb } from "@/lib/db";
 import { authOptions } from "@/modules/auth/config/next-auth-options";
 import AutoNotificationPrompt from "@/modules/notifications/components/AutoNotificationPrompt";
 import CourseDiscovery from "@/modules/courses/components/CourseDiscovery";
+import type { CourseDiscoveryItem } from "@/modules/courses/components/CourseDiscovery";
+import { courseCatalogService } from "@/modules/courses/services/course-catalog.service";
 import { Badge, Card } from "@/components/ui";
 import { Container, SectionHeader } from "@/components/layout";
 
@@ -52,6 +55,22 @@ function ProductPreview() {
 
 export default async function HabitixLanding() {
   const session = await getServerSession(authOptions);
+  let initialCourses: CourseDiscoveryItem[] | undefined;
+
+  try {
+    await connectDb();
+    const courses = await courseCatalogService.listPublished();
+    initialCourses = courses.slice(0, 4).map((course) => ({
+      _id: course._id.toString(),
+      title: course.title,
+      slug: course.slug,
+      shortDescription: course.shortDescription,
+      ...(course.thumbnail ? { thumbnail: course.thumbnail } : {}),
+      price: course.price,
+    }));
+  } catch {
+    // Keep the homepage available and let CourseDiscovery use its client fallback.
+  }
 
   return (
     <>
@@ -62,7 +81,7 @@ export default async function HabitixLanding() {
 
         <section className="bg-surface-subtle py-20 sm:py-28"><Container><SectionHeader title="Core Habitix capabilities" description="The essential pieces for making personal growth practical." /><div className="mt-12 grid gap-px overflow-hidden rounded-container border border-border bg-border sm:grid-cols-2">{capabilities.map(({ icon: Icon, title, description, ai }) => <div key={title} className="bg-surface p-6 sm:p-8"><Icon className={`h-5 w-5 ${ai ? "text-ai-primary" : "text-brand-primary"}`} aria-hidden="true" /><h3 className="mt-5 text-lg font-semibold text-text-primary">{title}{ai && <Badge tone="ai" className="ml-2 align-middle">AI</Badge>}</h3><p className="mt-2 max-w-md text-sm leading-6 text-text-secondary">{description}</p></div>)}</div></Container></section>
 
-        <CourseDiscovery />
+        <CourseDiscovery initialCourses={initialCourses} />
 
         <section className="bg-brand-primary-soft py-20 sm:py-24"><Container className="text-center"><h2 className="text-3xl font-semibold tracking-tight text-text-primary sm:text-4xl">Start building your next version.</h2><p className="mx-auto mt-4 max-w-lg text-base leading-7 text-text-secondary">Choose one meaningful direction, then make today count.</p><Link href="/signup" className="ui-button mt-7 no-underline" data-variant="primary">Get Started <ArrowRight className="h-4 w-4" aria-hidden="true" /></Link></Container></section>
       </main>

@@ -1,12 +1,15 @@
 import { AppError } from "@/lib/api";
 import { connectDb } from "@/lib/db";
+import { getOptionalUserId } from "@/lib/auth/session";
 import CourseOverview, {
   type CourseOverviewData,
 } from "@/modules/courses/components/CourseOverview";
-import CourseDetail from "@/modules/courses/components/CourseDetail";
+import CourseDetail, {
+  type CourseDetailInitialData,
+} from "@/modules/courses/components/CourseDetail";
 import { courseCatalogService } from "@/modules/courses/services/course-catalog.service";
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { cache } from "react";
 
 const CANONICAL_ORIGIN = "https://habitix.in";
@@ -18,26 +21,69 @@ type PublishedCourseModule = {
   order: number;
   lessons: Array<{
     _id: { toString(): string };
+    moduleId: { toString(): string };
     lessonSlug?: string;
     title: string;
     description?: string;
     order: number;
     isFree: boolean;
+    markdownContent?: string;
+    videoUrl?: string;
+    pdfUrl?: string;
   }>;
 };
 
-const loadPublishedCourse = cache(async (slug: string) => {
+const loadPublishedCourse = cache(async (slug: string, userId: string | null = null) => {
   await connectDb();
-  return courseCatalogService.getPublishedCourseDetail(slug);
+  return courseCatalogService.getPublishedCourseDetail(slug, userId ?? undefined);
 });
 
-async function getPublishedCourseOrNotFound(slug: string) {
+async function getPublishedCourseOrNotFound(slug: string, userId: string | null = null) {
   try {
-    return await loadPublishedCourse(slug);
+    return await loadPublishedCourse(slug, userId);
   } catch (error) {
     if (error instanceof AppError && error.status === 404) notFound();
     throw error;
   }
+}
+
+function toCourseDetailInitialData(
+  result: Awaited<ReturnType<typeof loadPublishedCourse>>,
+): CourseDetailInitialData {
+  return {
+    course: {
+      _id: result.course._id.toString(),
+      title: result.course.title,
+      slug: result.course.slug,
+      shortDescription: result.course.shortDescription,
+      description: result.course.description,
+      ...(result.course.thumbnail ? { thumbnail: result.course.thumbnail } : {}),
+      price: result.course.price,
+      status: "published",
+    },
+    modules: result.modules.map((courseModule: PublishedCourseModule) => ({
+      _id: courseModule._id.toString(),
+      title: courseModule.title,
+      ...(courseModule.description
+        ? { description: courseModule.description }
+        : {}),
+      order: courseModule.order,
+      lessons: courseModule.lessons.map((lesson) => ({
+        _id: lesson._id.toString(),
+        ...(lesson.lessonSlug ? { lessonSlug: lesson.lessonSlug } : {}),
+        moduleId: lesson.moduleId.toString(),
+        title: lesson.title,
+        ...(lesson.description ? { description: lesson.description } : {}),
+        order: lesson.order,
+        ...(lesson.markdownContent !== undefined
+          ? { markdownContent: lesson.markdownContent }
+          : {}),
+        ...(lesson.videoUrl !== undefined ? { videoUrl: lesson.videoUrl } : {}),
+        ...(lesson.pdfUrl !== undefined ? { pdfUrl: lesson.pdfUrl } : {}),
+        ...(lesson.isFree !== undefined ? { isFree: lesson.isFree } : {}),
+      })),
+    })),
+  };
 }
 
 function normalizeMetadataText(value?: string | null) {
@@ -68,12 +114,21 @@ function getSafeThumbnail(value?: string) {
   }
 }
 
+function getCanonicalCourseUrl(courseSlug: string) {
+  return new URL(
+    `/courses/${encodeURIComponent(courseSlug)}`,
+    CANONICAL_ORIGIN,
+  ).toString();
+}
+
 export async function generateMetadata({
   params,
+  searchParams,
 }: {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<{ lessonId?: string | string[] }>;
 }): Promise<Metadata> {
-  const { slug } = await params;
+  const [{ slug }, query] = await Promise.all([params, searchParams]);
   const result = await getPublishedCourseOrNotFound(slug);
   const course = result.course;
   const courseTitle = normalizeMetadataText(course.title) || "Course";
@@ -82,13 +137,10 @@ export async function generateMetadata({
     course.shortDescription,
     course.description,
   );
-  const canonicalUrl = new URL(
-    `/courses/${encodeURIComponent(course.slug)}`,
-    CANONICAL_ORIGIN,
-  ).toString();
+  const canonicalUrl = getCanonicalCourseUrl(course.slug);
   const thumbnail = getSafeThumbnail(course.thumbnail);
 
-  return {
+  const metadata: Metadata = {
     title,
     description,
     alternates: { canonical: canonicalUrl },
@@ -107,6 +159,18 @@ export async function generateMetadata({
       ...(thumbnail ? { images: [thumbnail] } : {}),
     },
   };
+
+  if (typeof query.lessonId === "string" && query.lessonId) {
+    const lesson = result.modules
+      .flatMap((courseModule) => courseModule.lessons)
+      .find((courseLesson) => courseLesson._id.toString() === query.lessonId);
+
+    if (lesson && !lesson.lessonSlug) {
+      return { ...metadata, robots: { index: false, follow: true } };
+    }
+  }
+
+  return metadata;
 }
 
 export default async function CourseDetailPage({
@@ -118,8 +182,31 @@ export default async function CourseDetailPage({
 }) {
   const [{ slug }, query] = await Promise.all([params, searchParams]);
 
-  // Preserve the existing ObjectId-based lesson selection URL.
-  if (query.lessonId) return <CourseDetail slug={slug} />;
+  // Preserve the ObjectId-based lesson selection URL while validating it server-side.
+  if (query.lessonId !== undefined) {
+    if (typeof query.lessonId !== "string" || !query.lessonId) notFound();
+
+    const userId = await getOptionalUserId();
+    const result = await getPublishedCourseOrNotFound(slug, userId);
+    const lesson = result.modules
+      .flatMap((courseModule) => courseModule.lessons)
+      .find((courseLesson) => courseLesson._id.toString() === query.lessonId);
+
+    if (!lesson) notFound();
+    if (lesson.lessonSlug) {
+      redirect(
+        `/courses/${encodeURIComponent(result.course.slug)}/${encodeURIComponent(lesson.lessonSlug)}`,
+      );
+    }
+
+    return (
+      <CourseDetail
+        slug={slug}
+        legacyLessonIdentifier={query.lessonId}
+        initialData={toCourseDetailInitialData(result)}
+      />
+    );
+  }
 
   const result = await getPublishedCourseOrNotFound(slug);
 
@@ -149,5 +236,29 @@ export default async function CourseDetailPage({
     })),
   };
 
-  return <CourseOverview data={courseOverview} />;
+  const canonicalUrl = getCanonicalCourseUrl(result.course.slug);
+  const thumbnail = getSafeThumbnail(result.course.thumbnail);
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Course",
+    name: courseOverview.course.title,
+    description: getMetaDescription(
+      courseOverview.course.shortDescription,
+      courseOverview.course.description,
+    ),
+    url: canonicalUrl,
+    ...(thumbnail ? { image: thumbnail } : {}),
+  };
+
+  return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c"),
+        }}
+      />
+      <CourseOverview data={courseOverview} />
+    </>
+  );
 }

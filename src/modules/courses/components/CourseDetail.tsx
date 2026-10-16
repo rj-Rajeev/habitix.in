@@ -31,6 +31,7 @@ type Course = {
 };
 
 type CourseResponse = { course: Course; modules: CourseModule[] };
+export type CourseDetailInitialData = CourseResponse;
 type CourseProgress = {
   completedLessonIds: string[];
   completedCount: number;
@@ -103,13 +104,15 @@ export default function CourseDetail({
   slug,
   lessonSlug,
   legacyLessonIdentifier,
+  initialData,
 }: {
   slug: string;
   lessonSlug?: string;
   legacyLessonIdentifier?: string;
+  initialData?: CourseDetailInitialData;
 }) {
-  const [data, setData] = useState<CourseResponse | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState<CourseResponse | null>(initialData ?? null);
+  const [loading, setLoading] = useState(!initialData);
   const [error, setError] = useState("");
   const [enrollment, setEnrollment] = useState<EnrollmentState | null>(null);
   const [enrolling, setEnrolling] = useState(false);
@@ -142,7 +145,15 @@ export default function CourseDetail({
     : false;
 
   useEffect(() => {
+    if (initialData) {
+      setData(initialData);
+      setError("");
+      setLoading(false);
+      return;
+    }
+
     let active = true;
+    setLoading(true);
     void loadCourse(slug)
       .then((result) => {
         if (!active) return;
@@ -162,7 +173,7 @@ export default function CourseDetail({
     return () => {
       active = false;
     };
-  }, [slug]);
+  }, [initialData, slug]);
 
   useEffect(() => {
     if (!data) return;

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ArrowRight, BookOpen, Loader2 } from "lucide-react";
 
-type Course = {
+export type CourseCatalogItem = {
   _id: string;
   title: string;
   slug: string;
@@ -13,22 +13,34 @@ type Course = {
   price: number;
 };
 
-async function loadCourses(): Promise<Course[]> {
+async function loadCourses(): Promise<CourseCatalogItem[]> {
   const response = await fetch("/api/courses");
   const payload = await response.json().catch(() => null);
   if (!response.ok || payload?.success === false) {
     throw new Error(payload?.error?.message || "Unable to load courses.");
   }
-  return (payload?.data ?? []) as Course[];
+  return (payload?.data ?? []) as CourseCatalogItem[];
 }
 
-export default function CourseCatalog() {
-  const [courses, setCourses] = useState<Course[]>([]);
-  const [loading, setLoading] = useState(true);
+export default function CourseCatalog({
+  initialCourses,
+}: {
+  initialCourses?: CourseCatalogItem[];
+}) {
+  const [courses, setCourses] = useState<CourseCatalogItem[]>(initialCourses ?? []);
+  const [loading, setLoading] = useState(initialCourses === undefined);
   const [error, setError] = useState("");
 
   useEffect(() => {
+    if (initialCourses !== undefined) {
+      setCourses(initialCourses);
+      setError("");
+      setLoading(false);
+      return;
+    }
+
     let active = true;
+    setLoading(true);
     void loadCourses()
       .then((items) => {
         if (active) setCourses(items);
@@ -43,7 +55,7 @@ export default function CourseCatalog() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [initialCourses]);
 
   return (
     <main className="min-h-[calc(100vh-80px)] bg-[#f6f7f9] px-4 py-12 sm:px-6 lg:px-8">

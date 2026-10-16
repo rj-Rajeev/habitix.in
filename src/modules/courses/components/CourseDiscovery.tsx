@@ -6,7 +6,7 @@ import { ArrowRight, BookOpen, Loader2 } from "lucide-react";
 import { Badge, Card } from "@/components/ui";
 import { Container, SectionHeader } from "@/components/layout";
 
-type Course = {
+export type CourseDiscoveryItem = {
   _id: string;
   title: string;
   slug: string;
@@ -15,22 +15,34 @@ type Course = {
   price: number;
 };
 
-async function loadCourses(): Promise<Course[]> {
+async function loadCourses(): Promise<CourseDiscoveryItem[]> {
   const response = await fetch("/api/courses");
   const payload = await response.json().catch(() => null);
   if (!response.ok || payload?.success === false) {
     throw new Error(payload?.error?.message || "Unable to load courses.");
   }
-  return (payload?.data ?? []) as Course[];
+  return (payload?.data ?? []) as CourseDiscoveryItem[];
 }
 
-export default function CourseDiscovery() {
-  const [courses, setCourses] = useState<Course[]>([]);
-  const [loading, setLoading] = useState(true);
+export default function CourseDiscovery({
+  initialCourses,
+}: {
+  initialCourses?: CourseDiscoveryItem[];
+}) {
+  const [courses, setCourses] = useState<CourseDiscoveryItem[]>(initialCourses ?? []);
+  const [loading, setLoading] = useState(initialCourses === undefined);
   const [error, setError] = useState("");
 
   useEffect(() => {
+    if (initialCourses !== undefined) {
+      setCourses(initialCourses);
+      setError("");
+      setLoading(false);
+      return;
+    }
+
     let active = true;
+    setLoading(true);
     void loadCourses()
       .then((items) => {
         if (active) setCourses(items.slice(0, 4));
@@ -44,7 +56,7 @@ export default function CourseDiscovery() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [initialCourses]);
 
   return (
     <section className="border-y border-border bg-surface py-20 sm:py-28">
@@ -60,7 +72,7 @@ export default function CourseDiscovery() {
   );
 }
 
-function CourseCard({ course }: { course: Course }) {
+function CourseCard({ course }: { course: CourseDiscoveryItem }) {
   return (
     <Link href={`/courses/${encodeURIComponent(course.slug)}`} className="group block h-full focus-visible:outline-none">
       <Card className="flex h-full flex-col overflow-hidden transition-transform duration-180 group-hover:-translate-y-0.5 group-focus-visible:-translate-y-0.5">
