@@ -65,6 +65,7 @@ export default function LayoutWrapper({
         style={{
           paddingTop: hideLayout ? 0 : "80px",
           "--app-shell-top-offset": hideLayout ? "0px" : "70px",
+          "--app-shell-content-top-inset": hideLayout ? "0px" : "80px",
         } as React.CSSProperties}
       >
         {children}

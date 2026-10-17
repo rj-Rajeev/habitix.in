@@ -7,10 +7,12 @@ import { Menu } from "lucide-react";
 import AppSidebar from "./AppSidebar";
 import AppNavigationDrawer from "./AppNavigationDrawer";
 import { useAppSidebarPreference } from "./AppSidebarPreferenceProvider";
-import { appNavigationItems, isAppNavigationItemActive } from "./navigation";
+import { getNavigationItems, isNavigationItemActive } from "@/config/navigation";
+import { navigationIcons } from "./navigation-icons";
 
 type AppShellProps = {
   title?: string;
+  titleAs?: "h1" | "span";
   eyebrow?: string;
   action?: ReactNode;
   children: ReactNode;
@@ -18,10 +20,13 @@ type AppShellProps = {
 
 export default function AppShell({
   title,
+  titleAs = "h1",
   eyebrow,
   action,
   children,
 }: AppShellProps) {
+  const TitleElement = titleAs;
+  const mobileNavigationItems = getNavigationItems("mobileBottomBar");
   const pathname = usePathname();
   const { collapsed: sidebarCollapsed, setCollapsed } = useAppSidebarPreference();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -41,7 +46,18 @@ export default function AppShell({
   }, [closeMobileMenu, isAdminRoute]);
 
   return (
-    <div className="min-h-[100dvh] bg-background text-text-primary">
+    <div
+      className={`min-h-[100dvh] bg-background text-text-primary ${
+        isAdminRoute
+          ? ""
+          : "md:grid md:transition-[grid-template-columns] md:duration-[250ms] md:ease-in-out"
+      }`}
+      style={isAdminRoute ? undefined : {
+        gridTemplateColumns: sidebarCollapsed
+          ? "5rem minmax(0, 1fr)"
+          : "16rem minmax(0, 1fr)",
+      }}
+    >
       {!isAdminRoute && (
         <AppSidebar
           collapsed={sidebarCollapsed}
@@ -49,13 +65,7 @@ export default function AppShell({
         />
       )}
       <div
-        className={`min-w-0 ${
-          isAdminRoute
-            ? ""
-            : `md:transition-[margin-left] md:duration-[250ms] md:ease-in-out ${
-                sidebarCollapsed ? "md:ml-20" : "md:ml-64"
-              }`
-        }`}
+        className="min-w-0"
       >
         {(title || action || !isAdminRoute) && (
           <header className="sticky top-0 z-30 border-b border-border/80 bg-background/95 px-4 pb-3 pt-4 backdrop-blur">
@@ -81,9 +91,9 @@ export default function AppShell({
                     </p>
                   )}
                   {title && (
-                    <h1 className="truncate text-xl font-semibold tracking-tight">
+                    <TitleElement className="truncate text-xl font-semibold tracking-tight">
                       {title}
-                    </h1>
+                    </TitleElement>
                   )}
                 </div>
               </div>
@@ -102,9 +112,9 @@ export default function AppShell({
         }`}
       >
         <div className="mx-auto grid max-w-3xl grid-cols-5 gap-1">
-          {appNavigationItems.map((item) => {
-            const Icon = item.icon;
-            const active = isAppNavigationItemActive(pathname, item.href);
+          {mobileNavigationItems.map((item) => {
+            const Icon = item.icon ? navigationIcons[item.icon] : null;
+            const active = isNavigationItemActive(pathname, item.id, "mobileBottomBar");
 
             return (
               <Link
@@ -117,7 +127,7 @@ export default function AppShell({
                     : "text-text-muted hover:bg-surface-subtle hover:text-text-primary"
                 }`}
               >
-                <Icon className="h-4 w-4" />
+                {Icon && <Icon aria-hidden="true" className="h-4 w-4" />}
                 {item.label}
               </Link>
             );

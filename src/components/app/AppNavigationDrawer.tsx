@@ -4,7 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState, type RefObject } from "react";
 import { X } from "lucide-react";
-import { appNavigationItems, isAppNavigationItemActive } from "./navigation";
+import { getNavigationItems, isNavigationItemActive } from "@/config/navigation";
+import { navigationIcons } from "./navigation-icons";
 
 const DRAWER_TRANSITION_MS = 250;
 
@@ -20,6 +21,7 @@ export default function AppNavigationDrawer({
   triggerRef,
 }: AppNavigationDrawerProps) {
   const pathname = usePathname();
+  const drawerItems = getNavigationItems("mobileDrawer");
   const dialogRef = useRef<HTMLElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const [mounted, setMounted] = useState(open);
@@ -134,9 +136,9 @@ export default function AppNavigationDrawer({
 
         <nav aria-label="Application">
           <ul className="space-y-2">
-            {appNavigationItems.map((item) => {
-              const Icon = item.icon;
-              const active = isAppNavigationItemActive(pathname, item.href);
+            {drawerItems.map((item) => {
+              const Icon = item.icon ? navigationIcons[item.icon] : null;
+              const active = isNavigationItemActive(pathname, item.id, "mobileDrawer");
 
               return (
                 <li key={item.href}>
@@ -150,7 +152,7 @@ export default function AppNavigationDrawer({
                         : "text-text-secondary hover:bg-surface-subtle hover:text-text-primary"
                     }`}
                   >
-                    <Icon aria-hidden="true" className="h-5 w-5 shrink-0" />
+                    {Icon && <Icon aria-hidden="true" className="h-5 w-5 shrink-0" />}
                     <span>{item.label}</span>
                   </Link>
                 </li>

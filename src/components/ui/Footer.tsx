@@ -8,21 +8,18 @@ import {
 } from "@mui/material";
 import { Check } from "@mui/icons-material";
 import Link from "next/link";
+import { getNavigationItems, getNavigationLabel } from "@/config/navigation";
 
 export default function Footer() {
+  const footerLinks = getNavigationItems("publicFooter");
   const footerSections = [
     {
       title: "Product",
-      links: [
-        { label: "Features", href: "/features" },
-        { label: "Download", href: "/download" },
-      ],
+      links: footerLinks.filter((link) => link.group === "marketing"),
     },
     {
       title: "Support",
-      links: [
-        { label: "Privacy Policy", href: "/privacy-policy" },
-      ],
+      links: footerLinks.filter((link) => link.group === "support"),
     },
   ];
 
@@ -84,8 +81,8 @@ export default function Footer() {
           </Grid>
 
           {/* Footer Links */}
-          {footerSections.map((section, index) => (
-            <Grid size={{ xs: 6, sm: 6, md: 2 }} key={index}>
+          {footerSections.map((section) => (
+            <Grid size={{ xs: 6, sm: 6, md: 2 }} key={section.title}>
               <Typography
                 variant="h6"
                 sx={{
@@ -98,10 +95,11 @@ export default function Footer() {
                 {section.title}
               </Typography>
               <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                {section.links.map((link,id) => (
+                {section.links.map((link) => (
                   <Button
-                    {...(link.href ? { component: Link, href: link.href } : {})}
-                    key={id}
+                    component={Link}
+                    href={link.href}
+                    key={link.id}
                     sx={{
                       color: "#9ca3af",
                       justifyContent: "flex-start",
@@ -115,7 +113,7 @@ export default function Footer() {
                       },
                     }}
                   >
-                    {link.label}
+                    {getNavigationLabel(link, "publicFooter")}
                   </Button>
                 ))}
               </Box>

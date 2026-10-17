@@ -24,6 +24,11 @@ import {
 import { Check, Menu as MenuIcon, Close } from "@mui/icons-material";
 import Link from "next/link";
 import { useSession, signOut } from "next-auth/react";
+import {
+  getNavigationItem,
+  getNavigationItems,
+  getNavigationLabel,
+} from "@/config/navigation";
 
 export default function Navbar() {
   const theme = useTheme();
@@ -31,6 +36,10 @@ export default function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const { data: session } = useSession();
+  const navItems = getNavigationItems("publicNavbar");
+  const homeItem = getNavigationItem("home");
+  const signInItem = getNavigationItem("sign-in");
+  const getStartedItem = getNavigationItem("get-started");
 
   // Profile dropdown
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
@@ -41,12 +50,6 @@ export default function Navbar() {
   };
 
   const handleClose = () => setAnchorEl(null);
-
-  const navItems = [
-    { label: "Product", href: "/features" },
-    { label: "Courses", href: "/courses" },
-    { label: "How it works", href: "/#how-it-works" },
-  ];
 
   return (
     <>
@@ -62,7 +65,7 @@ export default function Navbar() {
           <Toolbar sx={{ justifyContent: "space-between", minHeight: 70 }}>
 
             {/* 🔷 Logo */}
-            <Link href="/" style={{ textDecoration: "none" }}>
+            <Link href={homeItem.href} style={{ textDecoration: "none" }} aria-label="Habitix home">
               <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
                 <Box
                   sx={{
@@ -92,7 +95,7 @@ export default function Navbar() {
                 {/* Nav Links */}
                 {navItems.map((item) => (
                   <Button
-                    key={item.label}
+                    key={item.id}
                     component={Link}
                     href={item.href}
                     sx={{
@@ -104,7 +107,7 @@ export default function Navbar() {
                       },
                     }}
                   >
-                    {item.label}
+                    {getNavigationLabel(item, "publicNavbar")}
                   </Button>
                 ))}
 
@@ -149,14 +152,14 @@ export default function Navbar() {
                   <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                     <Button
                       component={Link}
-                      href="/signin"
+                      href={signInItem.href}
                       sx={{ textTransform: "none", color: "var(--text-secondary)" }}
                     >
-                      Sign in
+                      {getNavigationLabel(signInItem, "publicAuth")}
                     </Button>
                     <Button
                       component={Link}
-                      href="/signup"
+                      href={getStartedItem.href}
                       sx={{
                         bgcolor: "var(--brand-primary)",
                         color: "white",
@@ -166,7 +169,7 @@ export default function Navbar() {
                         "&:hover": { bgcolor: "var(--brand-primary-hover)" },
                       }}
                     >
-                      Get Started
+                      {getNavigationLabel(getStartedItem, "publicAuth")}
                     </Button>
                   </Box>
                 )}
@@ -175,7 +178,7 @@ export default function Navbar() {
 
             {/* 🔷 Mobile */}
             {isMobile && (
-              <IconButton onClick={() => setMobileMenuOpen(true)}>
+              <IconButton aria-label="Open public navigation" onClick={() => setMobileMenuOpen(true)}>
                 <MenuIcon />
               </IconButton>
             )}
@@ -212,7 +215,7 @@ export default function Navbar() {
               }}
             >
               <Typography fontWeight={700}>Menu</Typography>
-              <IconButton onClick={() => setMobileMenuOpen(false)}>
+              <IconButton aria-label="Close public navigation" onClick={() => setMobileMenuOpen(false)}>
                 <Close />
               </IconButton>
             </Box>
@@ -256,13 +259,13 @@ export default function Navbar() {
             {/* 🔷 Nav Items */}
             <List>
               {navItems.map((item) => (
-                <ListItem key={item.label} disablePadding>
+                <ListItem key={item.id} disablePadding>
                   <ListItemButton
                     component={Link}
                     href={item.href}
                     onClick={() => setMobileMenuOpen(false)}
                   >
-                    <ListItemText primary={item.label} />
+                    <ListItemText primary={getNavigationLabel(item, "publicNavbar")} />
                   </ListItemButton>
                 </ListItem>
               ))}
@@ -286,15 +289,26 @@ export default function Navbar() {
                 Logout
               </Button>
             ) : (
-              <Button
-                fullWidth
-                component={Link}
-                href="/signin"
-                variant="contained"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                Sign In
-              </Button>
+              <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+                <Button
+                  fullWidth
+                  component={Link}
+                  href={signInItem.href}
+                  variant="contained"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  {getNavigationLabel(signInItem, "publicAuth")}
+                </Button>
+                <Button
+                  fullWidth
+                  component={Link}
+                  href={getStartedItem.href}
+                  variant="outlined"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  {getNavigationLabel(getStartedItem, "publicAuth")}
+                </Button>
+              </Box>
             )}
           </Box>
 
