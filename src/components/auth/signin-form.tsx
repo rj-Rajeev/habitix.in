@@ -3,18 +3,40 @@
 import type React from "react";
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { signIn as nextAuthSignIn } from "next-auth/react";
 import { Check, Eye, EyeOff, Github, Loader2 } from "lucide-react";
 import { Alert, Card } from "@/components/ui";
 import { Container } from "@/components/layout";
 
+function getSafeCallbackUrl() {
+  const callbackUrl = new URLSearchParams(window.location.search).get("callbackUrl");
+  if (!callbackUrl) return "/dashboard";
+
+  try {
+    const destination = new URL(callbackUrl, window.location.origin);
+    const isAuthenticationRoute = ["/signin", "/signup", "/login", "/api/auth"].some(
+      (route) => destination.pathname === route || destination.pathname.startsWith(`${route}/`),
+    );
+
+    if (
+      destination.origin !== window.location.origin ||
+      destination.username ||
+      destination.password ||
+      isAuthenticationRoute
+    ) {
+      return "/dashboard";
+    }
+
+    return `${destination.pathname}${destination.search}${destination.hash}`;
+  } catch {
+    return "/dashboard";
+  }
+}
+
 export default function SignInPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
-  const router = useRouter();
-
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const form = new FormData(e.currentTarget);
@@ -30,9 +52,15 @@ export default function SignInPage() {
     setError("");
 
     try {
-      const res = await nextAuthSignIn("credentials", { email, password, redirect: false });
+      const callbackUrl = getSafeCallbackUrl();
+      const res = await nextAuthSignIn("credentials", {
+        email,
+        password,
+        callbackUrl,
+        redirect: false,
+      });
       if (res?.ok) {
-        router.push("/dashboard");
+        window.location.assign(callbackUrl);
         return;
       }
       setError("Invalid email or password");
@@ -47,7 +75,7 @@ export default function SignInPage() {
     setIsLoading(true);
     setError("");
     try {
-      await nextAuthSignIn(provider, { callbackUrl: "/dashboard" });
+      await nextAuthSignIn(provider, { callbackUrl: getSafeCallbackUrl() });
     } catch {
       setError("Unable to sign in with this provider right now.");
     } finally {

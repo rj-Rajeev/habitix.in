@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getServerSession } from "next-auth";
+import { redirect } from "next/navigation";
 import { ArrowRight, Check, CheckCircle2, Compass, ListChecks, Sparkles, Target, TrendingUp } from "lucide-react";
 import { connectDb } from "@/lib/db";
 import { authOptions } from "@/modules/auth/config/next-auth-options";
@@ -55,6 +56,8 @@ function ProductPreview() {
 
 export default async function HabitixLanding() {
   const session = await getServerSession(authOptions);
+  if (session?.user) redirect("/dashboard");
+
   let initialCourses: CourseDiscoveryItem[] | undefined;
 
   try {
