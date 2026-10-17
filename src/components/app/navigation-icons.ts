@@ -1,4 +1,5 @@
 import {
+  Activity,
   BarChart3,
   BookOpen,
   CalendarCheck,
@@ -12,6 +13,7 @@ import {
 import type { NavigationIconName } from "@/config/navigation";
 
 export const navigationIcons: Record<NavigationIconName, LucideIcon> = {
+  Activity,
   BarChart3,
   BookOpen,
   CalendarCheck,

@@ -35,7 +35,7 @@ export default function AppShell({
   const mobileNavigationItems = getNavigationItems("mobileBottomBar");
   const pathname = usePathname();
   const { collapsed: sidebarCollapsed, setCollapsed } = useAppSidebarPreference();
-  const { open: mobileMenuOpen, openDrawer, closeDrawer, triggerRef, hasPublicNavbar } = useAppShellNavigation();
+  const { open: mobileMenuOpen, toggleDrawer, closeDrawer, triggerRef, hasPublicNavbar } = useAppShellNavigation();
   const isAdminRoute = pathname === "/admin" || pathname.startsWith("/admin/");
 
   useEffect(() => {
@@ -72,18 +72,19 @@ export default function AppShell({
         className="min-w-0"
       >
         {(title || action || !isAdminRoute) && !(hideHeaderTitle && hasPublicNavbar && !title && !action) && (
-          <header className={`sticky top-0 z-30 border-b border-border/80 bg-background/95 backdrop-blur ${hideHeaderTitle ? "px-4 py-1 md:hidden" : "px-4 pb-3 pt-4"}`}>
+          <header className={`sticky top-0 ${mobileMenuOpen && !hasPublicNavbar ? "z-[60] pointer-events-none" : "z-30"} border-b border-border/80 bg-background/95 backdrop-blur ${hideHeaderTitle ? "px-4 py-1 md:hidden" : "px-4 pb-3 pt-4"}`}>
             <div className="mx-auto flex max-w-3xl items-center justify-between gap-4">
               <div className="flex min-w-0 items-center gap-3">
                 {!isAdminRoute && !hasPublicNavbar && (
                   <button
                     ref={triggerRef}
                     type="button"
-                    onClick={openDrawer}
-                    aria-label="Open navigation menu"
+                    onClick={toggleDrawer}
+                    aria-label={mobileMenuOpen ? "Close navigation menu" : "Open navigation menu"}
                     aria-haspopup="dialog"
                     aria-expanded={mobileMenuOpen}
-                    className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-text-secondary hover:bg-surface-subtle hover:text-text-primary md:hidden"
+                    aria-controls="mobile-app-navigation"
+                    className="relative z-[61] flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-text-secondary hover:bg-surface-subtle hover:text-text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-primary md:hidden"
                   >
                     <Menu aria-hidden="true" className="h-5 w-5" />
                   </button>

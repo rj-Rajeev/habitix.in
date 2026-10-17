@@ -32,7 +32,7 @@ export default function LayoutWrapper({
   const appDrawerTriggerRef = useRef<HTMLButtonElement>(null);
   const previousPathnameRef = useRef(pathname);
   const [appDrawerOpen, setAppDrawerOpen] = useState(false);
-  const openAppDrawer = useCallback(() => setAppDrawerOpen(true), []);
+  const toggleAppDrawer = useCallback(() => setAppDrawerOpen((open) => !open), []);
   const closeAppDrawer = useCallback(() => setAppDrawerOpen(false), []);
     // Define all paths where layout should be hidden
   const hideLayoutPaths = [
@@ -89,7 +89,7 @@ export default function LayoutWrapper({
 
   const navigationContextValue: AppShellNavigationContextValue = {
     open: appDrawerOpen,
-    openDrawer: openAppDrawer,
+    toggleDrawer: toggleAppDrawer,
     closeDrawer: closeAppDrawer,
     triggerRef: appDrawerTriggerRef,
     hasPublicNavbar: !hideLayout,
@@ -100,6 +100,7 @@ export default function LayoutWrapper({
     <AppShellNavigationContext.Provider value={navigationContextValue}>
       {!hideLayout && <Navbar />}
       <main
+        inert={appDrawerOpen && !hideLayout}
         ref={mainRef}
         style={{
           paddingTop: hideLayout ? 0 : "80px",
@@ -109,7 +110,7 @@ export default function LayoutWrapper({
       >
         {children}
       </main>
-      {!hideLayout && <Footer />}
+      {!hideLayout && <div inert={appDrawerOpen}><Footer /></div>}
       {!hideAdminLayout && <AppNavigationDrawer open={appDrawerOpen} onClose={closeAppDrawer} triggerRef={appDrawerTriggerRef} />}
     </AppShellNavigationContext.Provider>
   );

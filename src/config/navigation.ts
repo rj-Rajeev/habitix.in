@@ -1,4 +1,5 @@
 export type NavigationIconName =
+  | "Activity"
   | "BarChart3"
   | "BookOpen"
   | "CalendarCheck"
@@ -78,7 +79,8 @@ export const navigationConfig: readonly NavigationItemConfig[] = [
     activeMatch: "section",
     surfaces: {
       publicNavbar: { order: 2 },
-      desktopSidebar: { order: 5 },
+      desktopSidebar: { order: 6 },
+      mobileDrawer: { order: 6 },
       mobileMore: { order: 1 },
       morePage: { order: 1 },
     },
@@ -124,6 +126,18 @@ export const navigationConfig: readonly NavigationItemConfig[] = [
     surfaces: { publicFooter: { order: 1 } },
   },
   {
+    id: "dashboard",
+    label: "Dashboard",
+    href: "/dashboard",
+    icon: "Activity",
+    group: "primary",
+    activeMatch: "section",
+    surfaces: {
+      desktopSidebar: { order: 1 },
+      mobileDrawer: { order: 1 },
+    },
+  },
+  {
     id: "today",
     label: "Today",
     href: "/today",
@@ -131,9 +145,9 @@ export const navigationConfig: readonly NavigationItemConfig[] = [
     group: "primary",
     activeMatch: "exact",
     surfaces: {
-      desktopSidebar: { order: 1 },
+      desktopSidebar: { order: 2 },
       mobileBottomBar: { order: 1 },
-      mobileDrawer: { order: 1 },
+      mobileDrawer: { order: 2 },
     },
   },
   {
@@ -144,9 +158,9 @@ export const navigationConfig: readonly NavigationItemConfig[] = [
     group: "primary",
     activeMatch: "section",
     surfaces: {
-      desktopSidebar: { order: 2 },
+      desktopSidebar: { order: 3 },
       mobileBottomBar: { order: 2 },
-      mobileDrawer: { order: 2 },
+      mobileDrawer: { order: 3 },
     },
   },
   {
@@ -157,9 +171,9 @@ export const navigationConfig: readonly NavigationItemConfig[] = [
     group: "insights",
     activeMatch: "section",
     surfaces: {
-      desktopSidebar: { order: 3 },
+      desktopSidebar: { order: 4 },
       mobileBottomBar: { order: 3 },
-      mobileDrawer: { order: 3 },
+      mobileDrawer: { order: 4 },
       morePage: { order: 5, label: "Performance" },
     },
   },
@@ -171,9 +185,9 @@ export const navigationConfig: readonly NavigationItemConfig[] = [
     group: "insights",
     activeMatch: "section",
     surfaces: {
-      desktopSidebar: { order: 4 },
+      desktopSidebar: { order: 5 },
       mobileBottomBar: { order: 4 },
-      mobileDrawer: { order: 4 },
+      mobileDrawer: { order: 5 },
       morePage: { order: 6, label: "Recommendations" },
     },
   },
@@ -185,9 +199,9 @@ export const navigationConfig: readonly NavigationItemConfig[] = [
     group: "primary",
     activeMatch: "exact",
     surfaces: {
-      desktopSidebar: { order: 6 },
+      desktopSidebar: { order: 7 },
       mobileBottomBar: { order: 5 },
-      mobileDrawer: { order: 5 },
+      mobileDrawer: { order: 7 },
     },
   },
   {

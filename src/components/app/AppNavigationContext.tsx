@@ -4,7 +4,7 @@ import { createContext, useContext, type RefObject } from "react";
 
 export type AppShellNavigationContextValue = {
   open: boolean;
-  openDrawer: () => void;
+  toggleDrawer: () => void;
   closeDrawer: () => void;
   triggerRef: RefObject<HTMLButtonElement | null>;
   hasPublicNavbar: boolean;

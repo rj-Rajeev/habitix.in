@@ -39,7 +39,7 @@ export default function Navbar() {
   const {
     isAppShellRoute,
     open: appNavigationOpen,
-    openDrawer: openAppNavigation,
+    toggleDrawer: toggleAppNavigation,
     triggerRef: appNavigationTriggerRef,
   } = useAppShellNavigation();
   const isMobile = useMediaQuery(
@@ -74,7 +74,7 @@ export default function Navbar() {
           <Toolbar sx={{ justifyContent: "space-between", minHeight: 70 }}>
 
             {/* 🔷 Logo */}
-            <Link href={homeItem.href} style={{ textDecoration: "none" }} aria-label="Habitix home">
+            <Link href={homeItem.href} style={{ textDecoration: "none" }} aria-label="Habitix home" inert={isAppShellRoute && appNavigationOpen}>
               <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
                 <Box
                   sx={{
@@ -189,10 +189,11 @@ export default function Navbar() {
             {isMobile && (
               <IconButton
                 ref={isAppShellRoute ? appNavigationTriggerRef : undefined}
-                aria-label={isAppShellRoute ? "Open navigation menu" : "Open public navigation"}
+                aria-label={isAppShellRoute ? (appNavigationOpen ? "Close navigation menu" : "Open navigation menu") : "Open public navigation"}
                 aria-haspopup="dialog"
+                aria-controls={isAppShellRoute ? "mobile-app-navigation" : undefined}
                 aria-expanded={isAppShellRoute ? appNavigationOpen : mobileMenuOpen}
-                onClick={() => isAppShellRoute ? openAppNavigation() : setMobileMenuOpen(true)}
+                onClick={() => isAppShellRoute ? toggleAppNavigation() : setMobileMenuOpen(true)}
               >
                 <MenuIcon />
               </IconButton>
