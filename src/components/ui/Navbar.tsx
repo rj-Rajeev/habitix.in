@@ -29,13 +29,22 @@ import {
   getNavigationItems,
   getNavigationLabel,
 } from "@/config/navigation";
+import { useAppShellNavigation } from "@/components/app/AppNavigationContext";
 
 export default function Navbar() {
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const { data: session } = useSession();
+  const {
+    isAppShellRoute,
+    open: appNavigationOpen,
+    openDrawer: openAppNavigation,
+    triggerRef: appNavigationTriggerRef,
+  } = useAppShellNavigation();
+  const isMobile = useMediaQuery(
+    isAppShellRoute ? "(max-width: 767px)" : theme.breakpoints.down("md")
+  );
   const navItems = getNavigationItems("publicNavbar");
   const homeItem = getNavigationItem("home");
   const signInItem = getNavigationItem("sign-in");
@@ -178,7 +187,13 @@ export default function Navbar() {
 
             {/* 🔷 Mobile */}
             {isMobile && (
-              <IconButton aria-label="Open public navigation" onClick={() => setMobileMenuOpen(true)}>
+              <IconButton
+                ref={isAppShellRoute ? appNavigationTriggerRef : undefined}
+                aria-label={isAppShellRoute ? "Open navigation menu" : "Open public navigation"}
+                aria-haspopup="dialog"
+                aria-expanded={isAppShellRoute ? appNavigationOpen : mobileMenuOpen}
+                onClick={() => isAppShellRoute ? openAppNavigation() : setMobileMenuOpen(true)}
+              >
                 <MenuIcon />
               </IconButton>
             )}
@@ -189,7 +204,7 @@ export default function Navbar() {
       {/* 🔷 Mobile Drawer */}
       <Drawer
         anchor="right"
-        open={mobileMenuOpen}
+        open={!isAppShellRoute && mobileMenuOpen}
         onClose={() => setMobileMenuOpen(false)}
       >
         <Box

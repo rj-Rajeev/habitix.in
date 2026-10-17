@@ -19,7 +19,7 @@ type Props = {
   onReveal?: (taskId: string) => void;
 };
 
-const REVISION_OPTIONS = [
+export const REVISION_OPTIONS = [
   { key: "1h", label: "1h" },
   { key: "3h", label: "3h" },
   { key: "tomorrow", label: "Tomorrow" },

@@ -2,11 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 import { Menu } from "lucide-react";
 import AppSidebar from "./AppSidebar";
-import AppNavigationDrawer from "./AppNavigationDrawer";
 import { useAppSidebarPreference } from "./AppSidebarPreferenceProvider";
+import { useAppShellNavigation } from "./AppNavigationContext";
 import { getNavigationItems, isNavigationItemActive } from "@/config/navigation";
 import { navigationIcons } from "./navigation-icons";
 
@@ -15,6 +15,9 @@ type AppShellProps = {
   titleAs?: "h1" | "span";
   eyebrow?: string;
   action?: ReactNode;
+  contentClassName?: string;
+  hideHeaderTitle?: boolean;
+  compactContentTop?: boolean;
   children: ReactNode;
 };
 
@@ -23,27 +26,28 @@ export default function AppShell({
   titleAs = "h1",
   eyebrow,
   action,
+  contentClassName,
+  hideHeaderTitle = false,
+  compactContentTop = false,
   children,
 }: AppShellProps) {
   const TitleElement = titleAs;
   const mobileNavigationItems = getNavigationItems("mobileBottomBar");
   const pathname = usePathname();
   const { collapsed: sidebarCollapsed, setCollapsed } = useAppSidebarPreference();
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const mobileMenuTriggerRef = useRef<HTMLButtonElement>(null);
+  const { open: mobileMenuOpen, openDrawer, closeDrawer, triggerRef, hasPublicNavbar } = useAppShellNavigation();
   const isAdminRoute = pathname === "/admin" || pathname.startsWith("/admin/");
-  const closeMobileMenu = useCallback(() => setMobileMenuOpen(false), []);
 
   useEffect(() => {
     if (isAdminRoute) return;
 
     const desktopViewport = window.matchMedia("(min-width: 768px)");
     const closeOnDesktop = (event: MediaQueryListEvent) => {
-      if (event.matches) closeMobileMenu();
+      if (event.matches) closeDrawer();
     };
     desktopViewport.addEventListener("change", closeOnDesktop);
     return () => desktopViewport.removeEventListener("change", closeOnDesktop);
-  }, [closeMobileMenu, isAdminRoute]);
+  }, [closeDrawer, isAdminRoute]);
 
   return (
     <div
@@ -67,15 +71,15 @@ export default function AppShell({
       <div
         className="min-w-0"
       >
-        {(title || action || !isAdminRoute) && (
-          <header className="sticky top-0 z-30 border-b border-border/80 bg-background/95 px-4 pb-3 pt-4 backdrop-blur">
+        {(title || action || !isAdminRoute) && !(hideHeaderTitle && hasPublicNavbar && !title && !action) && (
+          <header className={`sticky top-0 z-30 border-b border-border/80 bg-background/95 backdrop-blur ${hideHeaderTitle ? "px-4 py-1 md:hidden" : "px-4 pb-3 pt-4"}`}>
             <div className="mx-auto flex max-w-3xl items-center justify-between gap-4">
               <div className="flex min-w-0 items-center gap-3">
-                {!isAdminRoute && (
+                {!isAdminRoute && !hasPublicNavbar && (
                   <button
-                    ref={mobileMenuTriggerRef}
+                    ref={triggerRef}
                     type="button"
-                    onClick={() => setMobileMenuOpen(true)}
+                    onClick={openDrawer}
                     aria-label="Open navigation menu"
                     aria-haspopup="dialog"
                     aria-expanded={mobileMenuOpen}
@@ -84,7 +88,7 @@ export default function AppShell({
                     <Menu aria-hidden="true" className="h-5 w-5" />
                   </button>
                 )}
-                <div className="min-w-0">
+                {!hideHeaderTitle && <div className="min-w-0">
                   {eyebrow && (
                     <p className="text-xs font-semibold uppercase tracking-wide text-brand-primary">
                       {eyebrow}
@@ -95,14 +99,14 @@ export default function AppShell({
                       {title}
                     </TitleElement>
                   )}
-                </div>
+                </div>}
               </div>
               {action}
             </div>
           </header>
         )}
 
-        <main className="mx-auto max-w-3xl px-4 pb-28 pt-4">{children}</main>
+        <main className={`mx-auto w-full px-4 pb-28 ${compactContentTop ? "pt-2 sm:pt-3" : "pt-4"} ${contentClassName ?? "max-w-3xl"}`}>{children}</main>
       </div>
 
       <nav
@@ -134,13 +138,6 @@ export default function AppShell({
           })}
         </div>
       </nav>
-      {!isAdminRoute && (
-        <AppNavigationDrawer
-          open={mobileMenuOpen}
-          onClose={closeMobileMenu}
-          triggerRef={mobileMenuTriggerRef}
-        />
-      )}
     </div>
   );
 }

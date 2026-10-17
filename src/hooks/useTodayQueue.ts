@@ -12,6 +12,17 @@ async function responseError(res: Response, fallback: string) {
   return payload?.error?.message || payload?.message || fallback;
 }
 
+export async function completeTodayTask(taskId: string, revision?: string) {
+  const res = await fetch(`/api/v1/tasks/${taskId}/complete`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      scheduleRevision: revision ?? "none",
+    }),
+  });
+  if (!res.ok) throw new Error(await responseError(res, "Failed to complete task"));
+}
+
 export function useTodayQueue() {
   const timezone = getBrowserTimezone();
   const [queue, setQueue] = useState<TodayQueue | null>(null);
@@ -43,14 +54,7 @@ export function useTodayQueue() {
   }, [fetchQueue]);
 
   const completeTask = async (taskId: string, revision?: string) => {
-    const res = await fetch(`/api/v1/tasks/${taskId}/complete`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        scheduleRevision: revision ?? "none",
-      }),
-    });
-    if (!res.ok) throw new Error(await responseError(res, "Failed to complete task"));
+    await completeTodayTask(taskId, revision);
     await fetchQueue();
   };
 

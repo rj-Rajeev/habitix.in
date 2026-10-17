@@ -121,6 +121,18 @@ function mapPopulatedTask(doc: any): TaskLean {
 }
 
 export const taskRepository = {
+  async findDisplayDetailsByIdsForUser(taskIds: string[], userId: string) {
+    const validIds = [...new Set(taskIds.filter((id) => Types.ObjectId.isValid(id)))];
+    if (validIds.length === 0) return [];
+
+    return Task.find({
+      _id: { $in: validIds.map((id) => new Types.ObjectId(id)) },
+      userId: new Types.ObjectId(userId),
+    })
+      .select("_id topic goalId")
+      .lean<{ _id: Types.ObjectId; topic?: string; goalId: Types.ObjectId }[]>();
+  },
+
   async findByIdForUser(taskId: string, userId: string, session?: ClientSession) {
     const query = Task.findOne({
       _id: new Types.ObjectId(taskId),

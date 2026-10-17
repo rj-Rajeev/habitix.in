@@ -1,4 +1,4 @@
-import { ClientSession } from "mongoose";
+import { ClientSession, Types } from "mongoose";
 import { Goal, IGoal, IRoadmapDay, IRoadmapTask } from "./goal.model";
 
 /** Determine Course Goal policy from the persisted Goal record, including legacy roadmap markers. */
@@ -31,6 +31,17 @@ export function isManualGoalRecord(
 }
 
 export const goalRepository = {
+
+  async findIdsForUser(ids: string[], userId: string) {
+    const validIds = [...new Set(ids.filter((id) => Types.ObjectId.isValid(id)))];
+    if (validIds.length === 0) return [];
+    return Goal.find({
+      _id: { $in: validIds.map((id) => new Types.ObjectId(id)) },
+      userId,
+    })
+      .select("_id")
+      .lean<{ _id: Types.ObjectId }[]>();
+  },
 
   async findByIdForUser(id: string, userId: string, session?: ClientSession) {
     const query = Goal.findOne({ _id: id, userId });
