@@ -98,20 +98,23 @@ export default function LayoutWrapper({
 
   return (
     <AppShellNavigationContext.Provider value={navigationContextValue}>
-      {!hideLayout && <Navbar />}
-      <main
-        inert={appDrawerOpen && !hideLayout}
-        ref={mainRef}
-        style={{
-          paddingTop: hideLayout ? 0 : "80px",
-          "--app-shell-top-offset": hideLayout ? "0px" : "70px",
-          "--app-shell-content-top-inset": hideLayout ? "0px" : "80px",
-        } as React.CSSProperties}
-      >
-        {children}
-      </main>
-      {!hideLayout && <div inert={appDrawerOpen}><Footer /></div>}
-      {!hideAdminLayout && <AppNavigationDrawer open={appDrawerOpen} onClose={closeAppDrawer} triggerRef={appDrawerTriggerRef} />}
+      <div className="flex min-h-dvh flex-col">
+        {!hideLayout && <Navbar />}
+        <main
+          className="flex flex-1 flex-col"
+          inert={appDrawerOpen && !hideLayout}
+          ref={mainRef}
+          style={{
+            paddingTop: hideLayout ? 0 : "80px",
+            "--app-shell-top-offset": hideLayout ? "0px" : "70px",
+            "--app-shell-content-top-inset": hideLayout ? "0px" : "80px",
+          } as React.CSSProperties}
+        >
+          {children}
+        </main>
+        {!hideLayout && <div inert={appDrawerOpen}><Footer /></div>}
+        {!hideAdminLayout && <AppNavigationDrawer open={appDrawerOpen} onClose={closeAppDrawer} triggerRef={appDrawerTriggerRef} />}
+      </div>
     </AppShellNavigationContext.Provider>
   );
 }

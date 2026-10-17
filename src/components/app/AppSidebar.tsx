@@ -5,6 +5,8 @@ import { usePathname } from "next/navigation";
 import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { getNavigationItems, isNavigationItemActive } from "@/config/navigation";
 import { navigationIcons } from "./navigation-icons";
+import AppLogoutButton from "./AppLogoutButton";
+import AppUserIdentity from "./AppUserIdentity";
 
 type AppSidebarProps = {
   collapsed: boolean;
@@ -18,15 +20,15 @@ export default function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
   return (
     <aside
       aria-label="Main navigation"
-      className="sticky z-40 hidden w-full flex-col self-start border-r border-border bg-surface px-3 py-5 shadow-sm md:flex"
+      className="sticky z-40 hidden min-h-0 w-full flex-col self-stretch border-r border-border bg-surface px-3 py-5 shadow-sm md:flex"
       style={{
         top: "var(--app-shell-top-offset, 0px)",
-        height: "calc(100dvh - var(--app-shell-top-offset, 0px))",
+        maxHeight: "calc(100dvh - var(--app-shell-top-offset, 0px))",
         marginTop:
           "calc(var(--app-shell-top-offset, 0px) - var(--app-shell-content-top-inset, 0px))",
       }}
     >
-      <div className="mb-6 flex items-center justify-end">
+      <div className="mb-4 flex items-center justify-end">
         <button
           type="button"
           onClick={onToggle}
@@ -44,8 +46,8 @@ export default function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
         </button>
       </div>
 
-      <nav id="app-sidebar-links" aria-label="Application" className="flex-1">
-        <ul className="space-y-2">
+      <nav id="app-sidebar-links" aria-label="Application" className="min-h-0 flex-1 overflow-y-auto">
+        <ul className="space-y-1.5">
           {sidebarItems.map((item) => {
             const Icon = item.icon ? navigationIcons[item.icon] : null;
             const active = isNavigationItemActive(pathname, item.id, "desktopSidebar");
@@ -57,7 +59,7 @@ export default function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
                   aria-label={collapsed ? item.label : undefined}
                   aria-current={active ? "page" : undefined}
                   title={collapsed ? item.label : undefined}
-                  className={`flex min-h-12 items-center gap-3 overflow-hidden rounded-xl px-3 text-sm font-medium transition ${
+                  className={`flex min-h-11 items-center gap-3 overflow-hidden rounded-xl px-3 text-sm font-medium transition ${
                     active
                       ? "bg-brand-primary text-white"
                       : "text-text-secondary hover:bg-surface-subtle hover:text-text-primary"
@@ -78,6 +80,10 @@ export default function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
           })}
         </ul>
       </nav>
+      <div className="mt-auto shrink-0 border-t border-border pt-2">
+        <AppLogoutButton collapsed={collapsed} />
+        <AppUserIdentity collapsed={collapsed} />
+      </div>
     </aside>
   );
 }

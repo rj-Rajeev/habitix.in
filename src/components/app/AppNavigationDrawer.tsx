@@ -6,6 +6,8 @@ import { useEffect, useRef, useState, type RefObject } from "react";
 import { X } from "lucide-react";
 import { getNavigationItems, isNavigationItemActive } from "@/config/navigation";
 import { navigationIcons } from "./navigation-icons";
+import AppLogoutButton from "./AppLogoutButton";
+import AppUserIdentity from "./AppUserIdentity";
 
 const DRAWER_TRANSITION_MS = 250;
 
@@ -115,7 +117,7 @@ export default function AppNavigationDrawer({
         aria-modal={open}
         aria-labelledby="app-navigation-title"
         tabIndex={-1}
-        className={`mr-auto flex h-full max-h-[100dvh] w-[min(22rem,calc(100vw-1rem))] flex-col overflow-y-auto border-r border-border bg-surface p-4 pt-20 shadow-xl transition-transform duration-[250ms] ease-out motion-reduce:transition-none ${
+        className={`mr-auto flex h-full min-h-0 max-h-[100dvh] w-[min(22rem,calc(100vw-1rem))] flex-col overflow-hidden border-r border-border bg-surface p-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-20 shadow-xl transition-transform duration-[250ms] ease-out motion-reduce:transition-none ${
           visible ? "translate-x-0" : "-translate-x-full"
         }`}
       >
@@ -134,7 +136,7 @@ export default function AppNavigationDrawer({
           </button>
         </div>
 
-        <nav aria-label="Application">
+        <nav aria-label="Application" className="min-h-0 flex-1 overflow-y-auto">
           <ul className="space-y-1">
             {drawerItems.map((item) => {
               const Icon = item.icon ? navigationIcons[item.icon] : null;
@@ -160,6 +162,10 @@ export default function AppNavigationDrawer({
             })}
           </ul>
         </nav>
+        <div className="mt-auto shrink-0 border-t border-border pt-2">
+          <AppLogoutButton onSignOut={onClose} />
+          <AppUserIdentity onNavigate={onClose} />
+        </div>
       </section>
     </div>
   );

@@ -9,7 +9,6 @@ import {
 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import AppShell from "@/components/app/AppShell";
-import LogoutButton from "@/components/auth/logout-btn";
 import TaskCard from "./TaskCard";
 import AddTaskModal from "./AddTaskModal";
 import AddGoalModal from "./AddGoalModal";
@@ -201,7 +200,6 @@ export default function TodayView() {
     <AppShell
       eyebrow={todayLabel}
       title={`Hi, ${userName}`}
-      action={<LogoutButton />}
     >
       <div className="space-y-8">
         <section className="rounded-container border border-border bg-surface p-5 shadow-[var(--shadow-sm)] sm:p-6">

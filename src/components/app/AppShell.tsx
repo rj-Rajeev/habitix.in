@@ -51,7 +51,7 @@ export default function AppShell({
 
   return (
     <div
-      className={`min-h-[100dvh] bg-background text-text-primary ${
+      className={`min-h-0 flex-1 bg-background text-text-primary ${
         isAdminRoute
           ? ""
           : "md:grid md:transition-[grid-template-columns] md:duration-[250ms] md:ease-in-out"
